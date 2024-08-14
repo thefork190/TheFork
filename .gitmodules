@@ -1,0 +1,6 @@
+[submodule "ThirdParty/flecs"]
+	path = ThirdParty/flecs
+	url = https://github.com/SanderMertens/flecs.git
+[submodule "ThirdParty/SDL"]
+	path = ThirdParty/SDL
+	url = https://github.com/libsdl-org/SDL
