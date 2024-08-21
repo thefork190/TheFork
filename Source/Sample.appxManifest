@@ -4,11 +4,11 @@
 	xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
 	IgnorableNamespaces="uap mp">
 
-	<Identity Name="39530109-D481-30A9-800E-D880CAA4D892" Publisher="CN=Ravbug" Version="1.0.0.0" />
+	<Identity Name="39530109-D481-30A9-800E-D880CAA4D892" Publisher="CN=Sharmoota" Version="1.0.0.0" />
 	<mp:PhoneIdentity PhoneProductId="39530109-D481-30A9-800E-D880CAA4D892" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 	<Properties>
 		<DisplayName>sdl-min</DisplayName>
-		<PublisherDisplayName>Ravbug</PublisherDisplayName>
+		<PublisherDisplayName>Sharmoota</PublisherDisplayName>
 		<Logo>logo50.png</Logo>
 	</Properties>
 	<Dependencies>

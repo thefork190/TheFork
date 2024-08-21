@@ -78,8 +78,8 @@ set_target_properties(${EXECUTABLE_NAME} PROPERTIES
     # in Xcode, create a Scheme in the schemes dropdown for the app.
     XCODE_GENERATE_SCHEME TRUE
     # Identification for Xcode
-    XCODE_ATTRIBUTE_BUNDLE_IDENTIFIER "com.ravbug.sdl3-sample"
-	XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.ravbug.sdl3-sample"
+    XCODE_ATTRIBUTE_BUNDLE_IDENTIFIER "com.sharmoota.the-fork"
+	XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.sharmoota.the-fork"
 	XCODE_ATTRIBUTE_CURRENTYEAR "${CURRENTYEAR}"
 )
 
