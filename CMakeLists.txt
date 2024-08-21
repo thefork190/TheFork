@@ -25,9 +25,9 @@ endif()
 
 target_sources(${EXECUTABLE_NAME} 
 PRIVATE 
-    src/Main.cpp
-    src/iosLaunchScreen.storyboard
-    src/Sample.appxManifest
+    Source/Main.cpp
+    Source/iosLaunchScreen.storyboard
+    Source/Sample.appxManifest
 )
 
 # What is iosLaunchScreen.storyboard? This file describes what Apple's mobile platforms
@@ -40,9 +40,9 @@ PRIVATE
 # applications, like splash screen and icon resolutions, which are required for the application to run. 
 # It is ignored on other platforms. Below, we add those images. 
 if (WINDOWS_STORE)
-    target_sources("${EXECUTABLE_NAME}" PRIVATE "src/logo44.png" "src/logo150.png" "src/logo50.png" "src/logo620x300.png")
+    target_sources("${EXECUTABLE_NAME}" PRIVATE "Source/logo44.png" "Source/logo150.png" "Source/logo50.png" "Source/logo620x300.png")
 elseif(APPLE)
-    target_sources("${EXECUTABLE_NAME}" PRIVATE "src/logo.png")
+    target_sources("${EXECUTABLE_NAME}" PRIVATE "Source/logo.png")
 endif()
 
 # use C++11
@@ -73,7 +73,7 @@ set_target_properties(${EXECUTABLE_NAME} PROPERTIES
     MACOSX_BUNDLE TRUE
     # Set the Info.plist file for Apple Mobile platforms. Without this file, your app
     # will not launch. 
-    MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/src/Info.plist.in"
+    MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/Source/Info.plist.in"
 
     # in Xcode, create a Scheme in the schemes dropdown for the app.
     XCODE_GENERATE_SCHEME TRUE
