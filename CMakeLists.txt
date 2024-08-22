@@ -9,7 +9,10 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
 set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}" CACHE INTERNAL "")
 
 # Declare the project
-project(TheFork)
+project("TheFork"
+	VERSION 0.1.0
+	DESCRIPTION "An ECS engine."
+)
 
 # Set the name of the executable
 set(EXECUTABLE_NAME ${PROJECT_NAME})
@@ -58,13 +61,18 @@ if(WINDOWS_STORE)
     target_compile_options(${EXECUTABLE_NAME} PUBLIC "/EHsc")
 endif()
 
-# Configure SDL by calling its CMake file.
-# we use EXCLUDE_FROM_ALL so that its install targets and configs don't
-# pollute upwards into our configuration.
+# 3rd Parties
 add_subdirectory(ThirdParty/SDL EXCLUDE_FROM_ALL)
+add_subdirectory(ThirdParty/The-Forge/RHI EXCLUDE_FROM_ALL)
+
 
 # Link SDL to our executable. This also makes its include directory available to us. 
-target_link_libraries(${EXECUTABLE_NAME} PUBLIC SDL3::SDL3)
+target_link_libraries(${EXECUTABLE_NAME} 	
+	PRIVATE
+		RHI
+	PUBLIC 
+		SDL3::SDL3		
+)
 target_compile_definitions(${EXECUTABLE_NAME} PUBLIC SDL_MAIN_USE_CALLBACKS)
 
 # set some extra configs for each platform
