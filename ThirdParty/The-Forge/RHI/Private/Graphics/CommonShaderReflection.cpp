@@ -25,7 +25,7 @@
 #include "Nothings/stb_ds.h"
 
 #include "ILog.h"
-#include "Interfaces/IGraphics.h"
+#include "IGraphics.h"
 
 #include "IMemory.h"
 

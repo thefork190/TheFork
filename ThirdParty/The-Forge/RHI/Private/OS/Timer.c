@@ -22,7 +22,7 @@
  * under the License.
  */
 
-#include "Interfaces/ITime.h"
+#include "ITime.h"
 
 void initTimer(Timer* pTimer) { resetTimer(pTimer); }
 

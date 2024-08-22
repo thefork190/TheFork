@@ -22,8 +22,8 @@
  * under the License.
  */
 #include "ILog.h"
-#include "Interfaces/IGraphics.h"
-#include "Interfaces/IRay.h"
+#include "IGraphics.h"
+#include "IRay.h"
 
 #include "GraphicsConfig.h"
 

@@ -28,7 +28,7 @@
 #include "bstrlib/bstrlib.h"
 
 #include "IFileSystem.h"
-#include "Interfaces/IGraphics.h"
+#include "IGraphics.h"
 
 #include "IMemory.h"
 

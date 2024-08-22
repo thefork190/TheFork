@@ -103,7 +103,7 @@ target_sources(${PROJECT_NAME}
 	PRIVATE
 		${RENDERING_SOURCES}
 		${SPIRV_SOURCES}
-		${SOURCES}
+		${RHI_SOURCES}
 )
 
 # where to find our CMake modules

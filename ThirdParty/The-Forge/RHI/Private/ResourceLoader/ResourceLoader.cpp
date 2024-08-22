@@ -41,7 +41,7 @@
 #include "IFileSystem.h"
 #include "ILog.h"
 #include "IThread.h"
-#include "Interfaces/IResourceLoader.h"
+#include "IResourceLoader.h"
 
 #include "Math/ShaderUtilities.h" // Packing functions
 
@@ -52,9 +52,6 @@
 #ifdef NX64
 #include "murmurhash3/MurmurHash3_32.h"
 #endif
-
-#define CGLTF_IMPLEMENTATION
-#include "cgltf/cgltf.h"
 
 #include "ReloadServer/ReloadClient.h"
 
