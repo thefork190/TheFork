@@ -64,12 +64,13 @@ endif()
 # 3rd Parties
 add_subdirectory(ThirdParty/SDL EXCLUDE_FROM_ALL)
 add_subdirectory(ThirdParty/The-Forge/RHI EXCLUDE_FROM_ALL)
-
+add_subdirectory(ThirdParty/flecs EXCLUDE_FROM_ALL)
 
 # Link SDL to our executable. This also makes its include directory available to us. 
 target_link_libraries(${EXECUTABLE_NAME} 	
 	PRIVATE
 		RHI
+        flecs_static
 	PUBLIC 
 		SDL3::SDL3		
 )
