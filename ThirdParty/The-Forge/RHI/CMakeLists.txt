@@ -78,6 +78,11 @@ set(SPIRV_SOURCES
 	"../ThirdParty/SPIRV_Cross/SpirvTools.cpp"
 )
 
+# BString
+set(BSTRLIB_SOURCES
+	"../ThirdParty/bstrlib/bstrlib.c"
+	"Private/Math/StbDs.c"
+)
 
 # RHI (min. requirement for rendering)
 set(RHI_SOURCES 
@@ -99,11 +104,28 @@ set(RHI_SOURCES
 	"Private/Graphics/Vulkan/VulkanShaderReflection.cpp"
 )
 
+# Core functionalities
+set(CORE_SOURCES 
+	"Private/Log/Log.c"
+	"Private/MemoryTracking/MemoryTracking.c"
+	"Private/FileSystem/FileSystem.c"
+
+	"Private/OS/Timer.c"
+
+	"Private/OS/Windows/WindowsThread.c"
+	"Private/OS/Windows/WindowsLog.c"
+	"Private/OS/Windows/WindowsFileSystem.cpp"
+	"Private/OS/Windows/WindowsTime.c"
+)
+
+
 target_sources(${PROJECT_NAME}
 	PRIVATE
 		${RENDERING_SOURCES}
 		${SPIRV_SOURCES}
 		${RHI_SOURCES}
+		${CORE_SOURCES}
+		${BSTRLIB_SOURCES}
 )
 
 # where to find our CMake modules
