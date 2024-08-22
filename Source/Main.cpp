@@ -7,7 +7,8 @@
 // TF 
 #include <ILog.h>
 #include <IFileSystem.h>
-#include <IMemory.h>
+#include <IGraphics.h>
+#include <IMemory.h> // Make sure this is last
 // 
 
 

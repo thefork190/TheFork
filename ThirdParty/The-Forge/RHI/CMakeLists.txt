@@ -18,10 +18,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_library(${PROJECT_NAME} STATIC)
 
 target_include_directories(${PROJECT_NAME}
-    PRIVATE        
+    PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/../ThirdParty
 		${CMAKE_CURRENT_SOURCE_DIR}/Private
-    PUBLIC
         # where top-level project will look for the library's public headers
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/Public>
         # where external projects will look for the library's public headers
