@@ -8,85 +8,98 @@
 #include <IFileSystem.h>
 
 
-#define APP_NAME "TheFork"
+#define APP_NAME "The Fork"
 
-
-struct AppContext {
-    SDL_Window* window;
-    bool app_quit = false;
-};
-
-int SDL_Fail(){
-    LOGF(eERROR, "Error %s", SDL_GetError());
-    return -1;
-}
-
-int SDL_AppInit(void** appstate, int argc, char* argv[]) {
-
-    // Init TF stuff
+static bool InitTheForge()
+{
     FileSystemInitDesc fsDesc = {};
     fsDesc.pAppName = APP_NAME;
     if (!initFileSystem(&fsDesc))
-        return EXIT_FAILURE;
+        return false;
 
     fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_LOG, "");
 
     initMemAlloc(APP_NAME);
     initLog(APP_NAME, DEFAULT_LOG_LEVEL);
 
-    // init the library, here we make a window so we only need the Video capabilities.
-    if (SDL_Init(SDL_INIT_VIDEO)){
+    return true;
+}
+
+struct AppContext 
+{
+    SDL_Window* pWindow;
+    bool quitApp = false;
+};
+
+int SDL_Fail()
+{
+    LOGF(eERROR, "Error %s", SDL_GetError());
+    return -1;
+}
+
+int SDL_AppInit(void** appstate, int argc, char* argv[]) 
+{
+    if (!InitTheForge())
+    {
+        return EXIT_FAILURE;
+    }
+    
+    if (SDL_Init(SDL_INIT_VIDEO))
+    {
         return SDL_Fail();
     }
     
-    // create a window
-    SDL_Window* window = SDL_CreateWindow("Window", 352, 430, SDL_WINDOW_RESIZABLE);
-    if (!window){
+    SDL_Window* pWin = SDL_CreateWindow(APP_NAME, 1920, 1080, SDL_WINDOW_RESIZABLE | SDL_WINDOW_VULKAN);
+    if (!pWin)
+    {
         return SDL_Fail();
     }
 
-    // print some information about the window
-    SDL_ShowWindow(window);
+    SDL_ShowWindow(pWin);
     {
         int width, height, bbwidth, bbheight;
-        SDL_GetWindowSize(window, &width, &height);
-        SDL_GetWindowSizeInPixels(window, &bbwidth, &bbheight);
+        SDL_GetWindowSize(pWin, &width, &height);
+        SDL_GetWindowSizeInPixels(pWin, &bbwidth, &bbheight);
         LOGF(eINFO, "Window size: %ix%i", width, height);
         LOGF(eINFO, "Backbuffer size: %ix%i", bbwidth, bbheight);
-        if (width != bbwidth){
-            LOGF(eINFO, "This is a highdpi environment.");
+        if (width != bbwidth)
+        {
+            LOGF(eINFO, "High dpi detected.");
         }
     }
 
-    // set up the application data
     *appstate = tf_new(AppContext);
-    ((AppContext*)(*appstate))->window = window;
+    ((AppContext*)(*appstate))->pWindow = pWin;
     
-    LOGF(eINFO, "Application started successfully!");
+    LOGF(eINFO, "SDL_AppInit returns success.");
 
     return 0;
 }
 
 int SDL_AppEvent(void *appstate, const SDL_Event* event) {
-    auto* app = (AppContext*)appstate;
+    AppContext* app = (AppContext*)appstate;
     
-    if (event->type == SDL_EVENT_QUIT) {
-        app->app_quit = SDL_TRUE;
+    if (event->type == SDL_EVENT_QUIT) 
+    {
+        app->quitApp = SDL_TRUE;
     }
 
     return 0;
 }
 
-int SDL_AppIterate(void *appstate) {
-    auto* app = (AppContext*)appstate;
+int SDL_AppIterate(void *appstate) 
+{
+    AppContext* app = (AppContext*)appstate;
     
-    return app->app_quit;
+    return app->quitApp;
 }
 
-void SDL_AppQuit(void* appstate) {
-    auto* app = (AppContext*)appstate;
-    if (app) {
-        SDL_DestroyWindow(app->window);
+void SDL_AppQuit(void* appstate) 
+{
+    AppContext* app = (AppContext*)appstate;
+    if (app) 
+    {
+        SDL_DestroyWindow(app->pWindow);
         tf_delete(app);
     }
 
@@ -96,5 +109,4 @@ void SDL_AppQuit(void* appstate) {
     exitFileSystem();
     exitLog();
     exitMemAlloc();
-
 }
