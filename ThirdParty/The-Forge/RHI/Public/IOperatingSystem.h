@@ -83,13 +83,6 @@ typedef uint64_t uint64;
 #include <stddef.h>
 #include <time.h>
 
-#if defined(FORGE_DEBUG) && (defined(_WINDOWS) || (defined(__linux__) && !defined(__ANDROID__)) || defined(__APPLE__))
-#define WINDOW_DETAILS 1
-#include "bstrlib/bstrlib.h"
-#else
-#define WINDOW_DETAILS 0
-#endif
-
 #define IMEMORY_FROM_HEADER
 #include "IMemory.h"
 
@@ -210,25 +203,6 @@ typedef struct WindowDesc
     int32_t mCursorInsideWindow;
     bool    mCursorCaptured;
     bool    mMinimizeRequested;
-
-#if WINDOW_DETAILS
-    bstring pWindowedRectLabel;
-    bstring pFullscreenRectLabel;
-    bstring pClientRectLabel;
-    bstring pWndLabel;
-
-    bstring pFullscreenLabel;
-    bstring pCursorCapturedLabel;
-    bstring pIconifiedLabel;
-    bstring pMaximizedLabel;
-    bstring pMinimizedLabel;
-    bstring pNoResizeFrameLabel;
-    bstring pBorderlessWindowLabel;
-    bstring pOverrideDefaultPositionLabel;
-    bstring pCenteredLabel;
-    bstring pForceLowDPILabel;
-    bstring pWindowModeLabel;
-#endif
 
 } WindowDesc;
 

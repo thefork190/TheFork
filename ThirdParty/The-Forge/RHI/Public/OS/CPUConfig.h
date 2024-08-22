@@ -27,7 +27,7 @@
 
 #include <stdbool.h>
 
-#include "cpu_features/src/cpu_features_types.h"
+#include "cpu_features_types.h"
 
 typedef enum
 {
