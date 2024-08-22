@@ -29,6 +29,13 @@ static bool InitTheForge()
     return true;
 }
 
+static void ExitTheForge()
+{
+    exitFileSystem();
+    exitLog();
+    exitMemAlloc();
+}
+
 struct AppContext 
 {
     SDL_Window* pWindow;
@@ -110,7 +117,5 @@ void SDL_AppQuit(void* appstate)
     SDL_Quit();
     LOGF(eINFO, "Application quit successfully!");
 
-    exitFileSystem();
-    exitLog();
-    exitMemAlloc();
+    ExitTheForge();
 }
