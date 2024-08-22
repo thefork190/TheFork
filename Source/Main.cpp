@@ -4,6 +4,8 @@
 
 // TF 
 #include <ILog.h>
+#include <IMemory.h>
+#include <IFileSystem.h>
 
 
 #define APP_NAME "TheFork"
@@ -21,6 +23,15 @@ int SDL_Fail(){
 
 int SDL_AppInit(void** appstate, int argc, char* argv[]) {
 
+    // Init TF stuff
+    FileSystemInitDesc fsDesc = {};
+    fsDesc.pAppName = APP_NAME;
+    if (!initFileSystem(&fsDesc))
+        return EXIT_FAILURE;
+
+    fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_LOG, "");
+
+    initMemAlloc(APP_NAME);
     initLog(APP_NAME, DEFAULT_LOG_LEVEL);
 
     // init the library, here we make a window so we only need the Video capabilities.
@@ -48,9 +59,8 @@ int SDL_AppInit(void** appstate, int argc, char* argv[]) {
     }
 
     // set up the application data
-    *appstate = new AppContext{
-       window,
-    };
+    *appstate = tf_new(AppContext);
+    ((AppContext*)(*appstate))->window = window;
     
     LOGF(eINFO, "Application started successfully!");
 
@@ -77,9 +87,14 @@ void SDL_AppQuit(void* appstate) {
     auto* app = (AppContext*)appstate;
     if (app) {
         SDL_DestroyWindow(app->window);
-        delete app;
+        tf_delete(app);
     }
 
     SDL_Quit();
     LOGF(eINFO, "Application quit successfully!");
+
+    exitFileSystem();
+    exitLog();
+    exitMemAlloc();
+
 }
