@@ -34,6 +34,7 @@
 # CMake
 **/out/
 **/build/
+**/install/
 
 # Visual Studio
 **/.vs/
