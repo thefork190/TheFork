@@ -116,3 +116,16 @@ if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
 endif()
 install(TARGETS ${EXECUTABLE_NAME} BUNDLE DESTINATION ./install)
 
+# Copy dlls/so
+if (WIN32)
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/The-Forge/ThirdParty/winpixeventruntime/bin/WinPixEventRuntime.dll
+        ${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/The-Forge/ThirdParty/DirectXShaderCompiler/bin/x64/dxcompiler.dll
+         ${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/The-Forge/ThirdParty/ags/ags_lib/lib/amd_ags_x64.dll
+        $<TARGET_FILE_DIR:${PROJECT_NAME}>
+    )
+endif (WIN32)
+
+
+

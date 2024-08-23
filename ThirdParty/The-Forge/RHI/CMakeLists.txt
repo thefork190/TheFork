@@ -117,7 +117,6 @@ set(CORE_SOURCES
 	"Private/OS/Windows/WindowsTime.c"
 )
 
-
 target_sources(${PROJECT_NAME}
 	PRIVATE
 		${RENDERING_SOURCES}
