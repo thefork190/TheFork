@@ -11,6 +11,6 @@ namespace Engine
 
     void KickstartEngine(flecs::world& ecs)
     {
-        ecs.add<Context>({});
+        ecs.set<Context>({});
     }
 }

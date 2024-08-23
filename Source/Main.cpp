@@ -38,8 +38,10 @@ static void ExitTheForge()
 
 struct AppContext 
 {
-    SDL_Window* pWindow;
+    //SDL_Window* pWindow;
     bool quitApp = false;
+
+    flecs::world ecs;
 };
 
 int SDL_Fail()
@@ -50,24 +52,33 @@ int SDL_Fail()
 
 int SDL_AppInit(void** appstate, int argc, char* argv[]) 
 {
+    // Use TF for rendering (it still needs to init its internal OS related subsystems)
     if (!InitTheForge())
     {
         return EXIT_FAILURE;
     }
     
+    // Init SDL.  Many systems will rely on SDL being initialized.
     if (SDL_Init(SDL_INIT_VIDEO))
     {
         return SDL_Fail();
     }
+
+    *appstate = tf_new(AppContext);
+    AppContext* pApp = reinterpret_cast<AppContext*>(*appstate);
+
+    // Import modules
+    // TODO: which modules to load can be customized based on flags
+    pApp->ecs.import<Engine::module>();
     
-    SDL_Window* pWin = SDL_CreateWindow(APP_NAME, 1920, 1080, SDL_WINDOW_RESIZABLE | SDL_WINDOW_VULKAN);
+    /*SDL_Window* pWin = SDL_CreateWindow(APP_NAME, 1920, 1080, SDL_WINDOW_RESIZABLE | SDL_WINDOW_VULKAN);
     if (!pWin)
     {
         return SDL_Fail();
-    }
+    }*/
 
-    SDL_ShowWindow(pWin);
-    {
+    //SDL_ShowWindow(pWin);
+   /* {
         int width, height, bbwidth, bbheight;
         SDL_GetWindowSize(pWin, &width, &height);
         SDL_GetWindowSizeInPixels(pWin, &bbwidth, &bbheight);
@@ -77,10 +88,10 @@ int SDL_AppInit(void** appstate, int argc, char* argv[])
         {
             LOGF(eINFO, "High dpi detected.");
         }
-    }
-
-    *appstate = tf_new(AppContext);
-    ((AppContext*)(*appstate))->pWindow = pWin;
+    }*/
+    
+    
+    //((AppContext*)(*appstate))->pWindow = pWin;
     
     LOGF(eINFO, "SDL_AppInit returns success.");
 
@@ -88,11 +99,11 @@ int SDL_AppInit(void** appstate, int argc, char* argv[])
 }
 
 int SDL_AppEvent(void *appstate, const SDL_Event* event) {
-    AppContext* app = (AppContext*)appstate;
+    AppContext* pApp = (AppContext*)appstate;
     
     if (event->type == SDL_EVENT_QUIT) 
     {
-        app->quitApp = SDL_TRUE;
+        pApp->quitApp = SDL_TRUE;
     }
 
     return 0;
@@ -100,18 +111,19 @@ int SDL_AppEvent(void *appstate, const SDL_Event* event) {
 
 int SDL_AppIterate(void *appstate) 
 {
-    AppContext* app = (AppContext*)appstate;
+    AppContext* pApp = (AppContext*)appstate;
+    pApp->ecs.progress();
     
-    return app->quitApp;
+    return pApp->quitApp;
 }
 
 void SDL_AppQuit(void* appstate) 
 {
-    AppContext* app = (AppContext*)appstate;
-    if (app) 
+    AppContext* pApp = (AppContext*)appstate;
+    if (pApp)
     {
-        SDL_DestroyWindow(app->pWindow);
-        tf_delete(app);
+        //SDL_DestroyWindow(app->pWindow);
+        tf_delete(pApp);
     }
 
     SDL_Quit();
