@@ -51,4 +51,16 @@ namespace RHI
 
         ecs.module<module>();
     }
+
+    bool CreateRHI(flecs::world& ecs)
+    {
+        // Ensure the singleton doesn't exist yet
+        if (ecs.get<RHI>())
+            return true;
+        
+        // Create the RHI
+        ecs.add<RHI>();
+
+        return ecs.get<RHI>()->pRenderer != nullptr;
+    }
 }

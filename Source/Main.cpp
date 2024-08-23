@@ -70,8 +70,16 @@ int SDL_AppInit(void** appstate, int argc, char* argv[])
     pApp->ecs.import<Window::module>();
     pApp->ecs.import<RHI::module>();
 
+    // Create the RHI (this might not always be needed depending on the app type)
+    if (!RHI::CreateRHI(pApp->ecs))
+    {
+        return EXIT_FAILURE;
+    }
+    RHI::CreateRHI(pApp->ecs);
+
     // Kickstart the engine to activate the first systems
     Engine::KickstartEngine(pApp->ecs);
+    
      
     LOGF(eINFO, "SDL_AppInit returns success.");
 

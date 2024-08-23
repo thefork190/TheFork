@@ -35,4 +35,7 @@ namespace RHI
 	{
 		module(flecs::world& ecs); // Ctor that loads the module
 	};
+
+	// Creates the RHI singleton
+	bool CreateRHI(flecs::world& ecs);
 }
