@@ -127,6 +127,14 @@ target_sources(${PROJECT_NAME}
 		${BSTRLIB_SOURCES}
 )
 
+target_link_libraries(${PROJECT_NAME}
+	PRIVATE
+		${CMAKE_CURRENT_SOURCE_DIR}/../ThirdParty/DirectXShaderCompiler/lib/x64/dxcompiler.lib
+		${CMAKE_CURRENT_SOURCE_DIR}/../ThirdParty/nvapi/amd64/nvapi64.lib
+		${CMAKE_CURRENT_SOURCE_DIR}/../ThirdParty/ags/ags_lib/lib/amd_ags_x64.lib
+		${CMAKE_CURRENT_SOURCE_DIR}/../ThirdParty/winpixeventruntime/bin/WinPixEventRuntime.lib
+)
+
 # where to find our CMake modules
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 #message(STATUS "CMake module path: ${CMAKE_MODULE_PATH}")

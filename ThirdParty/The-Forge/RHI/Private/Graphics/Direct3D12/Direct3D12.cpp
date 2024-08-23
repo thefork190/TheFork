@@ -6665,9 +6665,7 @@ void d3d12_queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
         if (!VERIFY(SUCCEEDED(removeHr)))
         {
             threadSleep(5000); // Wait for a few seconds to allow the driver to come back online before doing a reset.
-            ResetDesc resetDesc;
-            resetDesc.mType = RESET_TYPE_DEVICE_LOST;
-            requestReset(&resetDesc);
+            ASSERT(0);
         }
 
 #if defined(USE_DRED)
