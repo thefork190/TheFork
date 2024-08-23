@@ -17,7 +17,7 @@
 static bool InitTheForge()
 {
     FileSystemInitDesc fsDesc = {};
-    fsDesc.pAppName = "asd";
+    fsDesc.pAppName = APP_NAME;
     if (!initFileSystem(&fsDesc))
         return false;
 
@@ -36,11 +36,10 @@ static void ExitTheForge()
     exitMemAlloc();
 }
 
-struct AppContext 
+struct AppState 
 {
     //SDL_Window* pWindow;
     bool quitApp = false;
-
     flecs::world ecs;
 };
 
@@ -64,8 +63,8 @@ int SDL_AppInit(void** appstate, int argc, char* argv[])
         return SDL_Fail();
     }
 
-    *appstate = tf_new(AppContext);
-    AppContext* pApp = reinterpret_cast<AppContext*>(*appstate);
+    *appstate = tf_new(AppState);
+    AppState* pApp = reinterpret_cast<AppState*>(*appstate);
 
     // Import modules
     // TODO: which modules to load can be customized based on flags
@@ -91,15 +90,16 @@ int SDL_AppInit(void** appstate, int argc, char* argv[])
     }*/
     
     
-    //((AppContext*)(*appstate))->pWindow = pWin;
+    //((AppState*)(*appstate))->pWindow = pWin;
     
     LOGF(eINFO, "SDL_AppInit returns success.");
 
     return 0;
 }
 
-int SDL_AppEvent(void *appstate, const SDL_Event* event) {
-    AppContext* pApp = (AppContext*)appstate;
+int SDL_AppEvent(void *appstate, const SDL_Event* event) 
+{
+    AppState* pApp = (AppState*)appstate;
     
     if (event->type == SDL_EVENT_QUIT) 
     {
@@ -111,7 +111,7 @@ int SDL_AppEvent(void *appstate, const SDL_Event* event) {
 
 int SDL_AppIterate(void *appstate) 
 {
-    AppContext* pApp = (AppContext*)appstate;
+    AppState* pApp = (AppState*)appstate;
     pApp->ecs.progress();
     
     return pApp->quitApp;
@@ -119,7 +119,7 @@ int SDL_AppIterate(void *appstate)
 
 void SDL_AppQuit(void* appstate) 
 {
-    AppContext* pApp = (AppContext*)appstate;
+    AppState* pApp = (AppState*)appstate;
     if (pApp)
     {
         //SDL_DestroyWindow(app->pWindow);

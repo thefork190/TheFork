@@ -31,6 +31,8 @@ PRIVATE
     Source/Main.cpp
     Source/Modules/Engine.h
     Source/Modules/Engine.cpp
+    Source/Modules/Window.h
+    Source/Modules/Window.cpp
     Source/iosLaunchScreen.storyboard
     Source/Sample.appxManifest
 )
@@ -67,6 +69,8 @@ endif()
 add_subdirectory(ThirdParty/SDL EXCLUDE_FROM_ALL)
 add_subdirectory(ThirdParty/The-Forge/RHI EXCLUDE_FROM_ALL)
 add_subdirectory(ThirdParty/flecs EXCLUDE_FROM_ALL)
+
+
 
 # Link SDL to our executable. This also makes its include directory available to us. 
 target_link_libraries(${EXECUTABLE_NAME} 	

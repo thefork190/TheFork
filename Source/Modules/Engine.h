@@ -20,7 +20,7 @@ namespace Engine
 	struct Context
 	{
 		std::string appName = APP_NAME;
-		bool quitApp = false;
+		bool isRunning = true;
 	};
 	
 	struct module
