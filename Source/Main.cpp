@@ -6,6 +6,7 @@
 
 // Modules
 #include "Modules/Engine.h"
+#include "Modules/Window.h"
 
 // TF 
 #include <ILog.h>
@@ -69,6 +70,9 @@ int SDL_AppInit(void** appstate, int argc, char* argv[])
     // Import modules
     // TODO: which modules to load can be customized based on flags
     pApp->ecs.import<Engine::module>();
+    pApp->ecs.import<Window::module>();
+
+    Engine::KickstartEngine(pApp->ecs);
     
     /*SDL_Window* pWin = SDL_CreateWindow(APP_NAME, 1920, 1080, SDL_WINDOW_RESIZABLE | SDL_WINDOW_VULKAN);
     if (!pWin)
