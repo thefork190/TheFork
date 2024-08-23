@@ -39,7 +39,6 @@ static void ExitTheForge()
 
 struct AppState 
 {
-    //SDL_Window* pWindow;
     bool quitApp = false;
     flecs::world ecs;
 };
@@ -72,30 +71,9 @@ int SDL_AppInit(void** appstate, int argc, char* argv[])
     pApp->ecs.import<Engine::module>();
     pApp->ecs.import<Window::module>();
 
+    // Kickstart the engine to activate the first systems
     Engine::KickstartEngine(pApp->ecs);
-    
-    /*SDL_Window* pWin = SDL_CreateWindow(APP_NAME, 1920, 1080, SDL_WINDOW_RESIZABLE | SDL_WINDOW_VULKAN);
-    if (!pWin)
-    {
-        return SDL_Fail();
-    }*/
-
-    //SDL_ShowWindow(pWin);
-   /* {
-        int width, height, bbwidth, bbheight;
-        SDL_GetWindowSize(pWin, &width, &height);
-        SDL_GetWindowSizeInPixels(pWin, &bbwidth, &bbheight);
-        LOGF(eINFO, "Window size: %ix%i", width, height);
-        LOGF(eINFO, "Backbuffer size: %ix%i", bbwidth, bbheight);
-        if (width != bbwidth)
-        {
-            LOGF(eINFO, "High dpi detected.");
-        }
-    }*/
-    
-    
-    //((AppState*)(*appstate))->pWindow = pWin;
-    
+     
     LOGF(eINFO, "SDL_AppInit returns success.");
 
     return 0;
@@ -126,7 +104,6 @@ void SDL_AppQuit(void* appstate)
     AppState* pApp = (AppState*)appstate;
     if (pApp)
     {
-        //SDL_DestroyWindow(app->pWindow);
         tf_delete(pApp);
     }
 

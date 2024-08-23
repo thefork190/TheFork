@@ -4,7 +4,7 @@
 #include <flecs.h>
 
 #ifndef APP_NAME
-#define APP_NAME "The Fork"
+#define APP_NAME "TheFork"
 #endif
 
 namespace Engine
