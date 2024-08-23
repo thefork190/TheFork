@@ -17,10 +17,10 @@ namespace Engine
 	};
 
 	// Contains general and commonly used data related to the current state(s) of the engine
+	// The creation of the context singleton kickstarts the whole engine
 	struct Context
 	{
 		std::string appName = APP_NAME;
-		bool isRunning = true;
 	};
 	
 	struct module

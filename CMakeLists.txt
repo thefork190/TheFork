@@ -33,6 +33,8 @@ PRIVATE
     Source/Modules/Engine.cpp
     Source/Modules/Window.h
     Source/Modules/Window.cpp
+    Source/Modules/RHI.h
+    Source/Modules/RHI.cpp
     Source/iosLaunchScreen.storyboard
     Source/Sample.appxManifest
 )

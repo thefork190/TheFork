@@ -1,12 +1,10 @@
-#include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
-#include <cmath>
-
 #include <flecs.h>
 
 // Modules
 #include "Modules/Engine.h"
 #include "Modules/Window.h"
+#include "Modules/RHI.h"
 
 // TF 
 #include <ILog.h>
@@ -70,6 +68,7 @@ int SDL_AppInit(void** appstate, int argc, char* argv[])
     // TODO: which modules to load can be customized based on flags
     pApp->ecs.import<Engine::module>();
     pApp->ecs.import<Window::module>();
+    pApp->ecs.import<RHI::module>();
 
     // Kickstart the engine to activate the first systems
     Engine::KickstartEngine(pApp->ecs);
