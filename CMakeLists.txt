@@ -26,9 +26,11 @@ else()
 	add_executable(${EXECUTABLE_NAME})
 endif()
 
-target_sources(${EXECUTABLE_NAME} 
+target_sources(${EXECUTABLE_NAME}
 PRIVATE 
     Source/Main.cpp
+    Source/Modules/Engine.h
+    Source/Modules/Engine.cpp
     Source/iosLaunchScreen.storyboard
     Source/Sample.appxManifest
 )

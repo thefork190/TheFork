@@ -4,21 +4,20 @@
 
 #include <flecs.h>
 
+// Modules
+#include "Modules/Engine.h"
+
 // TF 
 #include <ILog.h>
 #include <IFileSystem.h>
 #include <IGraphics.h>
 #include <IMemory.h> // Make sure this is last
-// 
-
-
-
-#define APP_NAME "The Fork"
+//
 
 static bool InitTheForge()
 {
     FileSystemInitDesc fsDesc = {};
-    fsDesc.pAppName = APP_NAME;
+    fsDesc.pAppName = "asd";
     if (!initFileSystem(&fsDesc))
         return false;
 
