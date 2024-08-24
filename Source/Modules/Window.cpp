@@ -1,13 +1,15 @@
 #include <ILog.h>
 
 #include "Engine.h"
+#include "RHI.h"
 #include "Window.h"
 
 namespace Window
 {
-    module::module(flecs::world& ecs) 
+    module::module(flecs::world& ecs)
     {
         ecs.import<Engine::module>();
+        ecs.import<RHI::module>();
 
         ecs.module<module>();
 
@@ -16,7 +18,7 @@ namespace Window
                 {
                     unsigned int w = 512;
                     unsigned int h = 512;
-                    
+
                     if (e.has<Engine::Canvas>())
                     {
                         Engine::Canvas const* const canvas = e.get<Engine::Canvas>();
@@ -53,6 +55,8 @@ namespace Window
                 }
             );
 
+        ecs.component<Swapchain>();
+
         auto createSDLWin = ecs.observer<Engine::Canvas>("SDL Window Creator")
             .event(flecs::OnSet)
             .each([](flecs::iter& it, size_t i, Engine::Canvas& canvas)
@@ -61,15 +65,21 @@ namespace Window
                 }
             );
 
-        //auto swapchainCreator = ecs.system<Engine::Canvas, Window::SDLWindow>("Swapchain Creator")
-        //    .kind(flecs::OnStart)
+        auto swapchainCreator = ecs.system<Engine::Canvas, SDLWindow>("Swapchain Creator")
+            .without<Swapchain>()
+            .kind(flecs::PreFrame)
+            .each([](flecs::iter& it, size_t i, Engine::Canvas& canvas, SDLWindow sdlWin)
+                {
+                    LOGF(eDEBUG, "Canvas found without an SDLWindow component");
+                }
+            );
 
         auto swapchainResizer = ecs.system<Engine::Canvas, Window::SDLWindow>("Swapchain Resizer")
-            .kind(flecs::PreFrame)
-            .each([](flecs::iter& it, size_t i, Engine::Canvas& canvas, Window::SDLWindow& sdlWindow)
+            .kind(flecs::OnLoad)
+            .each([](flecs::iter& it, size_t i, Engine::Canvas& canvas, Window::SDLWindow& sdlWin)
                 {
                     int bbwidth, bbheight;
-                    SDL_GetWindowSizeInPixels(sdlWindow.pWindow, &bbwidth, &bbheight);
+                    SDL_GetWindowSizeInPixels(sdlWin.pWindow, &bbwidth, &bbheight);
 
                     if ((canvas.width != bbwidth) ||
                         (canvas.height != bbheight))

@@ -2,6 +2,7 @@
 
 #include <SDL3/SDL.h>
 #include <flecs.h>
+#include <IGraphics.h>
 
 namespace Window
 {
@@ -9,6 +10,12 @@ namespace Window
 	struct SDLWindow
 	{
 		SDL_Window* pWindow = nullptr;
+	};
+
+	// A swapchain for the window
+	struct Swapchain
+	{
+		SwapChain* pSwapChain = nullptr;
 	};
 
 	struct module
