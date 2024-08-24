@@ -116,5 +116,18 @@ namespace Window
                 }
             );
 
+        auto acquireNextImg = ecs.system<Window::SDLWindow>("Acquire Next Img")
+            .kind(flecs::PreUpdate)
+            .each([](flecs::iter& it, size_t i, Window::SDLWindow& sdlWin)
+                {
+                    ASSERTMSG(i == 0, "More than one window not implemented.");
+
+                    auto pRHI = it.world().get_mut<RHI::RHI>();
+                    if (pRHI)
+                    {
+
+                    }
+                }
+            );
     }
 }

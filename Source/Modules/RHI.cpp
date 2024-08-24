@@ -41,21 +41,13 @@ namespace RHI
 
 
 
-    module::module(flecs::world& ecs) 
+    module::module(flecs::world& ecs)
     {
         ecs.import<Engine::module>();
         ecs.import<Window::module>();
 
         ecs.module<module>();
 
-        auto acquireNextImg = ecs.system<>("Acquire Next Img")
-            .kind(flecs::OnStore)
-            .each([](flecs::iter& it, size_t i)
-                {
-                   /* auto pRHI = it.world().get_mut<RHI::RHI>();
-                    ASSERT(pRHI);*/
-                }
-            );
     }
 
     bool CreateRHI(flecs::world& ecs)
