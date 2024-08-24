@@ -4,6 +4,8 @@
 #include "RHI.h"
 #include "Window.h"
 
+#define DEBUG_PRESENTATION_CLEAR_COLOR_RED 1
+
 namespace Window
 {
     module::module(flecs::world& ecs)
@@ -68,6 +70,9 @@ namespace Window
                     swapChainDesc.mImageCount = getRecommendedSwapchainImageCount(pRHI->pRenderer, &tfWindowHandle);
                     swapChainDesc.mColorFormat = getSupportedSwapchainFormat(pRHI->pRenderer, &swapChainDesc, COLOR_SPACE_SDR_SRGB);
                     swapChainDesc.mColorSpace = COLOR_SPACE_SDR_SRGB;
+#if DEBUG_PRESENTATION_CLEAR_COLOR_RED
+                    swapChainDesc.mColorClearValue.r = 1.f;
+#endif
                     swapChainDesc.mEnableVsync = true; // TODO: allow disabling?
                     swapChainDesc.mFlags = SWAP_CHAIN_CREATION_FLAG_ENABLE_FOVEATED_RENDERING_VR;
                     addSwapChain(pRHI->pRenderer, &swapChainDesc, &sdlWin.pSwapChain);
@@ -139,6 +144,29 @@ namespace Window
 
                         // Reset cmd pool for this frame
                         resetCmdPool(pRHI->pRenderer, sdlWin.curCmdRingElem.pCmdPool);
+
+                        // Begin the cmd
+                        Cmd* pCmd = sdlWin.curCmdRingElem.pCmds[0];
+                        beginCmd(pCmd);
+
+#if DEBUG_PRESENTATION_CLEAR_COLOR_RED // Clear cur RT a red color
+                        RenderTargetBarrier barriers[] = {
+                            { sdlWin.pCurRT, RESOURCE_STATE_PRESENT, RESOURCE_STATE_RENDER_TARGET },
+                        };
+                        cmdResourceBarrier(pCmd, 0, nullptr, 0, nullptr, 1, barriers);
+
+                        BindRenderTargetsDesc bindRenderTargets = {};
+                        bindRenderTargets.mRenderTargetCount = 1;
+                        bindRenderTargets.mRenderTargets[0] = { sdlWin.pCurRT, LOAD_ACTION_CLEAR };
+                        cmdBindRenderTargets(pCmd, &bindRenderTargets);
+                        cmdSetViewport(pCmd, 0.0f, 0.0f, static_cast<float>(sdlWin.pCurRT->mWidth), static_cast<float>(sdlWin.pCurRT->mHeight), 0.0f, 1.0f);
+                        cmdSetScissor(pCmd, 0, 0, sdlWin.pCurRT->mWidth, sdlWin.pCurRT->mHeight);
+
+                        cmdBindRenderTargets(pCmd, nullptr);
+
+                        barriers[0] = { sdlWin.pCurRT, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };
+                        cmdResourceBarrier(pCmd, 0, nullptr, 0, nullptr, 1, barriers);
+#endif
                     }
                 }
             );
