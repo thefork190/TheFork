@@ -13,6 +13,7 @@ namespace Window
 		SDL_Window* pWindow = nullptr;
 		SwapChain* pSwapChain = nullptr;
 		Semaphore* pImgAcqSemaphore = nullptr;
+		unsigned int imageIndex = 0;
 		RenderTarget* pCurRT = nullptr;
 		GpuCmdRingElement curCmdRingElem = {};
 	};

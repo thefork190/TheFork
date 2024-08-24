@@ -130,10 +130,9 @@ namespace Window
                     auto pRHI = it.world().get_mut<RHI::RHI>();
                     if (pRHI)
                     {
-                        uint32_t swapchainImageIndex;
-                        acquireNextImage(pRHI->pRenderer, sdlWin.pSwapChain, sdlWin.pImgAcqSemaphore, nullptr, &swapchainImageIndex);
+                        acquireNextImage(pRHI->pRenderer, sdlWin.pSwapChain, sdlWin.pImgAcqSemaphore, nullptr, &sdlWin.imageIndex);
 
-                        sdlWin.pCurRT = sdlWin.pSwapChain->ppRenderTargets[swapchainImageIndex];
+                        sdlWin.pCurRT = sdlWin.pSwapChain->ppRenderTargets[sdlWin.imageIndex];
 
                         // Stall if CPU is running "gDataBufferCount" frames ahead of GPU
                         sdlWin.curCmdRingElem = getNextGpuCmdRingElement(&pRHI->gfxCmdRing, true, 1);
@@ -167,6 +166,49 @@ namespace Window
                         barriers[0] = { sdlWin.pCurRT, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };
                         cmdResourceBarrier(pCmd, 0, nullptr, 0, nullptr, 1, barriers);
 #endif
+                    }
+                }
+            );
+
+        auto present = ecs.system<Window::SDLWindow>("Present")
+            .kind(flecs::OnStore)
+            .each([](flecs::iter& it, size_t i, Window::SDLWindow& sdlWin)
+                {
+                    ASSERTMSG(i == 0, "More than one window not implemented.");
+
+                    auto pRHI = it.world().get_mut<RHI::RHI>();
+                    if (pRHI)
+                    {
+                        Cmd* pCmd = sdlWin.curCmdRingElem.pCmds[0];
+                        endCmd(pCmd);
+
+                        FlushResourceUpdateDesc flushUpdateDesc = {};
+                        flushUpdateDesc.mNodeIndex = 0;
+                        flushResourceUpdates(&flushUpdateDesc);
+                        Semaphore* waitSemaphores[2] = { flushUpdateDesc.pOutSubmittedSemaphore, sdlWin.pImgAcqSemaphore };
+
+                        QueueSubmitDesc submitDesc = {};
+                        submitDesc.mCmdCount = 1;
+                        submitDesc.mSignalSemaphoreCount = 1;
+                        submitDesc.mWaitSemaphoreCount = TF_ARRAY_COUNT(waitSemaphores);
+                        submitDesc.ppCmds = &pCmd;
+                        submitDesc.ppSignalSemaphores = &sdlWin.curCmdRingElem.pSemaphore;
+                        submitDesc.ppWaitSemaphores = waitSemaphores;
+                        submitDesc.pSignalFence = sdlWin.curCmdRingElem.pFence;
+                        queueSubmit(pRHI->pGfxQueue, &submitDesc);
+
+                        QueuePresentDesc presentDesc = {};
+                        presentDesc.mIndex = (uint8_t)sdlWin.imageIndex;
+                        presentDesc.mWaitSemaphoreCount = 1;
+                        presentDesc.pSwapChain = sdlWin.pSwapChain;
+                        presentDesc.ppWaitSemaphores = &sdlWin.curCmdRingElem.pSemaphore;
+                        presentDesc.mSubmitDone = true;
+
+                        queuePresent(pRHI->pGfxQueue, &presentDesc);
+
+                        pRHI->frameIndex = (pRHI->frameIndex + 1) % pRHI->dataBufferCount;
+
+                        it.world().modified<RHI::RHI>();
                     }
                 }
             );
