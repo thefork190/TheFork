@@ -12,8 +12,8 @@ namespace Engine
 	// Describes an area the entity wants to display content on (could be something like an app window)
 	struct Canvas
 	{
-		unsigned int creationWidth = 256;
-		unsigned int creationHeight = 256;
+		unsigned int width = 256;
+		unsigned int height = 256;
 	};
 
 	// Contains general and commonly used data related to the current state(s) of the engine

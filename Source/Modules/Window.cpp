@@ -20,8 +20,8 @@ namespace Window
                     if (e.has<Engine::Canvas>())
                     {
                         Engine::Canvas const* const canvas = e.get<Engine::Canvas>();
-                        w = canvas->creationWidth;
-                        h = canvas->creationHeight;
+                        w = canvas->width;
+                        h = canvas->height;
                     }
 
                     sdlWin.pWindow = SDL_CreateWindow(APP_NAME, 1920, 1080, SDL_WINDOW_RESIZABLE | SDL_WINDOW_VULKAN);
@@ -58,6 +58,24 @@ namespace Window
             .each([](flecs::iter& it, size_t i, Engine::Canvas& canvas)
                 {
                     it.entity(i).add<SDLWindow>();
+                }
+            );
+
+        //auto swapchainCreator = ecs.system<Engine::Canvas, Window::SDLWindow>("Swapchain Creator")
+        //    .kind(flecs::OnStart)
+
+        auto swapchainResizer = ecs.system<Engine::Canvas, Window::SDLWindow>("Swapchain Resizer")
+            .kind(flecs::PreFrame)
+            .each([](flecs::iter& it, size_t i, Engine::Canvas& canvas, Window::SDLWindow& sdlWindow)
+                {
+                    int bbwidth, bbheight;
+                    SDL_GetWindowSizeInPixels(sdlWindow.pWindow, &bbwidth, &bbheight);
+
+                    if ((canvas.width != bbwidth) ||
+                        (canvas.height != bbheight))
+                    {
+                        LOGF(eDEBUG, "Window was resized to %ix%i", bbwidth, bbheight);
+                    }
                 }
             );
 
