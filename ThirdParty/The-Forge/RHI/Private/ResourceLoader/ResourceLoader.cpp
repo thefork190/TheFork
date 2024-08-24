@@ -2200,18 +2200,6 @@ static void waitForTokenSubmitted(ResourceLoader* pLoader, const SyncToken* toke
 void initResourceLoaderInterface(Renderer* pRenderer, ResourceLoaderDesc* pDesc)
 {
     initResourceLoader(&pRenderer, 1, pDesc, &pResourceLoader);
-
-#if defined(ENABLE_FORGE_RELOAD_SHADER)
-    if (!platformInitReloadClient())
-    {
-        LOGF(eERROR, "Failed to initialize ReloadServer");
-    }
-#else
-    LOGF(eWARNING, "ReloadServer is DISABLED. Shaders will not be updated dynamically on the device "
-                   "when they are recompiled while App is running. If this behaviour is desired then you can ignore this warning. "
-                   "If you want to re-enable ReloadServer you need to #define ENABLE_FORGE_RELOAD_SHADER in Application/Config.h"
-                   "This message is here to remind everyone to re-enable ReloadServer if it has been disabled for whatever reason.");
-#endif
 }
 
 void exitResourceLoaderInterface(Renderer* pRenderer)
@@ -2219,10 +2207,6 @@ void exitResourceLoaderInterface(Renderer* pRenderer)
     UNREF_PARAM(pRenderer);
 
     exitResourceLoader(pResourceLoader);
-
-#if defined(ENABLE_FORGE_RELOAD_SHADER)
-    platformExitReloadClient();
-#endif
 }
 
 void initResourceLoaderInterface(Renderer** ppRenderers, uint32_t rendererCount, ResourceLoaderDesc* pDesc)

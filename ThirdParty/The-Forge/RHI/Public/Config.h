@@ -278,9 +278,6 @@ COMPILE_ASSERT(sizeof(ssize_t) == sizeof(int64_t));
 // To keep?
 #define ENABLE_VMA_LOG // Very verbose, prints for each allocation
 
-// To improve
-//#define ENABLE_FORGE_RELOAD_SHADER
-
 // Need to remove and bring to ecs engine but keep for now 
 //#define ENABLE_FORGE_UI
 //#define ENABLE_FORGE_INPUT
