@@ -11,6 +11,7 @@ namespace Window
 	{
 		SDL_Window* pWindow = nullptr;
 		SwapChain* pSwapChain = nullptr;
+		Semaphore* pImgAcqSemaphore = nullptr;
 	};
 
 	struct module

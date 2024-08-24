@@ -24,17 +24,12 @@ namespace RHI
         cmdRingDesc.mCmdPerPoolCount = 1;
         cmdRingDesc.mAddSyncPrimitives = true;
         addGpuCmdRing(pRenderer, &cmdRingDesc, &gfxCmdRing);
-
-        addSemaphore(pRenderer, &pImgAcqSemaphore);
     }
 
     RHI::~RHI()
     {
         ASSERT(pRenderer);
         
-        removeSemaphore(pRenderer, pImgAcqSemaphore);
-        pImgAcqSemaphore = nullptr;
-
         removeGpuCmdRing(pRenderer, &gfxCmdRing);
         
         removeQueue(pRenderer, pGfxQueue);
@@ -52,6 +47,15 @@ namespace RHI
         ecs.import<Window::module>();
 
         ecs.module<module>();
+
+        auto acquireNextImg = ecs.system<>("Acquire Next Img")
+            .kind(flecs::OnStore)
+            .each([](flecs::iter& it, size_t i)
+                {
+                   /* auto pRHI = it.world().get_mut<RHI::RHI>();
+                    ASSERT(pRHI);*/
+                }
+            );
     }
 
     bool CreateRHI(flecs::world& ecs)

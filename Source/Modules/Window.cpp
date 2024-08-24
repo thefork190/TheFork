@@ -72,12 +72,17 @@ namespace Window
                     swapChainDesc.mFlags = SWAP_CHAIN_CREATION_FLAG_ENABLE_FOVEATED_RENDERING_VR;
                     addSwapChain(pRHI->pRenderer, &swapChainDesc, &sdlWin.pSwapChain);
                     ASSERT(sdlWin.pSwapChain);
+
+                    addSemaphore(pRHI->pRenderer, &sdlWin.pImgAcqSemaphore);
                 }
             )
             .on_remove([](flecs::entity e, SDLWindow& sdlWin)
                 {
                     auto pRHI = e.world().get_mut<RHI::RHI>();
                     ASSERT(pRHI);
+
+                    removeSemaphore(pRHI->pRenderer, sdlWin.pImgAcqSemaphore);
+                    sdlWin.pImgAcqSemaphore = nullptr;
 
                     removeSwapChain(pRHI->pRenderer, sdlWin.pSwapChain);
                     sdlWin.pSwapChain = nullptr;

@@ -20,7 +20,6 @@ namespace RHI
 
 		Renderer* pRenderer = nullptr;
 		unsigned int dataBufferCount = 2; // 1 frame in flight and one being updated on CPU
-		Semaphore* pImgAcqSemaphore = nullptr;
 		Queue* pGfxQueue = nullptr;
 		GpuCmdRing gfxCmdRing = {};
 	};
