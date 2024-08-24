@@ -64,6 +64,13 @@ int SDL_AppInit(void** appstate, int argc, char* argv[])
     *appstate = tf_new(AppState);
     AppState* pApp = reinterpret_cast<AppState*>(*appstate);
 
+    // Setup ecs world and flecs explorer
+    pApp->ecs = flecs::world(argc, argv);
+    pApp->ecs.import<flecs::units>();
+    pApp->ecs.import<flecs::stats>();
+    pApp->ecs.set<flecs::Rest>({});
+
+
     // Import modules
     // TODO: which modules to load can be customized based on flags
     pApp->ecs.import<Engine::module>();
