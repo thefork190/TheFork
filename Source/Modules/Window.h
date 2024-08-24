@@ -3,6 +3,7 @@
 #include <SDL3/SDL.h>
 #include <flecs.h>
 #include <IGraphics.h>
+#include <RingBuffer.h>
 
 namespace Window
 {
@@ -12,6 +13,8 @@ namespace Window
 		SDL_Window* pWindow = nullptr;
 		SwapChain* pSwapChain = nullptr;
 		Semaphore* pImgAcqSemaphore = nullptr;
+		RenderTarget* pCurRT = nullptr;
+		GpuCmdRingElement curCmdRingElem = {};
 	};
 
 	struct module

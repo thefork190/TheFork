@@ -125,7 +125,20 @@ namespace Window
                     auto pRHI = it.world().get_mut<RHI::RHI>();
                     if (pRHI)
                     {
+                        uint32_t swapchainImageIndex;
+                        acquireNextImage(pRHI->pRenderer, sdlWin.pSwapChain, sdlWin.pImgAcqSemaphore, nullptr, &swapchainImageIndex);
 
+                        sdlWin.pCurRT = sdlWin.pSwapChain->ppRenderTargets[swapchainImageIndex];
+
+                        // Stall if CPU is running "gDataBufferCount" frames ahead of GPU
+                        sdlWin.curCmdRingElem = getNextGpuCmdRingElement(&pRHI->gfxCmdRing, true, 1);
+                        FenceStatus fenceStatus;
+                        getFenceStatus(pRHI->pRenderer, sdlWin.curCmdRingElem.pFence, &fenceStatus);
+                        if (fenceStatus == FENCE_STATUS_INCOMPLETE)
+                            waitForFences(pRHI->pRenderer, 1, &sdlWin.curCmdRingElem.pFence);
+
+                        // Reset cmd pool for this frame
+                        resetCmdPool(pRHI->pRenderer, sdlWin.curCmdRingElem.pCmdPool);
                     }
                 }
             );
