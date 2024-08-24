@@ -104,7 +104,7 @@ namespace Window
                         (canvas.height != bbheight))
                     {
                         LOGF(eDEBUG, "Window was resized to %ix%i", bbwidth, bbheight);
-                        ASSERTMSG(0, "Implement me");
+                        LOGF(eDEBUG, "[IMPLEMENT WINDOW RESIZING]");
                     }
                 }
             );
