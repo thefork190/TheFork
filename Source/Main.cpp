@@ -75,7 +75,6 @@ int SDL_AppInit(void** appstate, int argc, char* argv[])
     {
         return EXIT_FAILURE;
     }
-    RHI::CreateRHI(pApp->ecs);
 
     // Kickstart the engine to activate the first systems
     Engine::KickstartEngine(pApp->ecs);
