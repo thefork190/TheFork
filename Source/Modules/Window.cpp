@@ -71,6 +71,7 @@ namespace Window
                     swapChainDesc.mEnableVsync = true; // TODO: allow disabling?
                     swapChainDesc.mFlags = SWAP_CHAIN_CREATION_FLAG_ENABLE_FOVEATED_RENDERING_VR;
                     addSwapChain(pRHI->pRenderer, &swapChainDesc, &sdlWin.pSwapChain);
+                    ASSERT(sdlWin.pSwapChain);
                 }
             )
             .on_remove([](flecs::entity e, SDLWindow& sdlWin)
@@ -79,6 +80,7 @@ namespace Window
                     ASSERT(pRHI);
 
                     removeSwapChain(pRHI->pRenderer, sdlWin.pSwapChain);
+                    sdlWin.pSwapChain = nullptr;
 
                     SDL_DestroyWindow(sdlWin.pWindow);
                     sdlWin.pWindow = nullptr;
