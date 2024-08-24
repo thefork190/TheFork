@@ -29,12 +29,12 @@ endif()
 target_sources(${EXECUTABLE_NAME}
 PRIVATE 
     Source/Main.cpp
-    Source/Modules/Engine.h
-    Source/Modules/Engine.cpp
-    Source/Modules/Window.h
-    Source/Modules/Window.cpp
-    Source/Modules/RHI.h
-    Source/Modules/RHI.cpp
+    Source/Modules/Low/Engine.h
+    Source/Modules/Low/Engine.cpp
+    Source/Modules/Low/Window.h
+    Source/Modules/Low/Window.cpp
+    Source/Modules/Low/RHI.h
+    Source/Modules/Low/RHI.cpp
     Source/iosLaunchScreen.storyboard
     Source/Sample.appxManifest
 )
