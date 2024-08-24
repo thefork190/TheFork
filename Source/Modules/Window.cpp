@@ -34,29 +34,57 @@ namespace Window
                     }
 
                     SDL_ShowWindow(sdlWin.pWindow);
+
+                    int width, height, bbwidth, bbheight;
+                    SDL_GetWindowSize(sdlWin.pWindow, &width, &height);
+                    SDL_GetWindowSizeInPixels(sdlWin.pWindow, &bbwidth, &bbheight);
+                    LOGF(eINFO, "SDL window created for Canvas");
+                    LOGF(eINFO, "Window size: %ix%i", width, height);
+                    LOGF(eINFO, "Backbuffer size: %ix%i", bbwidth, bbheight);
+                    if (width != bbwidth)
                     {
-                        int width, height, bbwidth, bbheight;
-                        SDL_GetWindowSize(sdlWin.pWindow, &width, &height);
-                        SDL_GetWindowSizeInPixels(sdlWin.pWindow, &bbwidth, &bbheight);
-                        LOGF(eINFO, "SDL window created for Canvas");
-                        LOGF(eINFO, "Window size: %ix%i", width, height);
-                        LOGF(eINFO, "Backbuffer size: %ix%i", bbwidth, bbheight);
-                        if (width != bbwidth)
-                        {
-                            LOGF(eINFO, "High dpi detected.");
-                        }
+                        LOGF(eINFO, "High dpi detected.");
                     }
+
+                    auto pRHI = e.world().get_mut<RHI::RHI>();
+                    ASSERT(pRHI);
+
+                    // TODO this is platform specific
+                    HWND pWinHandle = (HWND)SDL_GetPointerProperty(SDL_GetWindowProperties(sdlWin.pWindow), SDL_PROP_WINDOW_WIN32_HWND_POINTER, NULL);
+                    ASSERT(pWinHandle);
+
+                    SwapChainDesc swapChainDesc = {};
+
+                    WindowHandle tfWindowHandle = {};
+                    tfWindowHandle.window = pWinHandle;
+                    tfWindowHandle.type = WINDOW_HANDLE_TYPE_WIN32;
+                    //
+
+                    swapChainDesc.mWindowHandle = tfWindowHandle;
+                    swapChainDesc.mPresentQueueCount = 1;
+                    swapChainDesc.ppPresentQueues = &pRHI->pGfxQueue;
+                    swapChainDesc.mWidth = bbwidth;
+                    swapChainDesc.mHeight = bbheight;
+                    swapChainDesc.mImageCount = getRecommendedSwapchainImageCount(pRHI->pRenderer, &tfWindowHandle);
+                    swapChainDesc.mColorFormat = getSupportedSwapchainFormat(pRHI->pRenderer, &swapChainDesc, COLOR_SPACE_SDR_SRGB);
+                    swapChainDesc.mColorSpace = COLOR_SPACE_SDR_SRGB;
+                    swapChainDesc.mEnableVsync = true; // TODO: allow disabling?
+                    swapChainDesc.mFlags = SWAP_CHAIN_CREATION_FLAG_ENABLE_FOVEATED_RENDERING_VR;
+                    addSwapChain(pRHI->pRenderer, &swapChainDesc, &sdlWin.pSwapChain);
                 }
             )
             .on_remove([](flecs::entity e, SDLWindow& sdlWin)
                 {
+                    auto pRHI = e.world().get_mut<RHI::RHI>();
+                    ASSERT(pRHI);
+
+                    removeSwapChain(pRHI->pRenderer, sdlWin.pSwapChain);
+
                     SDL_DestroyWindow(sdlWin.pWindow);
                     sdlWin.pWindow = nullptr;
                 }
             );
-
-        ecs.component<Swapchain>();
-
+        
         auto createSDLWin = ecs.observer<Engine::Canvas>("SDL Window Creator")
             .event(flecs::OnSet)
             .each([](flecs::iter& it, size_t i, Engine::Canvas& canvas)
@@ -64,16 +92,7 @@ namespace Window
                     it.entity(i).add<SDLWindow>();
                 }
             );
-
-        auto swapchainCreator = ecs.system<Engine::Canvas, SDLWindow>("Swapchain Creator")
-            .without<Swapchain>()
-            .kind(flecs::PreFrame)
-            .each([](flecs::iter& it, size_t i, Engine::Canvas& canvas, SDLWindow sdlWin)
-                {
-                    LOGF(eDEBUG, "Canvas found without an SDLWindow component");
-                }
-            );
-
+       
         auto swapchainResizer = ecs.system<Engine::Canvas, Window::SDLWindow>("Swapchain Resizer")
             .kind(flecs::OnLoad)
             .each([](flecs::iter& it, size_t i, Engine::Canvas& canvas, Window::SDLWindow& sdlWin)
@@ -85,6 +104,7 @@ namespace Window
                         (canvas.height != bbheight))
                     {
                         LOGF(eDEBUG, "Window was resized to %ix%i", bbwidth, bbheight);
+                        ASSERTMSG(0, "Implement me");
                     }
                 }
             );
