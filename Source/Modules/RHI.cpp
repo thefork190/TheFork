@@ -11,8 +11,9 @@ namespace RHI
         RendererDesc rendDesc;
         memset(&rendDesc, 0, sizeof(rendDesc));
         initRenderer(APP_NAME, &rendDesc, &pRenderer);
-
         ASSERT(pRenderer);
+
+        initResourceLoaderInterface(pRenderer);
 
         QueueDesc queueDesc = {};
         queueDesc.mType = QUEUE_TYPE_GRAPHICS;
@@ -34,6 +35,8 @@ namespace RHI
         
         removeQueue(pRenderer, pGfxQueue);
         pGfxQueue = nullptr;
+
+        exitResourceLoaderInterface(pRenderer);
 
         exitRenderer(pRenderer);
         pRenderer = nullptr;

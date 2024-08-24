@@ -85,6 +85,8 @@ namespace Window
                 {
                     auto pRHI = e.world().get_mut<RHI::RHI>();
                     ASSERT(pRHI);
+                    
+                    waitQueueIdle(pRHI->pGfxQueue);
 
                     removeSemaphore(pRHI->pRenderer, sdlWin.pImgAcqSemaphore);
                     sdlWin.pImgAcqSemaphore = nullptr;
@@ -185,6 +187,7 @@ namespace Window
                         FlushResourceUpdateDesc flushUpdateDesc = {};
                         flushUpdateDesc.mNodeIndex = 0;
                         flushResourceUpdates(&flushUpdateDesc);
+
                         Semaphore* waitSemaphores[2] = { flushUpdateDesc.pOutSubmittedSemaphore, sdlWin.pImgAcqSemaphore };
 
                         QueueSubmitDesc submitDesc = {};

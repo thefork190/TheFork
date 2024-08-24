@@ -279,18 +279,18 @@ COMPILE_ASSERT(sizeof(ssize_t) == sizeof(int64_t));
 #define ENABLE_VMA_LOG // Very verbose, prints for each allocation
 
 // To improve
-#define ENABLE_FORGE_RELOAD_SHADER
+//#define ENABLE_FORGE_RELOAD_SHADER
 
 // Need to remove and bring to ecs engine but keep for now 
-#define ENABLE_FORGE_UI
-#define ENABLE_FORGE_INPUT
-#define ENABLE_FORGE_FONTS
-#define ENABLE_FORGE_ANIMATION_DEBUG
-#define ENABLE_ZIP_FILESYSTEM
-#define ENABLE_SCREENSHOT
+//#define ENABLE_FORGE_UI
+//#define ENABLE_FORGE_INPUT
+//#define ENABLE_FORGE_FONTS
+//#define ENABLE_FORGE_ANIMATION_DEBUG
+//#define ENABLE_ZIP_FILESYSTEM
+//#define ENABLE_SCREENSHOT
 
 // To remove but have to keep right now
-#define ENABLE_MATH_CHECKS // Enables low level math library debug checks like SIMD variable alignment checks
+//#define ENABLE_MATH_CHECKS // Enables low level math library debug checks like SIMD variable alignment checks
 
 // By default the UI uses 16bit indexes, enable define below to change it to 32bits
 // #define FORGE_UI_USE_32BIT_INDEXES

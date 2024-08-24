@@ -3888,9 +3888,9 @@ static bool load_shader_stage_byte_code(Renderer* pRenderer, const char* name, S
 
     void*      pCachedByteCode = NULL;
     uint32_t   cachedByteCodeSize = 0;
-    const bool result = platformReloadClientGetShaderBinary(binaryShaderPath, &pCachedByteCode, &cachedByteCodeSize)
+    const bool result = /*platformReloadClientGetShaderBinary(binaryShaderPath, &pCachedByteCode, &cachedByteCodeSize)
                             ? fsOpenStreamFromMemory(pCachedByteCode, cachedByteCodeSize, FM_READ, false, &binaryFileStream)
-                            : fsOpenStreamFromPath(RD_SHADER_BINARIES, binaryShaderPath, FM_READ, &binaryFileStream);
+                            : */fsOpenStreamFromPath(RD_SHADER_BINARIES, binaryShaderPath, FM_READ, &binaryFileStream);
 
     ASSERT(result);
     if (!result)
