@@ -469,9 +469,6 @@ typedef struct ResourceLoaderDesc
     uint64_t mBufferSize;
     uint32_t mBufferCount;
     bool     mSingleThreaded;
-#ifdef ENABLE_FORGE_MATERIALS
-    bool mUseMaterials;
-#endif
 } ResourceLoaderDesc;
 
 FORGE_RENDERER_API extern ResourceLoaderDesc gDefaultResourceLoaderDesc;
@@ -484,24 +481,6 @@ FORGE_RENDERER_API void exitResourceLoaderInterface(Renderer* pRenderer);
 /// Multiple Renderer (unlinked GPU) variants. The Resource Loader must be shared between Renderers.
 FORGE_RENDERER_API void initResourceLoaderInterface(Renderer** ppRenderers, uint32_t rendererCount, ResourceLoaderDesc* pDesc = nullptr);
 FORGE_RENDERER_API void exitResourceLoaderInterface(Renderer** ppRenderers, uint32_t rendererCount);
-
-// MARK: App Material Management
-#ifdef ENABLE_FORGE_MATERIALS
-
-// Will load a material and all related shaders/textures (if they are not already loaded, Material shaders/textures are shared across all
-// Materials)
-FORGE_RENDERER_API uint32_t addMaterial(const char* pMaterialFileName, Material** pMaterial, SyncToken* pSyncToken);
-// Will unload all the related shaders/textures (if they are not still used by some other Material)
-FORGE_RENDERER_API void     removeMaterial(Material* pMaterial);
-
-// TODO: Functions below are a simple interface to get resources from materials, as we develop materials further this interface will
-// probably change.
-FORGE_RENDERER_API uint32_t getMaterialSetIndex(Material* pMaterial, const char* name);
-FORGE_RENDERER_API void     getMaterialShader(Material* pMaterial, uint32_t materialSetIndex, Shader** ppOutShader);
-FORGE_RENDERER_API void     getMaterialTextures(Material* pMaterial, uint32_t materialSetIndex, const char** ppOutTextureBindingNames,
-                                                Texture** ppOutTextures, uint32_t outTexturesSize);
-
-#endif // ENABLE_FORGE_MATERIALS
 
 // MARK: addResource and updateResource
 
