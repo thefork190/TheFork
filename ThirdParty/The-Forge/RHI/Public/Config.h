@@ -274,36 +274,8 @@ COMPILE_ASSERT(sizeof(ssize_t) == sizeof(int64_t));
 //// General options
 //////////////////////////////////////////////
 
-
-// To keep?
 #define ENABLE_VMA_LOG // Very verbose, prints for each allocation
 
-// Need to remove and bring to ecs engine but keep for now 
-//#define ENABLE_FORGE_UI
-//#define ENABLE_FORGE_INPUT
-//#define ENABLE_FORGE_FONTS
-//#define ENABLE_FORGE_ANIMATION_DEBUG
-//#define ENABLE_ZIP_FILESYSTEM
-//#define ENABLE_SCREENSHOT
-
-// To remove but have to keep right now
-//#define ENABLE_MATH_CHECKS // Enables low level math library debug checks like SIMD variable alignment checks
-
-// By default the UI uses 16bit indexes, enable define below to change it to 32bits
-// #define FORGE_UI_USE_32BIT_INDEXES
-#define FORGE_UI_MAX_VERTEXES (64 * 1024)
-#define FORGE_UI_MAX_INDEXES  (128 * 1024)
-
-// For allocating space in uniform block. Must match with shader and application.
-// 804 aligns as multiple of the 67 bones used in the animation test closest to having a 64k uniform buffer
-#ifndef MAX_SKELETON_BATCHER_BLOCK_INSTANCES
-#define MAX_SKELETON_BATCHER_BLOCK_INSTANCES 804
-#endif
-
-#define VISIBILITY_BUFFER_MAX_GEOMETRY_SETS 3
-// Number of bits required to represent all geometry set values
-#define VISIBILITY_BUFFER_GEOMETRY_SET_BITS 2
-#define VISIBILITY_BUFFER_MAX_NUM_BUFFERS   2
 
 //////////////////////////////////////////////
 //// Build related options
