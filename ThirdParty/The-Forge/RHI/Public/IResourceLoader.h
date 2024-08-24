@@ -57,14 +57,6 @@ typedef enum TextureContainerType
     TEXTURE_CONTAINER_GNF,
 } TextureContainerType;
 
-typedef enum RegisterMaterialResult
-{
-
-    REGISTER_MATERIAL_SUCCESS = 0x0000,
-    REGISTER_MATERIAL_BADFILE = 0x0001,
-
-} RegisterMaterialResult;
-
 // MARK: - Resource Loading
 
 typedef struct BufferLoadDesc
@@ -461,8 +453,6 @@ typedef struct PipelineCacheSaveDesc
 } PipelineCacheSaveDesc;
 
 typedef uint64_t SyncToken;
-
-struct Material;
 
 typedef struct ResourceLoaderDesc
 {
