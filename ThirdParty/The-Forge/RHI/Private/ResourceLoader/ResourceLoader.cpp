@@ -1355,314 +1355,56 @@ static void fillGeometryUpdateDesc(Renderer* pRenderer, CopyEngine* pCopyEngine,
     geom->mVertexBufferCount = bufferCounter;
 }
 
-static UploadFunctionResult loadGeometryCustomMeshFormat(Renderer* pRenderer, CopyEngine* pCopyEngine, GeometryLoadDesc* pDesc,
-                                                         BufferUpdateDesc vertexUpdateDesc[MAX_VERTEX_BINDINGS],
-                                                         BufferUpdateDesc indexUpdateDesc[1])
-{
-    FileStream file = {};
-    if (!fsOpenStreamFromPath(RD_MESHES, pDesc->pFileName, FM_READ, &file))
-    {
-        LOGF(eERROR, "Failed to open bin file %s", pDesc->pFileName);
-        ASSERT(false);
-        return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
-    }
-
-    char magic[TF_ARRAY_COUNT(GEOMETRY_FILE_MAGIC_STR)] = { 0 };
-    COMPILE_ASSERT(sizeof(magic) == sizeof(GEOMETRY_FILE_MAGIC_STR));
-    fsReadFromStream(&file, magic, sizeof(magic));
-
-    if (strncmp(magic, GEOMETRY_FILE_MAGIC_STR, TF_ARRAY_COUNT(magic)) != 0)
-    {
-        LOGF(eERROR, "File '%s' is not a Geometry file.", pDesc->pFileName);
-        return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
-    }
-
-    uint32_t geomSize = 0;
-    fsReadFromStream(&file, &geomSize, sizeof(uint32_t));
-    if (!VERIFYMSG(geomSize >= 352, "File '%s': Geometry object must have a size >= 352.", pDesc->pFileName))
-    {
-        return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
-    }
-
-    Geometry* geom = (Geometry*)tf_calloc(1, geomSize);
-
-    if (!VERIFYMSG(geom, "File '%s': Geometry object is a nullptr.", pDesc->pFileName))
-    {
-        return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
-    }
-
-    fsReadFromStream(&file, geom, geomSize);
-
-    uint32_t geomDataSize = 0;
-    fsReadFromStream(&file, &geomDataSize, sizeof(uint32_t));
-    if (!VERIFYMSG(geomDataSize > 0, "File '%s': Geometry object must have a size greater than 0.", pDesc->pFileName))
-    {
-        return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
-    }
-
-    GeometryData* geomData = (GeometryData*)tf_calloc(1, geomDataSize);
-    if (!VERIFYMSG(geomData, "File '%s': Geometry object is a nullptr.", pDesc->pFileName))
-    {
-        return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
-    }
-
-    fsReadFromStream(&file, geomData, geomDataSize);
-
-    uint32_t shadowSize = 0;
-    fsReadFromStream(&file, &shadowSize, sizeof(uint32_t));
-    ASSERT(shadowSize > 0);
-    if (shadowSize < sizeof(*geomData->pShadow))
-    {
-        LOGF(eERROR, "File '%s': Geometry object has shadow with size less than %x, got %x", pDesc->pFileName,
-             (int)sizeof(*geomData->pShadow), (int)shadowSize);
-        return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
-    }
-
-    geomData->pShadow = (GeometryData::ShadowData*)tf_malloc(shadowSize);
-    if (!geomData->pShadow)
-    {
-        return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
-    }
-
-    if (!VERIFYMSG(fsReadFromStream(&file, geomData->pShadow, shadowSize) == shadowSize,
-                   "File '%s': Failed to read Geometry object's shadow.", pDesc->pFileName))
-    {
-        return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
-    }
-
-    if (geom->meshlets.mMeshletCount)
-    {
-        uint64_t meshlets_size = geom->meshlets.mMeshletCount * sizeof *geom->meshlets.mMeshlets;
-        uint64_t meshlets_data_size = geom->meshlets.mMeshletCount * sizeof *geom->meshlets.mMeshletsData;
-        uint64_t vertices_size = geom->meshlets.mVertexCount * sizeof *geom->meshlets.mVertices;
-        uint64_t triangles_size = geom->meshlets.mTriangleCount * sizeof *geom->meshlets.mTriangles;
-
-        uint64_t alloc_size = meshlets_size + meshlets_data_size + vertices_size + triangles_size;
-
-        void* mem = tf_malloc(alloc_size);
-
-        geom->meshlets.mMeshlets = (Meshlet*)mem;
-        geom->meshlets.mMeshletsData = (MeshletData*)(geom->meshlets.mMeshlets + geom->meshlets.mMeshletCount);
-        geom->meshlets.mVertices = (uint32_t*)(geom->meshlets.mMeshletsData + geom->meshlets.mMeshletCount);
-        geom->meshlets.mTriangles = (uint8_t*)(geom->meshlets.mVertices + geom->meshlets.mVertexCount);
-
-        size_t read = fsReadFromStream(&file, mem, alloc_size);
-        if (alloc_size != read)
-        {
-            return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
-        }
-    }
-
-    fsCloseStream(&file);
-
-    geom->pDrawArgs = (IndirectDrawIndexArguments*)(geom + 1); //-V1027
-
-    if (geomData->mJointCount > 0)
-    {
-        geomData->pInverseBindPoses = (mat4*)(geomData + 1); //-V1027
-        geomData->pJointRemaps =
-            (uint32_t*)((uint8_t*)geomData->pInverseBindPoses + round_up(geomData->mJointCount * sizeof(*geomData->pInverseBindPoses), 16));
-    }
-
-    if (geomData->mUserDataSize > 0)
-    {
-        geomData->pUserData = geomData->mJointCount > 0
-                                  ? ((uint8_t*)geomData->pJointRemaps + round_up(geomData->mJointCount * sizeof(uint32_t), 16))
-                                  : (uint8_t*)(geomData + 1);
-    }
-
-    // Determine index stride
-    const uint32_t indexStride = geom->mVertexCount > UINT16_MAX ? sizeof(uint32_t) : sizeof(uint16_t);
-
-    geomData->pShadow->pIndices = geomData->pShadow + 1;
-
-    geomData->pShadow->pAttributes[SEMANTIC_POSITION] = (uint8_t*)geomData->pShadow->pIndices + (geom->mIndexCount * indexStride);
-
-    for (uint32_t s = SEMANTIC_POSITION + 1; s < MAX_SEMANTICS; ++s)
-        geomData->pShadow->pAttributes[s] = (uint8_t*)geomData->pShadow->pAttributes[s - 1] +
-                                            geomData->pShadow->mVertexStrides[s - 1] * geomData->pShadow->mAttributeCount[s - 1];
-
-    for (uint32_t i = 0; i < TF_ARRAY_COUNT(geomData->pShadow->mVertexStrides); ++i)
-    {
-        if (geomData->pShadow->mVertexStrides[i] == 0)
-            geomData->pShadow->pAttributes[i] = nullptr;
-    }
-
-    uint32_t vertexAttribCount[MAX_SEMANTICS] = {};
-    uint32_t vertexOffsets[MAX_SEMANTICS] = {}; // offset in the GPU layout
-    uint32_t vertexBindings[MAX_SEMANTICS] = {};
-    for (uint32_t i = 0; i < TF_ARRAY_COUNT(vertexOffsets); ++i)
-        vertexOffsets[i] = UINT_MAX;
-
-    uint32_t defaultTexcoordSemantic = SEMANTIC_UNDEFINED;
-
-    // Determine vertex stride for each binding
-    for (uint32_t i = 0; i < pDesc->pVertexLayout->mAttribCount; ++i)
-    {
-        const VertexAttrib* attr = &pDesc->pVertexLayout->mAttribs[i];
-
-        const uint32_t dstFormatSize = TinyImageFormat_BitSizeOfBlock(attr->mFormat) / 8;
-
-        if (defaultTexcoordSemantic == SEMANTIC_UNDEFINED) // #nocheckin Revisit this if statement
-        {
-            if (attr->mSemantic >= SEMANTIC_TEXCOORD0 && attr->mSemantic <= SEMANTIC_TEXCOORD9)
-            {
-                // Make sure there are only 1 set of default texcoords
-                ASSERT(defaultTexcoordSemantic == SEMANTIC_UNDEFINED);
-                defaultTexcoordSemantic = attr->mSemantic;
-            }
-        }
-
-        const uint32_t srcFormatSize = (uint32_t)geomData->pShadow->mVertexStrides[attr->mSemantic]; //-V522
-
-        uint32_t binding =
-            pDesc->pGeometryBufferLayoutDesc ? pDesc->pGeometryBufferLayoutDesc->mSemanticBindings[attr->mSemantic] : attr->mBinding;
-
-        geom->mVertexStrides[binding] += dstFormatSize ? dstFormatSize : srcFormatSize;
-        vertexOffsets[attr->mSemantic] = attr->mOffset;
-        vertexBindings[attr->mSemantic] = binding;
-        ++vertexAttribCount[binding];
-
-        // src and dst formats must match because the AssetPipeline converts to the destination formats already
-        ASSERT(dstFormatSize == 0 || dstFormatSize == srcFormatSize);
-    }
-
-    uint32_t dstIndexStride = indexStride;
-
-    fillGeometryUpdateDesc(pRenderer, pCopyEngine, pDesc, geom, &dstIndexStride, vertexUpdateDesc, indexUpdateDesc);
-
-    if (indexStride == dstIndexStride)
-        memcpy(indexUpdateDesc->pMappedData, geomData->pShadow->pIndices, indexStride * geom->mIndexCount);
-    else
-    {
-        if (sizeof(uint16_t) == indexStride)
-        {
-            uint32_t*       dst = (uint32_t*)indexUpdateDesc->pMappedData;
-            const uint16_t* src = (uint16_t*)geomData->pShadow->pIndices;
-            for (uint32_t idx = 0; idx < geom->mIndexCount; ++idx)
-                dst[idx] = src[idx];
-        }
-        else
-        {
-            LOGF(eERROR, "Trying to copy uint32 indexes into uint16 buffers, data will be lost: '%s'", pDesc->pFileName);
-            ASSERT(false);
-        }
-    }
-
-    for (uint32_t i = 0; i < MAX_SEMANTICS; ++i)
-    {
-        if (!geomData->pShadow->pAttributes[i])
-            continue;
-        // Invalid vertexOffset means pVertexLayout doesn't use this attribute, no need to copy it
-        if (vertexOffsets[i] == UINT_MAX)
-            continue;
-
-        const uint32_t binding = vertexBindings[i];
-        const uint32_t offset = vertexOffsets[i];
-        const uint32_t stride = geom->mVertexStrides[binding];
-
-        const uint8_t* src = (uint8_t*)geomData->pShadow->pAttributes[i];
-        uint8_t*       dst = (uint8_t*)vertexUpdateDesc[binding].pMappedData;
-        ASSERT(src && dst);
-
-        // If this vertex attribute is not interleaved with any other attribute use fast path instead of copying one by one
-        // In this case a simple memcpy will be enough to transfer the data to the buffer
-        if (1 == vertexAttribCount[binding])
-        {
-            memcpy(dst, src, geomData->pShadow->mVertexStrides[i] * geomData->pShadow->mAttributeCount[i]);
-        }
-        else
-        {
-            // Loop through all vertices copying into the correct place in the vertex buffer
-            // Example:
-            // [ POSITION | NORMAL | TEXCOORD ] => [ 0 | 12 | 24 ], [ 32 | 44 | 52 ], ... (vertex stride of 32 => 12 + 12 + 8)
-            for (uint32_t e = 0; e < geomData->pShadow->mAttributeCount[i]; ++e)
-                memcpy(dst + e * stride + offset, src + e * geomData->pShadow->mVertexStrides[i], geomData->pShadow->mVertexStrides[i]);
-        }
-    }
-
-    // If the user doesn't want the shadowed data we don't need it any more
-    if ((pDesc->mFlags & GEOMETRY_LOAD_FLAG_SHADOWED) != GEOMETRY_LOAD_FLAG_SHADOWED)
-    {
-        tf_free(geomData->pShadow);
-        geomData->pShadow = nullptr;
-    }
-
-    geom->pGeometryBuffer = pDesc->pGeometryBuffer;
-    if (pDesc->pGeometryBufferLayoutDesc)
-    {
-        geom->mIndexType = pDesc->pGeometryBufferLayoutDesc->mIndexType;
-    }
-
-    *pDesc->ppGeometry = geom;
-
-    if (pDesc->ppGeometryData)
-        *pDesc->ppGeometryData = geomData;
-    else
-    {
-        tf_free(geomData->pShadow);
-        tf_free(geomData);
-    }
-
-    tf_free((void*)pDesc->pVertexLayout);
-
-    return UPLOAD_FUNCTION_RESULT_COMPLETED;
-}
-
-static UploadFunctionResult loadGeometry(Renderer* pRenderer, CopyEngine* pCopyEngine, UpdateRequest& pGeometryLoad)
+static UploadFunctionResult loadGeometry(
+    Renderer* pRenderer, 
+    CopyEngine* pCopyEngine, 
+    UpdateRequest& pGeometryLoad)
 {
     GeometryLoadDesc* pDesc = &pGeometryLoad.geomLoadDesc;
-
-    BufferUpdateDesc indexUpdateDesc = {};
-    BufferUpdateDesc vertexUpdateDesc[MAX_VERTEX_BINDINGS] = {};
-
-    UploadFunctionResult res = loadGeometryCustomMeshFormat(pRenderer, pCopyEngine, pDesc, vertexUpdateDesc, &indexUpdateDesc);
-    if (res != UPLOAD_FUNCTION_RESULT_COMPLETED)
-        return res;
 
     // Upload mesh
     UploadFunctionResult uploadResult = UPLOAD_FUNCTION_RESULT_COMPLETED;
     BufferBarrier        barriers[MAX_VERTEX_BINDINGS + 1] = {};
     uint32_t             barrierCount = 0;
 
-    if (!gUma || (indexUpdateDesc.pMappedData && !indexUpdateDesc.pBuffer->pCpuMappedAddress))
+    if (!gUma || (pDesc->mIndexUpdateDesc.pMappedData && !pDesc->mIndexUpdateDesc.pBuffer->pCpuMappedAddress))
     {
-        indexUpdateDesc.mCurrentState = gUma ? indexUpdateDesc.mCurrentState : RESOURCE_STATE_COPY_DEST;
-        indexUpdateDesc.mInternal.mMappedRange =
-            allocateStagingMemory(pCopyEngine, indexUpdateDesc.mSize, RESOURCE_BUFFER_ALIGNMENT, pDesc->mNodeIndex);
-        ASSERT(indexUpdateDesc.pMappedData);
-        memcpy(indexUpdateDesc.mInternal.mMappedRange.pData, indexUpdateDesc.pMappedData, indexUpdateDesc.mSize);
-        tf_free(indexUpdateDesc.pMappedData);
-        if (indexUpdateDesc.mInternal.mMappedRange.mFlags & MAPPED_RANGE_FLAG_TEMP_BUFFER)
+        pDesc->mIndexUpdateDesc.mCurrentState = gUma ? pDesc->mIndexUpdateDesc.mCurrentState : RESOURCE_STATE_COPY_DEST;
+        pDesc->mIndexUpdateDesc.mInternal.mMappedRange =
+            allocateStagingMemory(pCopyEngine, pDesc->mIndexUpdateDesc.mSize, RESOURCE_BUFFER_ALIGNMENT, pDesc->mNodeIndex);
+        ASSERT(pDesc->mIndexUpdateDesc.pMappedData);
+        memcpy(pDesc->mIndexUpdateDesc.mInternal.mMappedRange.pData, pDesc->mIndexUpdateDesc.pMappedData, pDesc->mIndexUpdateDesc.mSize);
+        tf_free(pDesc->mIndexUpdateDesc.pMappedData);
+        if (pDesc->mIndexUpdateDesc.mInternal.mMappedRange.mFlags & MAPPED_RANGE_FLAG_TEMP_BUFFER)
         {
-            setBufferName(pRenderer, indexUpdateDesc.mInternal.mMappedRange.pBuffer, pDesc->pFileName);
+            setBufferName(pRenderer, pDesc->mIndexUpdateDesc.mInternal.mMappedRange.pBuffer, pDesc->pFileName);
         }
-        indexUpdateDesc.pMappedData = indexUpdateDesc.mInternal.mMappedRange.pData;
-        uploadResult = updateBuffer(pRenderer, pCopyEngine, indexUpdateDesc);
+        pDesc->mIndexUpdateDesc.pMappedData = pDesc->mIndexUpdateDesc.mInternal.mMappedRange.pData;
+        uploadResult = updateBuffer(pRenderer, pCopyEngine, pDesc->mIndexUpdateDesc);
     }
 
-    barriers[barrierCount++] = { indexUpdateDesc.pBuffer, RESOURCE_STATE_COPY_DEST, gIndexBufferState };
+    barriers[barrierCount++] = { pDesc->mIndexUpdateDesc.pBuffer, RESOURCE_STATE_COPY_DEST, gIndexBufferState };
 
     for (uint32_t i = 0; i < MAX_VERTEX_BINDINGS; ++i)
     {
-        if (vertexUpdateDesc[i].pBuffer)
+        if (pDesc->mVertexUpdateDesc[i].pBuffer)
         {
-            if (!gUma || (vertexUpdateDesc[i].pMappedData && !vertexUpdateDesc[i].pBuffer->pCpuMappedAddress))
+            if (!gUma || (pDesc->mVertexUpdateDesc[i].pMappedData && !pDesc->mVertexUpdateDesc[i].pBuffer->pCpuMappedAddress))
             {
-                vertexUpdateDesc[i].mCurrentState = gUma ? vertexUpdateDesc[i].mCurrentState : RESOURCE_STATE_COPY_DEST;
-                vertexUpdateDesc[i].mInternal.mMappedRange =
-                    allocateStagingMemory(pCopyEngine, vertexUpdateDesc[i].mSize, RESOURCE_BUFFER_ALIGNMENT, pDesc->mNodeIndex);
-                ASSERT(vertexUpdateDesc[i].pMappedData);
-                memcpy(vertexUpdateDesc[i].mInternal.mMappedRange.pData, vertexUpdateDesc[i].pMappedData, vertexUpdateDesc[i].mSize);
-                tf_free(vertexUpdateDesc[i].pMappedData);
-                if (vertexUpdateDesc[i].mInternal.mMappedRange.mFlags & MAPPED_RANGE_FLAG_TEMP_BUFFER)
+                pDesc->mVertexUpdateDesc[i].mCurrentState = gUma ? pDesc->mVertexUpdateDesc[i].mCurrentState : RESOURCE_STATE_COPY_DEST;
+                pDesc->mVertexUpdateDesc[i].mInternal.mMappedRange =
+                    allocateStagingMemory(pCopyEngine, pDesc->mVertexUpdateDesc[i].mSize, RESOURCE_BUFFER_ALIGNMENT, pDesc->mNodeIndex);
+                ASSERT(pDesc->mVertexUpdateDesc[i].pMappedData);
+                memcpy(pDesc->mVertexUpdateDesc[i].mInternal.mMappedRange.pData, pDesc->mVertexUpdateDesc[i].pMappedData, pDesc->mVertexUpdateDesc[i].mSize);
+                tf_free(pDesc->mVertexUpdateDesc[i].pMappedData);
+                if (pDesc->mVertexUpdateDesc[i].mInternal.mMappedRange.mFlags & MAPPED_RANGE_FLAG_TEMP_BUFFER)
                 {
-                    setBufferName(pRenderer, vertexUpdateDesc[i].mInternal.mMappedRange.pBuffer, pDesc->pFileName);
+                    setBufferName(pRenderer, pDesc->mVertexUpdateDesc[i].mInternal.mMappedRange.pBuffer, pDesc->pFileName);
                 }
-                vertexUpdateDesc[i].pMappedData = vertexUpdateDesc[i].mInternal.mMappedRange.pData;
-                uploadResult = updateBuffer(pRenderer, pCopyEngine, vertexUpdateDesc[i]);
+                pDesc->mVertexUpdateDesc[i].pMappedData = pDesc->mVertexUpdateDesc[i].mInternal.mMappedRange.pData;
+                uploadResult = updateBuffer(pRenderer, pCopyEngine, pDesc->mVertexUpdateDesc[i]);
             }
-            barriers[barrierCount++] = { vertexUpdateDesc[i].pBuffer, RESOURCE_STATE_COPY_DEST, gVertexBufferState };
+            barriers[barrierCount++] = { pDesc->mVertexUpdateDesc[i].pBuffer, RESOURCE_STATE_COPY_DEST, gVertexBufferState };
         }
     }
 

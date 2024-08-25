@@ -304,6 +304,34 @@ typedef struct GeometryBufferLayoutDesc
     uint32_t  mSemanticBindings[SEMANTIC_TEXCOORD9 + 1];
 } GeometryBufferLayoutDesc;
 
+typedef struct BufferUpdateDesc
+{
+    Buffer* pBuffer;
+    uint64_t mDstOffset;
+    uint64_t mSize;
+
+    /// To be filled by the caller between beginUpdateResource and endUpdateResource calls
+    /// Example:
+    /// BufferUpdateDesc update = { pBuffer, bufferDstOffset };
+    /// beginUpdateResource(&update);
+    /// ParticleVertex* vertices = (ParticleVertex*)update.pMappedData;
+    ///   for (uint32_t i = 0; i < particleCount; ++i)
+    ///	    vertices[i] = { rand() };
+    /// endUpdateResource(&update, &token);
+    void* pMappedData;
+
+    // Optional (if user provides staging buffer memory)
+    Buffer* pSrcBuffer;
+    uint64_t      mSrcOffset;
+    ResourceState mCurrentState;
+
+    /// Internal
+    struct
+    {
+        MappedMemoryRange mMappedRange;
+    } mInternal;
+} BufferUpdateDesc;
+
 typedef struct GeometryLoadDesc
 {
     /// Output geometry
@@ -319,6 +347,10 @@ typedef struct GeometryLoadDesc
     /// Specifies how to arrange the vertex data loaded from the file into GPU memory
     const VertexLayout* pVertexLayout;
 
+    /// What to load
+    BufferUpdateDesc mIndexUpdateDesc;
+    BufferUpdateDesc mVertexUpdateDesc[MAX_VERTEX_BINDINGS];
+
     /// Optional preallocated unified buffer for geometry.
     /// When this parameter is specified, Geometry::pDrawArgs values are going
     /// to be shifted according to index/vertex location within BufferChunkAllocator.
@@ -327,34 +359,6 @@ typedef struct GeometryLoadDesc
     /// Used to convert data to desired state inside GeometryBuffer.
     GeometryBufferLayoutDesc* pGeometryBufferLayoutDesc;
 } GeometryLoadDesc;
-
-typedef struct BufferUpdateDesc
-{
-    Buffer*  pBuffer;
-    uint64_t mDstOffset;
-    uint64_t mSize;
-
-    /// To be filled by the caller between beginUpdateResource and endUpdateResource calls
-    /// Example:
-    /// BufferUpdateDesc update = { pBuffer, bufferDstOffset };
-    /// beginUpdateResource(&update);
-    /// ParticleVertex* vertices = (ParticleVertex*)update.pMappedData;
-    ///   for (uint32_t i = 0; i < particleCount; ++i)
-    ///	    vertices[i] = { rand() };
-    /// endUpdateResource(&update, &token);
-    void* pMappedData;
-
-    // Optional (if user provides staging buffer memory)
-    Buffer*       pSrcBuffer;
-    uint64_t      mSrcOffset;
-    ResourceState mCurrentState;
-
-    /// Internal
-    struct
-    {
-        MappedMemoryRange mMappedRange;
-    } mInternal;
-} BufferUpdateDesc;
 
 typedef struct TextureSubresourceUpdate
 {
