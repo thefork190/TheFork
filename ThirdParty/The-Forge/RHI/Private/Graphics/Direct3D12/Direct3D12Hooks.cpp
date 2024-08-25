@@ -44,6 +44,8 @@
     }
 #endif
 
+static inline constexpr uint32_t round_up(uint32_t value, uint32_t multiple) { return ((value + multiple - 1) / multiple) * multiple; }
+
 extern DXGI_FORMAT           util_to_dx12_swapchain_format(TinyImageFormat format);
 extern DXGI_COLOR_SPACE_TYPE util_to_dx12_colorspace(ColorSpace colorspace);
 

@@ -2158,7 +2158,6 @@ void removeResource(Geometry* pGeom)
         }
     }
 
-    tf_free(pGeom->meshlets.mMeshlets);
     tf_free(pGeom);
 }
 

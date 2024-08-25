@@ -135,6 +135,7 @@ static inline void removeGPURingBuffer(GPURingBuffer* pRingBuffer) { removeResou
 
 static inline void resetGPURingBuffer(GPURingBuffer* pRingBuffer) { pRingBuffer->mCurrentBufferOffset = 0; }
 
+static inline constexpr uint32_t round_up(uint32_t value, uint32_t multiple) { return ((value + multiple - 1) / multiple) * multiple; }
 static inline GPURingBufferOffset getGPURingBufferOffset(GPURingBuffer* pRingBuffer, uint32_t memoryRequirement, uint32_t alignment = 0)
 {
     uint32_t alignedSize = round_up(memoryRequirement, alignment ? alignment : pRingBuffer->mBufferAlignment);

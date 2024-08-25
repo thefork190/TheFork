@@ -27,7 +27,6 @@
 #include "IGraphics.h"
 
 #include "Graphics/GraphicsConfig.h"
-#include "Math/MathTypes.h"
 #include "Threading/Atomics.h"
 
 static FORGE_CONSTEXPR const ResourceState gVertexBufferState = RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER | RESOURCE_STATE_SHADER_RESOURCE;
@@ -125,43 +124,6 @@ typedef struct GeometryBuffer
     BufferChunkAllocator mVertex[MAX_VERTEX_BINDINGS];
 } GeometryBuffer;
 
-FORGE_CONSTEXPR const char GEOMETRY_FILE_MAGIC_STR[] = { 'G', 'e', 'o', 'm', 'e', 't', 'r', 'y', 'T', 'F' };
-
-typedef struct Meshlet
-{
-    /// Offsets within meshlet_vertices and meshlet_triangles arrays with meshlet data
-    uint vertexOffset;
-    uint triangleOffset;
-
-    /// Number of vertices and triangles used in the meshlet; data is stored in consecutive range defined by offset and count
-    uint vertexCount;
-    uint triangleCount;
-} Meshlet;
-
-typedef struct MeshletData
-{
-    float3 center;
-    float  radius;
-
-    /// Normal cone, useful for backface culling
-    float3 coneApex;
-    float3 coneAxis;
-    float  coneCutoff; // = cos(angle/2)
-} MeshletData;
-
-typedef struct GeometryMeshlets
-{
-    uint64_t     mMeshletCount;
-    Meshlet*     mMeshlets;
-    MeshletData* mMeshletsData;
-
-    uint64_t  mVertexCount;
-    uint32_t* mVertices;
-
-    uint64_t mTriangleCount;
-    uint8_t* mTriangles;
-} GeometryMeshlets;
-
 typedef struct Geometry
 {
     union
@@ -201,23 +163,14 @@ typedef struct Geometry
     // If present, data is stored in pGeometryBuffer
     GeometryBuffer* pGeometryBuffer;
 
-    GeometryMeshlets meshlets;
-
-    uint32_t mPad[20];
+    uint32_t mPad[1];
 } Geometry;
 
-static_assert(sizeof(Geometry) == 352, "If Geometry size changes we need to rebuild all custom binary meshes");
-static_assert(sizeof(Geometry) % 16 == 0, "Geometry size must be a multiple of 16");
+static_assert(sizeof(Geometry) % 16 == 0, "Geometry size must be a multiple of 16 to be able to serialize it properly (TODO).");
 
 // Outputs data that's only needed in the CPU side, OTOH the Geometry object holds GPU related information and buffers
 typedef struct GeometryData
 {
-    struct Hair
-    {
-        uint32_t mVertexCountPerStrand;
-        uint32_t mGuideCountPerStrand;
-    };
-
     struct ShadowData
     {
         void* pIndices;
@@ -232,7 +185,6 @@ typedef struct GeometryData
         uint32_t mVertexStrides[MAX_SEMANTICS];
 
         // We might have a different number of attributes than mVertexCount.
-        // This happens for example for Hair
         uint32_t mAttributeCount[MAX_SEMANTICS];
 
         // TODO: Consider if we want to store here mIndexStride to access ShadowData::pIndices,
@@ -242,20 +194,8 @@ typedef struct GeometryData
     /// Shadow copy of the geometry vertex and index data if requested through the load flags
     ShadowData* pShadow;
 
-    /// The array of joint inverse bind-pose matrices ( object-space )
-    mat4*     pInverseBindPoses;
-    /// The array of data to remap skin batch local joint ids to global joint ids
-    uint32_t* pJointRemaps;
-
-    /// Number of joints in the skinned geometry
-    uint32_t mJointCount;
-
-    /// Hair data
-    Hair mHair;
 
     uint32_t mPad0[1];
-
-    MeshletData* meshlets;
 
     // Custom data imported by the user in custom AssetPipelines, this can be data that was exported from a custom tool/plugin
     // specific to the engine/game. See AssetPipeline: callbacks in ProcessGLTFParams for more information.
