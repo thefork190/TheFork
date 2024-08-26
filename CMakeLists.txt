@@ -72,7 +72,10 @@ add_subdirectory(ThirdParty/SDL EXCLUDE_FROM_ALL)
 add_subdirectory(ThirdParty/The-Forge/RHI EXCLUDE_FROM_ALL)
 add_subdirectory(ThirdParty/flecs EXCLUDE_FROM_ALL)
 
-
+target_include_directories(${PROJECT_NAME}
+    PRIVATE ThirdParty/The-Forge/RHI/Private # Hack for TF
+    PRIVATE ThirdParty/The-Forge/ThirdParty # Hack for TF
+)
 
 # Link SDL to our executable. This also makes its include directory available to us. 
 target_link_libraries(${EXECUTABLE_NAME} 	
