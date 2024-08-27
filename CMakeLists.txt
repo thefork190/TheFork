@@ -29,14 +29,17 @@ endif()
 target_sources(${EXECUTABLE_NAME}
 PRIVATE 
     Source/Main.cpp
+    Source/iosLaunchScreen.storyboard
+    Source/Sample.appxManifest
+# LOW
     Source/Modules/Low/Engine.h
     Source/Modules/Low/Engine.cpp
     Source/Modules/Low/Window.h
     Source/Modules/Low/Window.cpp
     Source/Modules/Low/RHI.h
     Source/Modules/Low/RHI.cpp
-    Source/iosLaunchScreen.storyboard
-    Source/Sample.appxManifest
+# Middle
+    Source/Modules/Middle/Camera.h
 )
 
 # What is iosLaunchScreen.storyboard? This file describes what Apple's mobile platforms
@@ -71,6 +74,7 @@ endif()
 add_subdirectory(ThirdParty/SDL EXCLUDE_FROM_ALL)
 add_subdirectory(ThirdParty/The-Forge/RHI EXCLUDE_FROM_ALL)
 add_subdirectory(ThirdParty/flecs EXCLUDE_FROM_ALL)
+add_subdirectory(ThirdParty/glm EXCLUDE_FROM_ALL)
 
 target_include_directories(${PROJECT_NAME}
     PRIVATE ThirdParty/The-Forge/RHI/Private # Hack for TF
@@ -82,8 +86,9 @@ target_link_libraries(${EXECUTABLE_NAME}
 	PRIVATE
 		RHI
         flecs_static
+        glm::glm
 	PUBLIC 
-		SDL3::SDL3		
+		SDL3::SDL3
 )
 target_compile_definitions(${EXECUTABLE_NAME} PUBLIC SDL_MAIN_USE_CALLBACKS)
 
