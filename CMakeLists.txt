@@ -39,7 +39,7 @@ PRIVATE
     Source/Modules/Low/RHI.h
     Source/Modules/Low/RHI.cpp
 # Middle
-    Source/Modules/Middle/Camera.h
+# High
 )
 
 # What is iosLaunchScreen.storyboard? This file describes what Apple's mobile platforms
@@ -134,6 +134,4 @@ if (WIN32)
         $<TARGET_FILE_DIR:${PROJECT_NAME}>
     )
 endif (WIN32)
-
-
 
