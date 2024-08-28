@@ -542,7 +542,7 @@ def needs_regen(args, dependency_filepath, platforms, regen, dependencies):
 def collect_shader_decl(args, filepath: str, platforms, regen, dependencies, binary_declarations):
     pp = []
     if os.name == 'nt':
-        pp += [join(dirname(dirname(dirname(__file__))), 'Utilities', 'ThirdParty', 'OpenSource', 'mcpp', 'bin', 'mcpp.exe')]
+        pp += [join(dirname(dirname(dirname(__file__))), 'ThirdParty', 'mcpp', 'bin', 'mcpp.exe')]
     else:
         pp += ['cc', '-E', '-']
 

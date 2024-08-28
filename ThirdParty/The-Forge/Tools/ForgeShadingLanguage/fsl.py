@@ -40,12 +40,12 @@ sys.path.extend( [fsl_root, fsl_orbis_root, fsl_prospero_root, fsl_xbox_root])
 if not 'FSL_COMPILER_FXC' in os.environ:
     os.environ['FSL_COMPILER_FXC'] = os.path.normpath('C:/Program Files (x86)/Windows Kits/10/bin/10.0.17763.0/x64')
 if not 'FSL_COMPILER_DXC' in os.environ:
-    os.environ['FSL_COMPILER_DXC'] = os.path.normpath(forge_root+'/Common_3/Graphics/ThirdParty/OpenSource/DirectXShaderCompiler/bin/x64')
+    os.environ['FSL_COMPILER_DXC'] = os.path.normpath(forge_root+'/DirectXShaderCompiler/bin/x64')
 if not 'FSL_COMPILER_VK' in os.environ:
-    os.environ['FSL_COMPILER_VK'] = os.path.normpath(forge_root+'/Common_3/Graphics/ThirdParty/OpenSource/VulkanSDK/bin/Win32/')
-    os.environ['FSL_COMPILER_LINUX_VK'] = os.path.normpath(forge_root+'/Common_3/Graphics/ThirdParty/OpenSource/VulkanSDK/bin/Linux/')
+    os.environ['FSL_COMPILER_VK'] = os.path.normpath(forge_root+'/ThirdParty/OpenSource/VulkanSDK/bin/Win32/')
+    os.environ['FSL_COMPILER_LINUX_VK'] = os.path.normpath(forge_root+'/ThirdParty/OpenSource/VulkanSDK/bin/Linux/')
 if not 'FSL_COMPILER_GLES' in os.environ:
-    os.environ['FSL_COMPILER_GLES'] = os.path.normpath(forge_root+'/Common_3/Graphics/ThirdParty/OpenSource/VulkanSDK/bin/Win32/')
+    os.environ['FSL_COMPILER_GLES'] = os.path.normpath(forge_root+'/ThirdParty/OpenSource/VulkanSDK/bin/Win32/')
 if not 'FSL_COMPILER_MACOS' in os.environ:
     os.environ['FSL_COMPILER_MACOS'] = os.path.normpath('C:/Program Files/Metal Developer Tools/macos/bin')
 if not 'FSL_COMPILER_IOS' in os.environ:
