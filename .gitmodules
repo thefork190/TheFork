@@ -13,3 +13,6 @@
 [submodule "ThirdParty/sdl3-sample"]
 	path = ThirdParty/sdl3-sample
 	url = https://github.com/Ravbug/sdl3-sample.git
+[submodule "ThirdParty/efsw"]
+	path = ThirdParty/efsw
+	url = https://github.com/SpartanJ/efsw.git
