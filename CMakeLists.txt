@@ -87,6 +87,9 @@ target_link_libraries(${EXECUTABLE_NAME}
 		RHI
         flecs_static
         glm::glm
+        $<$<CONFIG:Debug>:${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/efsw_artifacts/lib/efsw-static-debug.lib>
+		$<$<CONFIG:Release>:${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/efsw_artifacts/lib/efsw-static-release.lib>
+		$<$<CONFIG:RelWithDebInfo>:${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/efsw_artifacts/lib/efsw-static-reldbginfo.lib>
 	PUBLIC 
 		SDL3::SDL3
 )
