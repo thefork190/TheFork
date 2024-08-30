@@ -93,3 +93,6 @@ xcuserdata/
 
 #Python
 *.pyc
+
+#Scripts Artifacts
+/**/scripts_output/

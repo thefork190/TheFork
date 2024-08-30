@@ -27,7 +27,7 @@ def search_and_process(input_dir, output_dir, bin_dir, tmp_dir):
             if file == 'ShaderList.fsl':
                 file_path = os.path.join(root, file)
                 print(f"Found ShaderList.fsl: {file_path}")
-                process_shader_list(file_path, output_dir, bin_dir, tmp_dir)
+                process_shader_list(file_path, os.path.join(root, output_dir), os.path.join(root, bin_dir), tmp_dir)
 
 if __name__ == "__main__":
     if len(sys.argv) != 5:
