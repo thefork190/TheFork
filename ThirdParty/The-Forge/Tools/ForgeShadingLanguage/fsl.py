@@ -30,7 +30,7 @@ from multiprocessing import Pool, cpu_count
 
 # add fsl roots to path
 fsl_root = os.path.sep.join(os.path.abspath(__file__).split(os.path.sep)[:-1])
-forge_root = os.path.dirname(os.path.dirname(os.path.dirname(fsl_root)))
+forge_root = os.path.dirname(os.path.dirname(fsl_root))
 fsl_orbis_root    = os.path.join(forge_root, 'PS4', 'Common_3', 'Tools', 'ForgeShadingLanguage')
 fsl_prospero_root = os.path.join(forge_root, 'Prospero', 'Common_3', 'Tools', 'ForgeShadingLanguage')
 fsl_xbox_root     = os.path.join(forge_root, 'Xbox', 'Common_3', 'Tools', 'ForgeShadingLanguage')
@@ -40,7 +40,7 @@ sys.path.extend( [fsl_root, fsl_orbis_root, fsl_prospero_root, fsl_xbox_root])
 if not 'FSL_COMPILER_FXC' in os.environ:
     os.environ['FSL_COMPILER_FXC'] = os.path.normpath('C:/Program Files (x86)/Windows Kits/10/bin/10.0.17763.0/x64')
 if not 'FSL_COMPILER_DXC' in os.environ:
-    os.environ['FSL_COMPILER_DXC'] = os.path.normpath(forge_root+'/DirectXShaderCompiler/bin/x64')
+    os.environ['FSL_COMPILER_DXC'] = os.path.normpath(forge_root+'/ThirdParty/DirectXShaderCompiler/bin/x64')
 if not 'FSL_COMPILER_VK' in os.environ:
     os.environ['FSL_COMPILER_VK'] = os.path.normpath(forge_root+'/ThirdParty/OpenSource/VulkanSDK/bin/Win32/')
     os.environ['FSL_COMPILER_LINUX_VK'] = os.path.normpath(forge_root+'/ThirdParty/OpenSource/VulkanSDK/bin/Linux/')
