@@ -10,7 +10,7 @@ def process_shader_list(file_path, output_dir):
         '-d', 'output_dir',
         '-b', 'output_bin',
         '-i', 'fsl_tmp',
-        '-l DIRECT3D12',
+        '-l VULKAN',
         '--verbose',
         '--compile'
     ]
