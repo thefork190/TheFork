@@ -138,3 +138,23 @@ if (WIN32)
     )
 endif (WIN32)
 
+# Assets
+set(ASSETS_DIR "${CMAKE_SOURCE_DIR}/Assets")
+
+# Collect all files in the assets directory
+file(GLOB_RECURSE ASSET_FILES "${ASSETS_DIR}/*")
+
+# Add a custom command to copy the assets
+add_custom_command(
+    OUTPUT "${CMAKE_BINARY_DIR}/$<CONFIG>/Assets"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "${ASSETS_DIR}" "${CMAKE_BINARY_DIR}/$<CONFIG>/Assets"
+    DEPENDS ${ASSET_FILES}
+    COMMENT "Copying assets..."
+)
+
+# Add a custom target that depends on the command
+add_custom_target(copy_assets ALL DEPENDS "${CMAKE_BINARY_DIR}/$<CONFIG>/Assets")
+
+# Ensure the assets are copied after the executable is built
+add_dependencies(${EXECUTABLE_NAME} copy_assets)
+

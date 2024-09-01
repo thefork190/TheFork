@@ -21,6 +21,7 @@ static bool InitTheForge()
         return false;
 
     fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_LOG, "");
+    fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "Assets/GPUCfg");
 
     initMemAlloc(APP_NAME);
     initLog(APP_NAME, DEFAULT_LOG_LEVEL);
