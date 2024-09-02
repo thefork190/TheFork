@@ -6,6 +6,8 @@
 #include "Modules/Low/Window.h"
 #include "Modules/Low/RHI.h"
 
+#include "Modules/High/HelloTriangle/HelloTriangle.h"
+
 // TF 
 #include <ILog.h>
 #include <IFileSystem.h>
@@ -22,6 +24,7 @@ static bool InitTheForge()
 
     fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_LOG, "");
     fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "Assets/GPUCfg");
+    fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_BINARIES, "Assets/FSL/binary");
 
     initMemAlloc(APP_NAME);
     initLog(APP_NAME, DEFAULT_LOG_LEVEL);
@@ -72,7 +75,7 @@ int SDL_AppInit(void** appstate, int argc, char* argv[])
     pApp->ecs.set<flecs::Rest>({});
 
 
-    // Import modules
+    // Import Low/Medium modules
     // TODO: which modules to load can be customized based on flags
     pApp->ecs.import<Engine::module>();
     pApp->ecs.import<Window::module>();
@@ -86,8 +89,12 @@ int SDL_AppInit(void** appstate, int argc, char* argv[])
 
     // Kickstart the engine to activate the first systems
     Engine::KickstartEngine(pApp->ecs);
+
+    // Now load high level modules
+    // TODO:    High modules need to be data driven so we can know which to use/load (high modules represent "apps")
+    //          Default to HelloTriangle.
+    pApp->ecs.import<HelloTriangle::module>();
     
-     
     LOGF(eINFO, "SDL_AppInit returns success.");
 
     return 0;

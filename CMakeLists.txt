@@ -40,6 +40,8 @@ PRIVATE
     Source/Modules/Low/RHI.cpp
 # Middle
 # High
+    Source/Modules/High/HelloTriangle/HelloTriangle.h
+    Source/Modules/High/HelloTriangle/HelloTriangle.cpp
 )
 
 # What is iosLaunchScreen.storyboard? This file describes what Apple's mobile platforms
@@ -77,6 +79,7 @@ add_subdirectory(ThirdParty/flecs EXCLUDE_FROM_ALL)
 add_subdirectory(ThirdParty/glm EXCLUDE_FROM_ALL)
 
 target_include_directories(${PROJECT_NAME}
+    PRIVATE "Source/Modules"
     PRIVATE ThirdParty/The-Forge/RHI/Private # Hack for TF
     PRIVATE ThirdParty/The-Forge/ThirdParty # Hack for TF
 )
