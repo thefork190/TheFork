@@ -29,6 +29,7 @@ endif()
 target_sources(${EXECUTABLE_NAME}
 PRIVATE 
     Source/Main.cpp
+    Source/Modules/LifeCycledModule.h
     Source/iosLaunchScreen.storyboard
     Source/Sample.appxManifest
 # LOW

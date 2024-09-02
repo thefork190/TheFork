@@ -2,17 +2,14 @@
 
 #include <string>
 #include <flecs.h>
-
-#ifndef APP_NAME
-#define APP_NAME "TheFork"
-#endif
+#include "LifeCycledModule.h"
 
 namespace HelloTriangle
 {
-	struct module
+	class module : public LifeCycledModule
 	{
-		~module();
-
+	public:
 		module(flecs::world& ecs);
+		virtual void OnExit(flecs::world& ecs) override;
 	};
 }

@@ -28,13 +28,26 @@ namespace HelloTriangle
 
     module::module(flecs::world& ecs)
     {
+        ecs.import<RHI::module>();
         ecs.module<module>();
 
+        ecs.component<RenderPassData>();
+        
         RHI::RHI const* pRHI = ecs.has<RHI::RHI>() ? ecs.get<RHI::RHI>() : nullptr;
         ASSERTMSG(pRHI, "RHI singleton doesn't exist.");
 
         RenderPassData renderPassData = {};
         AddShaders(pRHI->pRenderer, renderPassData);
         ecs.set<RenderPassData>(renderPassData);
+    }
+
+    void module::OnExit(flecs::world& ecs)
+    {
+        if (ecs.has<RHI::RHI>() && ecs.has<RenderPassData>())
+        {
+            Renderer* pRenderer = ecs.get<RHI::RHI>()->pRenderer;
+            RenderPassData* pRenderPassData = ecs.get_mut<RenderPassData>();
+            RemoveShaders(pRenderer, *pRenderPassData);
+        }
     }
 }

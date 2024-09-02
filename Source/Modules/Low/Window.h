@@ -4,6 +4,7 @@
 #include <flecs.h>
 #include <IGraphics.h>
 #include <RingBuffer.h>
+#include "LifeCycledModule.h"
 
 namespace Window
 {
@@ -18,8 +19,9 @@ namespace Window
 		GpuCmdRingElement curCmdRingElem = {};
 	};
 
-	struct module
+	class module : public LifeCycledModule
 	{
+	public:
 		module(flecs::world& ecs); // Ctor that loads the module
 	};
 }

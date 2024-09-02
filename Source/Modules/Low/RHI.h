@@ -3,6 +3,7 @@
 #include <IGraphics.h>
 #include <RingBuffer.h>
 #include <flecs.h>
+#include "LifeCycledModule.h"
 
 // RHI module provides the lowest level components required to drive rendering.
 // It uses The Forge as to support cross-platform backends.
@@ -31,8 +32,9 @@ namespace RHI
 		SwapChain* pSwapChain = nullptr;
 	};
 	
-	struct module
+	class module : public LifeCycledModule
 	{
+	public:
 		module(flecs::world& ecs); // Ctor that loads the module
 	};
 

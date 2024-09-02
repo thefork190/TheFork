@@ -2,6 +2,7 @@
 
 #include <string>
 #include <flecs.h>
+#include "LifeCycledModule.h"
 
 #ifndef APP_NAME
 #define APP_NAME "TheFork"
@@ -23,8 +24,9 @@ namespace Engine
 		std::string appName = APP_NAME;
 	};
 	
-	struct module
+	class module : public LifeCycledModule
 	{
+	public:
 		module(flecs::world& ecs); // Ctor that loads the module
 	};
 

@@ -50,7 +50,6 @@ namespace RHI
         ecs.import<Window::module>();
 
         ecs.module<module>();
-
     }
 
     bool CreateRHI(flecs::world& ecs)
