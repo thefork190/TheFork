@@ -11,6 +11,8 @@ namespace HelloTriangle
 {
 	struct module
 	{
+		~module();
+
 		module(flecs::world& ecs);
 	};
 }

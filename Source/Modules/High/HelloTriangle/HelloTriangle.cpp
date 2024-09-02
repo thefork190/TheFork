@@ -14,8 +14,8 @@ namespace HelloTriangle
     static void AddShaders(Renderer* const pRenderer, RenderPassData& passDataInOut)
     {
         ShaderLoadDesc basicShader = {};
-        basicShader.mStages[0].pFileName = "HelloTriangle/basic.vert";
-        basicShader.mStages[1].pFileName = "HelloTriangle/basic.frag";
+        basicShader.mStages[0].pFileName = "HelloTriangle.vert";
+        basicShader.mStages[1].pFileName = "HelloTriangle.frag";
         addShader(pRenderer, &basicShader, &passDataInOut.pTriShader);
     }
 
@@ -35,5 +35,6 @@ namespace HelloTriangle
 
         RenderPassData renderPassData = {};
         AddShaders(pRHI->pRenderer, renderPassData);
+        ecs.set<RenderPassData>(renderPassData);
     }
 }
