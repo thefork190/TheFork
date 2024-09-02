@@ -8,7 +8,10 @@ def process_shader_list(file_path, output_dir, bin_dir, tmp_dir, platforms, root
 
     # Calculate the new output and binary paths preserving the directory structure
     new_output_dir = os.path.join(output_dir, os.path.dirname(relative_path))
-    new_bin_dir = os.path.join(bin_dir, os.path.dirname(relative_path))
+    
+    # TODO: right now we dump all bins in same dir so it's easier to load with TF's resource loader
+    # new_bin_dir = os.path.join(bin_dir, os.path.dirname(relative_path))
+    new_bin_dir = bin_dir;
 
     # Create directories if they don't exist
     os.makedirs(new_output_dir, exist_ok=True)
