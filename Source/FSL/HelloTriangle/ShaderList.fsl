@@ -1,8 +1,8 @@
-#frag basic.frag
-#include "basic.frag.fsl"
+#frag HelloTriangle.frag
+#include "HelloTriangle.frag.fsl"
 #end
 
-#vert basic.vert
-#include "basic.vert.fsl"
+#vert HelloTriangle.vert
+#include "HelloTriangle.vert.fsl"
 #end
 
