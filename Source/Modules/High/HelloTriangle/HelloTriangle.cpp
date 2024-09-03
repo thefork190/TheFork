@@ -24,9 +24,22 @@ namespace HelloTriangle
         // Uniforms data
         struct UniformsData
         {
-            glm::mat4 mvp;
-            glm::vec4 color;
+            glm::mat4 mvp = {};
+            glm::vec4 color = {};
         } uniformsData;
+
+        void Reset()
+        {
+            pTriShader = nullptr;
+            pRootSignature = nullptr;
+            pDescriptorSetUniforms = nullptr;
+            pPipeline = nullptr;
+            vertexLayout = {};
+            pVertexBuffer = nullptr;
+            pIndexBuffer = nullptr;
+            uniformsBuffers.clear();
+            uniformsData = {};
+        }
     };
     
     static void AddShaders(Renderer* const pRenderer, RenderPassData& passDataInOut)
@@ -145,26 +158,26 @@ namespace HelloTriangle
         triPositions[1] = { 0.5f, -0.5f , 0.f };
         triPositions[2] = { 0.5f, 0.5f , 0.f };
 
-        BufferLoadDesc sphereVbDesc = {};
-        sphereVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
-        sphereVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-        sphereVbDesc.mDesc.mSize = 3 * 12;
-        sphereVbDesc.pData = triPositions.data();
-        sphereVbDesc.ppBuffer = &renderPassData.pVertexBuffer;
-        addResource(&sphereVbDesc, nullptr);
+        BufferLoadDesc vbDesc = {};
+        vbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
+        vbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+        vbDesc.mDesc.mSize = 3 * 12;
+        vbDesc.pData = triPositions.data();
+        vbDesc.ppBuffer = &renderPassData.pVertexBuffer;
+        addResource(&vbDesc, nullptr);
 
         std::vector<uint32_t> triIndices(3);
         triIndices[0] = 0;
         triIndices[1] = 1;
         triIndices[2] = 2;
 
-        BufferLoadDesc sphereIbDesc = {};
-        sphereIbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDEX_BUFFER;
-        sphereIbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-        sphereIbDesc.mDesc.mSize = sizeof(uint32_t) * 3;
-        sphereIbDesc.pData = triIndices.data();
-        sphereIbDesc.ppBuffer = &renderPassData.pIndexBuffer;
-        addResource(&sphereIbDesc, nullptr);
+        BufferLoadDesc ibDesc = {};
+        ibDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDEX_BUFFER;
+        ibDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+        ibDesc.mDesc.mSize = sizeof(uint32_t) * 3;
+        ibDesc.pData = triIndices.data();
+        ibDesc.ppBuffer = &renderPassData.pIndexBuffer;
+        addResource(&ibDesc, nullptr);
 
         waitForAllResourceLoads();
 
@@ -189,6 +202,11 @@ namespace HelloTriangle
             {
                 removeResource(pRenderPassData->uniformsBuffers[i]);
             }
+
+            removeResource(pRenderPassData->pVertexBuffer);
+            removeResource(pRenderPassData->pIndexBuffer);
+
+            pRenderPassData->Reset();
         }
     }
 }
