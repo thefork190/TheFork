@@ -1,6 +1,7 @@
 #include <vector>
 #define GLM_FORCE_LEFT_HANDED
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <IResourceLoader.h>
 #include "ILog.h"
 #include "Low/RHI.h"
@@ -72,10 +73,10 @@ namespace HelloTriangle
         removeRootSignature(pRenderer, passDataInOut.pRootSignature);
     }
 
-    static void AddDescriptorSet(Renderer* const pRenderer, RenderPassData& passDataInOut)
+    static void AddDescriptorSet(RHI::RHI const* pRHI, RenderPassData& passDataInOut)
     {
-        DescriptorSetDesc desc = { passDataInOut.pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-        addDescriptorSet(pRenderer, &desc, &passDataInOut.pDescriptorSetUniforms);
+        DescriptorSetDesc desc = { passDataInOut.pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, pRHI->dataBufferCount };
+        addDescriptorSet(pRHI->pRenderer, &desc, &passDataInOut.pDescriptorSetUniforms);
     }
 
     static void RemoveDescriptorSet(Renderer* const pRenderer, RenderPassData& passDataInOut)
@@ -108,7 +109,7 @@ namespace HelloTriangle
         pipelineSettings.mSampleQuality = pWindow->pSwapChain->ppRenderTargets[0]->mSampleQuality;
         pipelineSettings.pRootSignature = passDataInOut.pRootSignature;
         pipelineSettings.pShaderProgram = passDataInOut.pTriShader;
-        //pipelineSettings.pVertexLayout = &gSphereVertexLayout;
+        pipelineSettings.pVertexLayout = &passDataInOut.vertexLayout;
         pipelineSettings.pRasterizerState = &rasterizeStateDesc;
         pipelineSettings.mVRFoveatedRendering = true;
         addPipeline(pRenderer, &desc, &passDataInOut.pPipeline);
@@ -128,7 +129,7 @@ namespace HelloTriangle
         
         AddShaders(pRHI->pRenderer, renderPassData);
         AddRootSignature(pRHI->pRenderer, renderPassData);
-        AddDescriptorSet(pRHI->pRenderer, renderPassData);
+        AddDescriptorSet(pRHI, renderPassData);
 
         renderPassData.uniformsBuffers.resize(pRHI->dataBufferCount);
         BufferLoadDesc ubDesc = {};
@@ -142,6 +143,11 @@ namespace HelloTriangle
             ubDesc.mDesc.mSize = sizeof(RenderPassData::UniformsData);
             ubDesc.ppBuffer = &renderPassData.uniformsBuffers[i];
             addResource(&ubDesc, nullptr);
+                        
+            DescriptorData uParams[1] = {};
+            uParams[0].pName = "UniformBlock";
+            uParams[0].ppBuffers = &renderPassData.uniformsBuffers[i];
+            updateDescriptorSet(pRHI->pRenderer, i, renderPassData.pDescriptorSetUniforms, 1, uParams);
         }
 
         renderPassData.vertexLayout.mBindingCount = 1;
@@ -182,6 +188,43 @@ namespace HelloTriangle
         waitForAllResourceLoads();
 
         ecs.set<RenderPassData>(renderPassData);
+
+        // System to update gpu constants
+        ecs.system("HelloTriangle::Prepare")
+            .kind(flecs::PreStore)
+            .run([](flecs::iter& it)
+                {
+                    RHI::RHI const* pRHI = it.world().has<RHI::RHI>() ? it.world().get<RHI::RHI>() : nullptr;
+                    RenderPassData const* pRPD = it.world().has<RenderPassData>() ? it.world().get<RenderPassData>() : nullptr;
+
+                    if (pRHI && pRPD)
+                    {
+                        RenderPassData::UniformsData updatedData = {};
+                        updatedData.mvp = glm::orthoLH(-1.f, 1.f, -1.f, 1.f, 0.1f, 1.f);
+                        updatedData.color = glm::vec4(1.f, 1.f, 1.f, 1.f);
+
+                        // Update uniform buffers
+                        BufferUpdateDesc updateDesc = { pRPD->uniformsBuffers[pRHI->frameIndex] };
+                        beginUpdateResource(&updateDesc);
+                        memcpy(updateDesc.pMappedData, &updatedData, sizeof(RenderPassData::UniformsData));
+                        endUpdateResource(&updateDesc);
+                    }
+                }
+            );
+
+        ecs.system("HelloTriangle::Draw")
+            .kind(flecs::OnStore)
+            .run([](flecs::iter& it)
+                {
+                    RHI::RHI const* pRHI = it.world().has<RHI::RHI>() ? it.world().get<RHI::RHI>() : nullptr;
+                    RenderPassData const* pRPD = it.world().has<RenderPassData>() ? it.world().get<RenderPassData>() : nullptr;
+
+                    if (pRHI && pRPD)
+                    {
+                      
+                    }
+                }
+            );
     }
 
     void module::OnExit(flecs::world& ecs)
