@@ -4,6 +4,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <IResourceLoader.h>
 #include "ILog.h"
+#include "Low/Engine.h"
 #include "Low/RHI.h"
 #include "Low/Window.h"
 #include "HelloTriangle.h"
@@ -85,7 +86,6 @@ namespace HelloTriangle
     }
 
     static void AddPipeline(
-        Renderer* const pRenderer,
         RHI::RHI const* pRHI,
         Window::SDLWindow const* pWindow,
         RenderPassData& passDataInOut)
@@ -112,12 +112,20 @@ namespace HelloTriangle
         pipelineSettings.pVertexLayout = &passDataInOut.vertexLayout;
         pipelineSettings.pRasterizerState = &rasterizeStateDesc;
         pipelineSettings.mVRFoveatedRendering = true;
-        addPipeline(pRenderer, &desc, &passDataInOut.pPipeline);
+        addPipeline(pRHI->pRenderer, &desc, &passDataInOut.pPipeline);
+    }
+
+    static void RemovePipeline(Renderer* const pRenderer, RenderPassData& passDataInOut)
+    {
+        removePipeline(pRenderer, passDataInOut.pPipeline);
     }
 
     module::module(flecs::world& ecs)
     {
         ecs.import<RHI::module>();
+        ecs.import<Window::module>();
+        ecs.import<Engine::module>();
+
         ecs.module<module>();
 
         ecs.component<RenderPassData>();
@@ -185,13 +193,21 @@ namespace HelloTriangle
         ibDesc.ppBuffer = &renderPassData.pIndexBuffer;
         addResource(&ibDesc, nullptr);
 
+        flecs::query<Window::SDLWindow> windowQuery = ecs.query_builder<Window::SDLWindow>().build();
+        windowQuery.each([pRHI, &renderPassData](flecs::iter& it, size_t i, Window::SDLWindow& window)
+            {
+                ASSERTMSG(i == 0, "Drawing to more than one window not implemented.");
+                AddPipeline(pRHI, &window, renderPassData);
+            });
+
+
         waitForAllResourceLoads();
 
         ecs.set<RenderPassData>(renderPassData);
 
         // System to update gpu constants
         ecs.system("HelloTriangle::Prepare")
-            .kind(flecs::PreStore)
+            .kind(flecs::OnUpdate)
             .run([](flecs::iter& it)
                 {
                     RHI::RHI const* pRHI = it.world().has<RHI::RHI>() ? it.world().get<RHI::RHI>() : nullptr;
@@ -212,16 +228,34 @@ namespace HelloTriangle
                 }
             );
 
-        ecs.system("HelloTriangle::Draw")
-            .kind(flecs::OnStore)
-            .run([](flecs::iter& it)
+        ecs.system<Engine::Canvas, Window::SDLWindow>("HelloTriangle::Draw")
+            .kind(flecs::PreStore)
+            .each([](flecs::iter& it, size_t i, Engine::Canvas& canvas, Window::SDLWindow& sdlWin)
                 {
+                    ASSERTMSG(i == 0, "Drawing to more than one window not implemented.");
+
                     RHI::RHI const* pRHI = it.world().has<RHI::RHI>() ? it.world().get<RHI::RHI>() : nullptr;
-                    RenderPassData const* pRPD = it.world().has<RenderPassData>() ? it.world().get<RenderPassData>() : nullptr;
+                    RenderPassData* pRPD = it.world().has<RenderPassData>() ? it.world().get_mut<RenderPassData>() : nullptr;
 
                     if (pRHI && pRPD)
                     {
-                      
+                        Cmd* pCmd = sdlWin.curCmdRingElem.pCmds[0];
+                        ASSERT(pCmd);
+
+                        BindRenderTargetsDesc bindRenderTargets = {};
+                        bindRenderTargets.mRenderTargetCount = 1;
+                        bindRenderTargets.mRenderTargets[0] = { sdlWin.pCurRT, LOAD_ACTION_LOAD };
+                        cmdBindRenderTargets(pCmd, &bindRenderTargets);
+                        cmdSetViewport(pCmd, 0.0f, 0.0f, (float)canvas.width, (float)canvas.height, 0.0f, 1.0f);
+                        cmdSetScissor(pCmd, 0, 0, canvas.width, canvas.height);
+
+                        cmdBindPipeline(pCmd, pRPD->pPipeline);
+                        cmdBindDescriptorSet(pCmd, pRHI->frameIndex, pRPD->pDescriptorSetUniforms);
+                        cmdBindVertexBuffer(pCmd, 1, &pRPD->pVertexBuffer, &pRPD->vertexLayout.mBindings[0].mStride, nullptr);
+                        cmdBindIndexBuffer(pCmd, pRPD->pIndexBuffer, INDEX_TYPE_UINT16, 0);
+                        //cmdDrawIndexed(pCmd, 3, 0, 0);
+
+                        cmdBindRenderTargets(pCmd, nullptr);
                     }
                 }
             );
@@ -248,6 +282,8 @@ namespace HelloTriangle
 
             removeResource(pRenderPassData->pVertexBuffer);
             removeResource(pRenderPassData->pIndexBuffer);
+
+            RemovePipeline(pRenderer, *pRenderPassData);
 
             pRenderPassData->Reset();
         }
