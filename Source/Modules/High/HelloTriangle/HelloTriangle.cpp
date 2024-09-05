@@ -93,9 +93,6 @@ namespace HelloTriangle
         RasterizerStateDesc rasterizerStateDesc = {};
         rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
 
-        RasterizerStateDesc rasterizeStateDesc = {};
-        rasterizeStateDesc.mCullMode = CULL_MODE_FRONT;
-
         DepthStateDesc depthStateDesc = {};
 
         PipelineDesc desc = {};
@@ -110,7 +107,7 @@ namespace HelloTriangle
         pipelineSettings.pRootSignature = passDataInOut.pRootSignature;
         pipelineSettings.pShaderProgram = passDataInOut.pTriShader;
         pipelineSettings.pVertexLayout = &passDataInOut.vertexLayout;
-        pipelineSettings.pRasterizerState = &rasterizeStateDesc;
+        pipelineSettings.pRasterizerState = &rasterizerStateDesc;
         addPipeline(pRHI->pRenderer, &desc, &passDataInOut.pPipeline);
     }
 
@@ -167,9 +164,9 @@ namespace HelloTriangle
         renderPassData.vertexLayout.mAttribs[0].mOffset = 0;
 
         std::vector<glm::vec3> triPositions(3);
-        triPositions[0] = { -0.5f, -0.5f , 0.f };
-        triPositions[1] = { 0.5f, -0.5f , 0.f };
-        triPositions[2] = { 0.5f, 0.5f , 0.f };
+        triPositions[0] = { -0.5f, -0.5f , 0.5f };
+        triPositions[1] = { 0.5f, -0.5f , 0.5f };
+        triPositions[2] = { 0.f, 0.5f , 0.5f };
 
         BufferLoadDesc vbDesc = {};
         vbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;

@@ -3,6 +3,9 @@ import subprocess
 import sys
 
 def process_shader_list(file_path, output_dir, bin_dir, tmp_dir, platforms, root_dir):
+    # Ensure root_dir is absolute
+    root_dir = os.path.abspath(root_dir)
+    
     # Determine relative path from the root input directory
     relative_path = os.path.relpath(file_path, root_dir)
 
@@ -11,7 +14,7 @@ def process_shader_list(file_path, output_dir, bin_dir, tmp_dir, platforms, root
     
     # TODO: right now we dump all bins in same dir so it's easier to load with TF's resource loader
     # new_bin_dir = os.path.join(bin_dir, os.path.dirname(relative_path))
-    new_bin_dir = bin_dir;
+    new_bin_dir = bin_dir
 
     # Create directories if they don't exist
     os.makedirs(new_output_dir, exist_ok=True)
@@ -25,6 +28,7 @@ def process_shader_list(file_path, output_dir, bin_dir, tmp_dir, platforms, root
         '-b', new_bin_dir,
         '-i', tmp_dir,
         f'-l {platforms}',
+        '--debug',
         '--verbose',
         '--compile'
     ]
@@ -36,6 +40,12 @@ def process_shader_list(file_path, output_dir, bin_dir, tmp_dir, platforms, root
         print(f"Error executing script on {file_path}:\n{e.stderr}")
 
 def search_and_process(input_dir, output_dir, bin_dir, tmp_dir, platforms):
+    # Ensure directories are absolute
+    input_dir = os.path.abspath(input_dir)
+    output_dir = os.path.abspath(output_dir)
+    bin_dir = os.path.abspath(bin_dir)
+    tmp_dir = os.path.abspath(tmp_dir)
+
     for root, dirs, files in os.walk(input_dir):
         for file in files:
             if file == 'ShaderList.fsl':
@@ -48,10 +58,11 @@ if __name__ == "__main__":
         print("Usage: python build_shaders.py <input_dir> <output_dir> <binary_output_dir> <tmp_dir> <platforms>")
         sys.exit(1)
 
-    input_dir = sys.argv[1]
-    output_dir = sys.argv[2]
-    bin_dir = sys.argv[3]
-    tmp_dir = sys.argv[4]
+    # Convert command-line arguments to absolute paths
+    input_dir = os.path.abspath(sys.argv[1])
+    output_dir = os.path.abspath(sys.argv[2])
+    bin_dir = os.path.abspath(sys.argv[3])
+    tmp_dir = os.path.abspath(sys.argv[4])
     platforms = sys.argv[5]
 
     # Ensure directories exist, create if not
