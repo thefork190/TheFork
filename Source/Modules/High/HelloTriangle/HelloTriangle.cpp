@@ -212,7 +212,7 @@ namespace HelloTriangle
                     if (pRHI && pRPD)
                     {
                         RenderPassData::UniformsData updatedData = {};
-                        updatedData.mvp = glm::orthoLH(-1.f, 1.f, -1.f, 1.f, 0.1f, 1.f);
+                        updatedData.mvp = glm::orthoLH_ZO(-1.f, 1.f, -1.f, 1.f, 0.1f, 1.f);
                         updatedData.color = glm::vec4(1.f, 1.f, 1.f, 1.f);
 
                         // Update uniform buffers
