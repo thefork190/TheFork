@@ -111,7 +111,6 @@ namespace HelloTriangle
         pipelineSettings.pShaderProgram = passDataInOut.pTriShader;
         pipelineSettings.pVertexLayout = &passDataInOut.vertexLayout;
         pipelineSettings.pRasterizerState = &rasterizeStateDesc;
-        pipelineSettings.mVRFoveatedRendering = true;
         addPipeline(pRHI->pRenderer, &desc, &passDataInOut.pPipeline);
     }
 
@@ -252,8 +251,8 @@ namespace HelloTriangle
                         cmdBindPipeline(pCmd, pRPD->pPipeline);
                         cmdBindDescriptorSet(pCmd, pRHI->frameIndex, pRPD->pDescriptorSetUniforms);
                         cmdBindVertexBuffer(pCmd, 1, &pRPD->pVertexBuffer, &pRPD->vertexLayout.mBindings[0].mStride, nullptr);
-                        cmdBindIndexBuffer(pCmd, pRPD->pIndexBuffer, INDEX_TYPE_UINT16, 0);
-                        //cmdDrawIndexed(pCmd, 3, 0, 0);
+                        //cmdBindIndexBuffer(pCmd, pRPD->pIndexBuffer, INDEX_TYPE_UINT16, 0);
+                        cmdDraw(pCmd, 3, 0);
 
                         cmdBindRenderTargets(pCmd, nullptr);
                     }
