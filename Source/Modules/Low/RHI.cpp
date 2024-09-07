@@ -10,7 +10,6 @@ namespace RHI
     {
         RendererDesc rendDesc;
         memset(&rendDesc, 0, sizeof(rendDesc));
-        rendDesc.mEnableGpuBasedValidation = true;
         initRenderer(APP_NAME, &rendDesc, &pRenderer);
         ASSERT(pRenderer);
 
