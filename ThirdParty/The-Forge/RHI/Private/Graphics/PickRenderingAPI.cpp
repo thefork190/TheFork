@@ -404,9 +404,6 @@ void initRendererContext(const char* appName, const RendererContextDesc* pSettin
     ExtendedSettings* extendedSettings = NULL;
     addGPUConfigurationRules(extendedSettings);
 
-    gD3D11Unsupported = !pSettings->mD3D11Supported;
-    gGLESUnsupported = !pSettings->mGLESSupported;
-
     // Init requested renderer API
     if (!apiIsUnsupported(gPlatformParameters.mSelectedRendererApi))
     {
@@ -468,9 +465,6 @@ void initRenderer(const char* appName, const RendererDesc* pSettings, Renderer**
     ASSERT(*ppRenderer == NULL);
 
     ASSERT(pSettings);
-
-    gD3D11Unsupported = !pSettings->mD3D11Supported;
-    gGLESUnsupported = !pSettings->mGLESSupported;
 
     addGPUConfigurationRules(pSettings->pExtendedSettings);
 

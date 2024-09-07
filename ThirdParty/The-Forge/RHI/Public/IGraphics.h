@@ -2535,8 +2535,6 @@ typedef struct RendererDesc
     bool mEnableShaderStats;
 #endif
 
-    bool mD3D11Supported;
-    bool mGLESSupported;
 #if defined(VULKAN) && defined(ANDROID)
     bool mPreferVulkan;
 #endif
@@ -2767,8 +2765,7 @@ typedef struct RendererContextDesc
 #if defined(SHADER_STATS_AVAILABLE)
     bool mEnableShaderStats;
 #endif
-    bool mD3D11Supported;
-    bool mGLESSupported;
+
 #if defined(VULKAN) && defined(ANDROID)
     bool mPreferVulkan;
 #endif

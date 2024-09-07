@@ -2688,7 +2688,6 @@ void d3d12_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer
         {
             RendererContextDesc contextDesc = {};
             contextDesc.mEnableGpuBasedValidation = pDesc->mEnableGpuBasedValidation;
-            contextDesc.mD3D11Supported = pDesc->mD3D11Supported;
             contextDesc.mDx.mFeatureLevel = pDesc->mDx.mFeatureLevel;
             pRenderer->mOwnsContext = true;
             d3d12_initRendererContext(appName, &contextDesc, &pRenderer->pContext);

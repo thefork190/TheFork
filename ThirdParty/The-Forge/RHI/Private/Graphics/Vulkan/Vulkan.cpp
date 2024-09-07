@@ -4067,8 +4067,7 @@ void vk_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** 
 #if defined(SHADER_STATS_AVAILABLE)
             contextDesc.mEnableShaderStats = pDesc->mEnableShaderStats;
 #endif
-            contextDesc.mD3D11Supported = pDesc->mD3D11Supported;
-            contextDesc.mGLESSupported = pDesc->mGLESSupported;
+
 #if defined(ANDROID)
             contextDesc.mPreferVulkan = pDesc->mPreferVulkan;
 #endif
