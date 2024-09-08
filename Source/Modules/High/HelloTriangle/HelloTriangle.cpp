@@ -233,7 +233,7 @@ namespace HelloTriangle
                     RHI::RHI const* pRHI = it.world().has<RHI::RHI>() ? it.world().get<RHI::RHI>() : nullptr;
                     RenderPassData* pRPD = it.world().has<RenderPassData>() ? it.world().get_mut<RenderPassData>() : nullptr;
 
-                    if (pRHI && pRPD)
+                    if (pRHI && pRPD && sdlWin.pCurRT)
                     {
                         Cmd* pCmd = pRHI->curCmdRingElem.pCmds[0];
                         ASSERT(pCmd);

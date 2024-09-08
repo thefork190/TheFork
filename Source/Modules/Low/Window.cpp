@@ -8,6 +8,35 @@
 
 namespace Window
 {
+    void CreateWindowSwapchain(RHI::RHI* pRHI, SDLWindow& sdlWin, int const w, int const h)
+    {
+        // TODO this is platform specific
+        HWND pWinHandle = (HWND)SDL_GetPointerProperty(SDL_GetWindowProperties(sdlWin.pWindow), SDL_PROP_WINDOW_WIN32_HWND_POINTER, NULL);
+        ASSERT(pWinHandle);
+
+        SwapChainDesc swapChainDesc = {};
+
+        WindowHandle tfWindowHandle = {};
+        tfWindowHandle.window = pWinHandle;
+        tfWindowHandle.type = WINDOW_HANDLE_TYPE_WIN32;
+
+        swapChainDesc.mWindowHandle = tfWindowHandle;
+        swapChainDesc.mPresentQueueCount = 1;
+        swapChainDesc.ppPresentQueues = &pRHI->pGfxQueue;
+        swapChainDesc.mWidth = w;
+        swapChainDesc.mHeight = h;
+        swapChainDesc.mImageCount = getRecommendedSwapchainImageCount(pRHI->pRenderer, &tfWindowHandle);
+        swapChainDesc.mColorFormat = getSupportedSwapchainFormat(pRHI->pRenderer, &swapChainDesc, COLOR_SPACE_SDR_SRGB);
+        swapChainDesc.mColorSpace = COLOR_SPACE_SDR_SRGB;
+#if DEBUG_PRESENTATION_CLEAR_COLOR_RED
+        swapChainDesc.mColorClearValue.r = 1.f;
+#endif
+        swapChainDesc.mEnableVsync = true; // TODO: allow disabling?
+        swapChainDesc.mFlags = SWAP_CHAIN_CREATION_FLAG_NONE;
+        addSwapChain(pRHI->pRenderer, &swapChainDesc, &sdlWin.pSwapChain);
+        ASSERT(sdlWin.pSwapChain);
+    }
+
     module::module(flecs::world& ecs)
     {
         ecs.import<Engine::module>();
@@ -51,32 +80,7 @@ namespace Window
                     auto pRHI = e.world().get_mut<RHI::RHI>();
                     ASSERT(pRHI);
 
-                    // TODO this is platform specific
-                    HWND pWinHandle = (HWND)SDL_GetPointerProperty(SDL_GetWindowProperties(sdlWin.pWindow), SDL_PROP_WINDOW_WIN32_HWND_POINTER, NULL);
-                    ASSERT(pWinHandle);
-
-                    SwapChainDesc swapChainDesc = {};
-
-                    WindowHandle tfWindowHandle = {};
-                    tfWindowHandle.window = pWinHandle;
-                    tfWindowHandle.type = WINDOW_HANDLE_TYPE_WIN32;
-                    //
-
-                    swapChainDesc.mWindowHandle = tfWindowHandle;
-                    swapChainDesc.mPresentQueueCount = 1;
-                    swapChainDesc.ppPresentQueues = &pRHI->pGfxQueue;
-                    swapChainDesc.mWidth = bbwidth;
-                    swapChainDesc.mHeight = bbheight;
-                    swapChainDesc.mImageCount = getRecommendedSwapchainImageCount(pRHI->pRenderer, &tfWindowHandle);
-                    swapChainDesc.mColorFormat = getSupportedSwapchainFormat(pRHI->pRenderer, &swapChainDesc, COLOR_SPACE_SDR_SRGB);
-                    swapChainDesc.mColorSpace = COLOR_SPACE_SDR_SRGB;
-#if DEBUG_PRESENTATION_CLEAR_COLOR_RED
-                    swapChainDesc.mColorClearValue.r = 1.f;
-#endif
-                    swapChainDesc.mEnableVsync = true; // TODO: allow disabling?
-                    swapChainDesc.mFlags = SWAP_CHAIN_CREATION_FLAG_NONE;
-                    addSwapChain(pRHI->pRenderer, &swapChainDesc, &sdlWin.pSwapChain);
-                    ASSERT(sdlWin.pSwapChain);
+                    CreateWindowSwapchain(pRHI, sdlWin, bbwidth, bbheight);
 
                     addSemaphore(pRHI->pRenderer, &sdlWin.pImgAcqSemaphore);
                 }
@@ -119,7 +123,20 @@ namespace Window
                     {
                         LOGF(eDEBUG, "Window was resized to %ix%i", bbwidth, bbheight);
                         LOGF(eDEBUG, "[IMPLEMENT WINDOW RESIZING]");
-                        SDL_GetWindowSurface(sdlWin.pWindow);
+
+                        auto pRHI = it.world().get_mut<RHI::RHI>();
+                        if (pRHI)
+                        {
+                            waitQueueIdle(pRHI->pGfxQueue);
+
+                            removeSwapChain(pRHI->pRenderer, sdlWin.pSwapChain);
+                            sdlWin.pSwapChain = nullptr;
+                            CreateWindowSwapchain(pRHI, sdlWin, bbwidth, bbheight);
+
+                            // Update canvas size
+                            canvas.width = bbwidth;
+                            canvas.height = bbheight;
+                        }
                     }
                 }
             );
@@ -135,27 +152,30 @@ namespace Window
                     {
                         acquireNextImage(pRHI->pRenderer, sdlWin.pSwapChain, sdlWin.pImgAcqSemaphore, nullptr, &sdlWin.imageIndex);
 
-                        sdlWin.pCurRT = sdlWin.pSwapChain->ppRenderTargets[sdlWin.imageIndex];
+                        sdlWin.pCurRT = (sdlWin.imageIndex == static_cast<unsigned int>(- 1)) ? nullptr : sdlWin.pSwapChain->ppRenderTargets[sdlWin.imageIndex];
 
 #if DEBUG_PRESENTATION_CLEAR_COLOR_RED // Clear cur RT a red color
-                        Cmd* pCmd = pRHI->curCmdRingElem.pCmds[0];
+                        if (sdlWin.pCurRT)
+                        {
+                            Cmd* pCmd = pRHI->curCmdRingElem.pCmds[0];
 
-                        RenderTargetBarrier barriers[] = {
-                            { sdlWin.pCurRT, RESOURCE_STATE_PRESENT, RESOURCE_STATE_RENDER_TARGET },
-                        };
-                        cmdResourceBarrier(pCmd, 0, nullptr, 0, nullptr, 1, barriers);
+                            RenderTargetBarrier barriers[] = {
+                                { sdlWin.pCurRT, RESOURCE_STATE_PRESENT, RESOURCE_STATE_RENDER_TARGET },
+                            };
+                            cmdResourceBarrier(pCmd, 0, nullptr, 0, nullptr, 1, barriers);
 
-                        BindRenderTargetsDesc bindRenderTargets = {};
-                        bindRenderTargets.mRenderTargetCount = 1;
-                        bindRenderTargets.mRenderTargets[0] = { sdlWin.pCurRT, LOAD_ACTION_CLEAR };
-                        cmdBindRenderTargets(pCmd, &bindRenderTargets);
-                        cmdSetViewport(pCmd, 0.0f, 0.0f, static_cast<float>(sdlWin.pCurRT->mWidth), static_cast<float>(sdlWin.pCurRT->mHeight), 0.0f, 1.0f);
-                        cmdSetScissor(pCmd, 0, 0, sdlWin.pCurRT->mWidth, sdlWin.pCurRT->mHeight);
+                            BindRenderTargetsDesc bindRenderTargets = {};
+                            bindRenderTargets.mRenderTargetCount = 1;
+                            bindRenderTargets.mRenderTargets[0] = { sdlWin.pCurRT, LOAD_ACTION_CLEAR };
+                            cmdBindRenderTargets(pCmd, &bindRenderTargets);
+                            cmdSetViewport(pCmd, 0.0f, 0.0f, static_cast<float>(sdlWin.pCurRT->mWidth), static_cast<float>(sdlWin.pCurRT->mHeight), 0.0f, 1.0f);
+                            cmdSetScissor(pCmd, 0, 0, sdlWin.pCurRT->mWidth, sdlWin.pCurRT->mHeight);
 
-                        cmdBindRenderTargets(pCmd, nullptr);
+                            cmdBindRenderTargets(pCmd, nullptr);
 
-                        barriers[0] = { sdlWin.pCurRT, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };
-                        cmdResourceBarrier(pCmd, 0, nullptr, 0, nullptr, 1, barriers);
+                            barriers[0] = { sdlWin.pCurRT, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };
+                            cmdResourceBarrier(pCmd, 0, nullptr, 0, nullptr, 1, barriers);
+                        }
 #endif
                     }
                 }
@@ -168,7 +188,7 @@ namespace Window
                     ASSERTMSG(i == 0, "More than one window not implemented.");
 
                     auto pRHI = it.world().get_mut<RHI::RHI>();
-                    if (pRHI)
+                    if (pRHI && sdlWin.pCurRT)
                     {
                         Cmd* pCmd = pRHI->curCmdRingElem.pCmds[0];
                         endCmd(pCmd);
