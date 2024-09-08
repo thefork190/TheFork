@@ -248,8 +248,8 @@ namespace HelloTriangle
                         cmdBindPipeline(pCmd, pRPD->pPipeline);
                         cmdBindDescriptorSet(pCmd, pRHI->frameIndex, pRPD->pDescriptorSetUniforms);
                         cmdBindVertexBuffer(pCmd, 1, &pRPD->pVertexBuffer, &pRPD->vertexLayout.mBindings[0].mStride, nullptr);
-                        //cmdBindIndexBuffer(pCmd, pRPD->pIndexBuffer, INDEX_TYPE_UINT16, 0);
-                        cmdDraw(pCmd, 3, 0);
+                        cmdBindIndexBuffer(pCmd, pRPD->pIndexBuffer, INDEX_TYPE_UINT32, 0);
+                        cmdDrawIndexed(pCmd, 3, 0, 0);
 
                         cmdBindRenderTargets(pCmd, nullptr);
                     }
