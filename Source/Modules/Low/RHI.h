@@ -27,12 +27,6 @@ namespace RHI
 		GpuCmdRingElement curCmdRingElem = {};
 	};
 
-	// Swapchains will usually relate to a window entity
-	struct Swapchain
-	{
-		SwapChain* pSwapChain = nullptr;
-	};
-	
 	class module : public LifeCycledModule
 	{
 	public:
