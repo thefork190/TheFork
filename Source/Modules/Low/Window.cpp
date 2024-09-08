@@ -74,7 +74,7 @@ namespace Window
                     swapChainDesc.mColorClearValue.r = 1.f;
 #endif
                     swapChainDesc.mEnableVsync = true; // TODO: allow disabling?
-                    swapChainDesc.mFlags = SWAP_CHAIN_CREATION_FLAG_ENABLE_FOVEATED_RENDERING_VR;
+                    swapChainDesc.mFlags = SWAP_CHAIN_CREATION_FLAG_NONE;
                     addSwapChain(pRHI->pRenderer, &swapChainDesc, &sdlWin.pSwapChain);
                     ASSERT(sdlWin.pSwapChain);
 
@@ -119,6 +119,7 @@ namespace Window
                     {
                         LOGF(eDEBUG, "Window was resized to %ix%i", bbwidth, bbheight);
                         LOGF(eDEBUG, "[IMPLEMENT WINDOW RESIZING]");
+                        SDL_GetWindowSurface(sdlWin.pWindow);
                     }
                 }
             );
