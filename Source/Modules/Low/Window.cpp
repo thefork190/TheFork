@@ -122,7 +122,6 @@ namespace Window
                         (canvas.height != bbheight))
                     {
                         LOGF(eDEBUG, "Window was resized to %ix%i", bbwidth, bbheight);
-                        LOGF(eDEBUG, "[IMPLEMENT WINDOW RESIZING]");
 
                         auto pRHI = it.world().get_mut<RHI::RHI>();
                         if (pRHI)
