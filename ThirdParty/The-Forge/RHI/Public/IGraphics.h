@@ -99,11 +99,11 @@ typedef int32_t DxDescriptorID;
 
 typedef enum RendererApi
 {
-#if defined(DIRECT3D12)
-    RENDERER_API_D3D12,
-#endif
 #if defined(VULKAN)
     RENDERER_API_VULKAN,
+#endif
+#if defined(DIRECT3D12)
+    RENDERER_API_D3D12,
 #endif
 #if defined(METAL)
     RENDERER_API_METAL,
