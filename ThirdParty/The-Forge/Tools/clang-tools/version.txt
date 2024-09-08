@@ -1,2 +1,0 @@
-Windows and Darwin: LLVM version 12
-Linux:              LLVM version 12
