@@ -16,3 +16,6 @@
 [submodule "ThirdParty/efsw"]
 	path = ThirdParty/efsw
 	url = https://github.com/SpartanJ/efsw.git
+[submodule "ThirdParty/The-Forge"]
+	path = ThirdParty/The-Forge
+	url = https://github.com/thefork190/The-Forge.git
