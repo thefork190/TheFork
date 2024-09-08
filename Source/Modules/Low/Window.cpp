@@ -136,21 +136,9 @@ namespace Window
 
                         sdlWin.pCurRT = sdlWin.pSwapChain->ppRenderTargets[sdlWin.imageIndex];
 
-                        // Stall if CPU is running "gDataBufferCount" frames ahead of GPU
-                        sdlWin.curCmdRingElem = getNextGpuCmdRingElement(&pRHI->gfxCmdRing, true, 1);
-                        FenceStatus fenceStatus;
-                        getFenceStatus(pRHI->pRenderer, sdlWin.curCmdRingElem.pFence, &fenceStatus);
-                        if (fenceStatus == FENCE_STATUS_INCOMPLETE)
-                            waitForFences(pRHI->pRenderer, 1, &sdlWin.curCmdRingElem.pFence);
-
-                        // Reset cmd pool for this frame
-                        resetCmdPool(pRHI->pRenderer, sdlWin.curCmdRingElem.pCmdPool);
-
-                        // Begin the cmd
-                        Cmd* pCmd = sdlWin.curCmdRingElem.pCmds[0];
-                        beginCmd(pCmd);
-
 #if DEBUG_PRESENTATION_CLEAR_COLOR_RED // Clear cur RT a red color
+                        Cmd* pCmd = pRHI->curCmdRingElem.pCmds[0];
+
                         RenderTargetBarrier barriers[] = {
                             { sdlWin.pCurRT, RESOURCE_STATE_PRESENT, RESOURCE_STATE_RENDER_TARGET },
                         };
@@ -181,7 +169,7 @@ namespace Window
                     auto pRHI = it.world().get_mut<RHI::RHI>();
                     if (pRHI)
                     {
-                        Cmd* pCmd = sdlWin.curCmdRingElem.pCmds[0];
+                        Cmd* pCmd = pRHI->curCmdRingElem.pCmds[0];
                         endCmd(pCmd);
 
                         FlushResourceUpdateDesc flushUpdateDesc = {};
@@ -195,16 +183,16 @@ namespace Window
                         submitDesc.mSignalSemaphoreCount = 1;
                         submitDesc.mWaitSemaphoreCount = TF_ARRAY_COUNT(waitSemaphores);
                         submitDesc.ppCmds = &pCmd;
-                        submitDesc.ppSignalSemaphores = &sdlWin.curCmdRingElem.pSemaphore;
+                        submitDesc.ppSignalSemaphores = &pRHI->curCmdRingElem.pSemaphore;
                         submitDesc.ppWaitSemaphores = waitSemaphores;
-                        submitDesc.pSignalFence = sdlWin.curCmdRingElem.pFence;
+                        submitDesc.pSignalFence = pRHI->curCmdRingElem.pFence;
                         queueSubmit(pRHI->pGfxQueue, &submitDesc);
 
                         QueuePresentDesc presentDesc = {};
                         presentDesc.mIndex = (uint8_t)sdlWin.imageIndex;
                         presentDesc.mWaitSemaphoreCount = 1;
                         presentDesc.pSwapChain = sdlWin.pSwapChain;
-                        presentDesc.ppWaitSemaphores = &sdlWin.curCmdRingElem.pSemaphore;
+                        presentDesc.ppWaitSemaphores = &pRHI->curCmdRingElem.pSemaphore;
                         presentDesc.mSubmitDone = true;
 
                         queuePresent(pRHI->pGfxQueue, &presentDesc);

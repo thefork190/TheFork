@@ -235,7 +235,7 @@ namespace HelloTriangle
 
                     if (pRHI && pRPD)
                     {
-                        Cmd* pCmd = sdlWin.curCmdRingElem.pCmds[0];
+                        Cmd* pCmd = pRHI->curCmdRingElem.pCmds[0];
                         ASSERT(pCmd);
 
                         BindRenderTargetsDesc bindRenderTargets = {};

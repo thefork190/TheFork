@@ -50,6 +50,28 @@ namespace RHI
         ecs.import<Window::module>();
 
         ecs.module<module>();
+
+        auto beginFrame = ecs.system("Begin Frame")
+            .kind(flecs::PostLoad)
+            .run([](flecs::iter& it)
+                {
+                    auto pRHI = it.world().get_mut<RHI>();
+
+                    // Stall if CPU is running "gDataBufferCount" frames ahead of GPU
+                    pRHI->curCmdRingElem = getNextGpuCmdRingElement(&pRHI->gfxCmdRing, true, 1);
+                    FenceStatus fenceStatus;
+                    getFenceStatus(pRHI->pRenderer, pRHI->curCmdRingElem.pFence, &fenceStatus);
+                    if (fenceStatus == FENCE_STATUS_INCOMPLETE)
+                        waitForFences(pRHI->pRenderer, 1, &pRHI->curCmdRingElem.pFence);
+
+                    // Reset cmd pool for this frame
+                    resetCmdPool(pRHI->pRenderer, pRHI->curCmdRingElem.pCmdPool);
+
+                    // Begin the cmd
+                    Cmd* pCmd = pRHI->curCmdRingElem.pCmds[0];
+                    beginCmd(pCmd);
+                }
+            );
     }
 
     bool CreateRHI(flecs::world& ecs)

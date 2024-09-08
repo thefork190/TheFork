@@ -16,7 +16,6 @@ namespace Window
 		Semaphore* pImgAcqSemaphore = nullptr;
 		unsigned int imageIndex = 0;
 		RenderTarget* pCurRT = nullptr;
-		GpuCmdRingElement curCmdRingElem = {};
 	};
 
 	class module : public LifeCycledModule

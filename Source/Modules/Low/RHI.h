@@ -24,6 +24,7 @@ namespace RHI
 		unsigned int frameIndex = 0;
 		Queue* pGfxQueue = nullptr;
 		GpuCmdRing gfxCmdRing = {};
+		GpuCmdRingElement curCmdRingElem = {};
 	};
 
 	// Swapchains will usually relate to a window entity
