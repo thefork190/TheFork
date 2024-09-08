@@ -196,8 +196,6 @@ DECLARE_INTERNAL_RENDERER_FUNCTION(void, removeTexture, Renderer* pRenderer, Tex
 /************************************************************************/
 
 // <-- This should move to graphic Properties --> */
-bool               gD3D11Unsupported = false;
-bool               gGLESUnsupported = false;
 bool               gRendererUnsupported = false;
 const char*        pRendererUnsupportedReason = "";
 // < ------------------------------------------ > */
@@ -509,6 +507,4 @@ void exitRenderer(Renderer* pRenderer)
     exitRendererAPI(pRenderer, pRenderer->mRendererApi);
     gPlatformParameters.mAvailableGpuCount = 0;
     gPlatformParameters.mSelectedGpuIndex = 0;
-    gD3D11Unsupported = false;
-    gGLESUnsupported = false;
 }
