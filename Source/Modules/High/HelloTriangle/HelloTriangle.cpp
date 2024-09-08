@@ -176,7 +176,7 @@ namespace HelloTriangle
         vbDesc.ppBuffer = &renderPassData.pVertexBuffer;
         addResource(&vbDesc, nullptr);
 
-        std::vector<uint32_t> triIndices(3);
+        std::vector<uint16_t> triIndices(4); // 4 for alignment/padding
         triIndices[0] = 0;
         triIndices[1] = 1;
         triIndices[2] = 2;
@@ -184,7 +184,7 @@ namespace HelloTriangle
         BufferLoadDesc ibDesc = {};
         ibDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDEX_BUFFER;
         ibDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-        ibDesc.mDesc.mSize = sizeof(uint32_t) * 3;
+        ibDesc.mDesc.mSize = sizeof(uint16_t) * 4;
         ibDesc.pData = triIndices.data();
         ibDesc.ppBuffer = &renderPassData.pIndexBuffer;
         addResource(&ibDesc, nullptr);
@@ -248,7 +248,7 @@ namespace HelloTriangle
                         cmdBindPipeline(pCmd, pRPD->pPipeline);
                         cmdBindDescriptorSet(pCmd, pRHI->frameIndex, pRPD->pDescriptorSetUniforms);
                         cmdBindVertexBuffer(pCmd, 1, &pRPD->pVertexBuffer, &pRPD->vertexLayout.mBindings[0].mStride, nullptr);
-                        cmdBindIndexBuffer(pCmd, pRPD->pIndexBuffer, INDEX_TYPE_UINT32, 0);
+                        cmdBindIndexBuffer(pCmd, pRPD->pIndexBuffer, INDEX_TYPE_UINT16, 0);
                         cmdDrawIndexed(pCmd, 3, 0, 0);
 
                         cmdBindRenderTargets(pCmd, nullptr);
