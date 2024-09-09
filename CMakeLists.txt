@@ -16,6 +16,32 @@ project("TheFork"
 # Set the name of the executable
 set(EXECUTABLE_NAME ${PROJECT_NAME})
 
+# Collect all shader files recursively from the FSL directory
+file(GLOB_RECURSE SHADER_FILES "${CMAKE_SOURCE_DIR}/Source/FSL/*")
+
+# Create a custom target for the shaders (they won't be compiled)
+add_custom_target(ShaderFiles SOURCES ${SHADER_FILES})
+
+# Group shaders under "FSL Shaders" in Visual Studio, preserving folder structure
+foreach(_shader IN ITEMS ${SHADER_FILES})
+    # Get the path relative to the Source/FSL directory
+    file(RELATIVE_PATH _relPath "${CMAKE_SOURCE_DIR}/Source/FSL" "${_shader}")
+    
+    # Get the directory part of the relative path (strip the filename)
+    get_filename_component(_groupPath "${_relPath}" DIRECTORY)
+    
+    # Replace slashes with backslashes for Visual Studio filters
+    string(REPLACE "/" "\\" _groupPath "${_groupPath}")
+    
+    # If the file is in a subdirectory, group it properly
+    if(_groupPath)
+        source_group("FSL\\${_groupPath}" FILES "${_shader}")
+    else()
+        # If the file is directly in Source/FSL, put it in the "FSL" group
+        source_group("FSL" FILES "${_shader}")
+    endif()
+endforeach()
+
 # Function to automatically create source groups based on file paths
 function(create_source_groups)
     foreach(_source IN ITEMS ${ARGN})
