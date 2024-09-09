@@ -40,6 +40,7 @@ def process_shader_list(file_path, output_dir, bin_dir, tmp_dir, platforms, root
         print(f"Executed script on {file_path} successfully:\n{result.stdout}")
     except subprocess.CalledProcessError as e:
         print(f"Error executing script on {file_path}:\n{e.stderr}")
+        print(f"Output from the command:\n{e.stdout}")
 
 def search_and_process(input_dir, output_dir, bin_dir, tmp_dir, platforms, debug):
     # Ensure directories are absolute
