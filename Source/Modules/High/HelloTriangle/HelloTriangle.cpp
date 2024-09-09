@@ -238,6 +238,8 @@ namespace HelloTriangle
                         Cmd* pCmd = pRHI->curCmdRingElem.pCmds[0];
                         ASSERT(pCmd);
 
+                        cmdBeginDebugMarker(pCmd, 1, 0, 1, "HelloTriangle::DrawTri");
+
                         BindRenderTargetsDesc bindRenderTargets = {};
                         bindRenderTargets.mRenderTargetCount = 1;
                         bindRenderTargets.mRenderTargets[0] = { sdlWin.pCurRT, LOAD_ACTION_LOAD };
@@ -252,6 +254,8 @@ namespace HelloTriangle
                         cmdDrawIndexed(pCmd, 3, 0, 0);
 
                         cmdBindRenderTargets(pCmd, nullptr);
+
+                        cmdEndDebugMarker(pCmd);
                     }
                 }
             );

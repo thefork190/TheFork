@@ -1,74 +1,111 @@
 cmake_minimum_required(VERSION 3.16)
 
 # set the output directory for built objects.
-# This makes sure that the dynamic library goes into the build directory automatically.
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
 
-# prevent installing to system directories. 
+# prevent installing to system directories.
 set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}" CACHE INTERNAL "")
 
 # Declare the project
 project("TheFork"
-	VERSION 0.1.0
-	DESCRIPTION "An ECS engine."
+    VERSION 0.1.0
+    DESCRIPTION "An ECS engine."
 )
 
 # Set the name of the executable
 set(EXECUTABLE_NAME ${PROJECT_NAME})
 
-# Create an executable or a shared library based on the platform and add our sources to it
-if (ANDROID)
-	# The SDL java code is hardcoded to load libmain.so on android, so we need to change EXECUTABLE_NAME
-	set(EXECUTABLE_NAME main)
-	add_library(${EXECUTABLE_NAME} SHARED)
-else()
-	add_executable(${EXECUTABLE_NAME})
-endif()
+# Collect all shader files recursively from the FSL directory
+file(GLOB_RECURSE SHADER_FILES "${CMAKE_SOURCE_DIR}/Source/FSL/*")
 
-target_sources(${EXECUTABLE_NAME}
-PRIVATE 
+# Create a custom target for the shaders (they won't be compiled)
+add_custom_target(ShaderFiles SOURCES ${SHADER_FILES})
+
+# Group shaders under "FSL Shaders" in Visual Studio, preserving folder structure
+foreach(_shader IN ITEMS ${SHADER_FILES})
+    # Get the path relative to the Source/FSL directory
+    file(RELATIVE_PATH _relPath "${CMAKE_SOURCE_DIR}/Source/FSL" "${_shader}")
+    
+    # Get the directory part of the relative path (strip the filename)
+    get_filename_component(_groupPath "${_relPath}" DIRECTORY)
+    
+    # Replace slashes with backslashes for Visual Studio filters
+    string(REPLACE "/" "\\" _groupPath "${_groupPath}")
+    
+    # If the file is in a subdirectory, group it properly
+    if(_groupPath)
+        source_group("FSL\\${_groupPath}" FILES "${_shader}")
+    else()
+        # If the file is directly in Source/FSL, put it in the "FSL" group
+        source_group("FSL" FILES "${_shader}")
+    endif()
+endforeach()
+
+# Function to automatically create source groups based on file paths
+function(create_source_groups)
+    foreach(_source IN ITEMS ${ARGN})
+        get_filename_component(_source_path "${_source}" PATH)
+        string(REPLACE "${CMAKE_SOURCE_DIR}/Source" "Source" _group_path "${_source_path}")
+        string(REPLACE "/" "\\" _group_path "${_group_path}")
+        source_group("${_group_path}" FILES "${_source}")
+    endforeach()
+endfunction()
+
+# List all sources
+set(SOURCES
     Source/Main.cpp
     Source/Modules/LifeCycledModule.h
     Source/iosLaunchScreen.storyboard
     Source/Sample.appxManifest
-# LOW
+    # LOW
     Source/Modules/Low/Engine.h
     Source/Modules/Low/Engine.cpp
     Source/Modules/Low/Window.h
     Source/Modules/Low/Window.cpp
     Source/Modules/Low/RHI.h
     Source/Modules/Low/RHI.cpp
-# Middle
-# High
+    # High
     Source/Modules/High/HelloTriangle/HelloTriangle.h
     Source/Modules/High/HelloTriangle/HelloTriangle.cpp
 )
 
-# What is iosLaunchScreen.storyboard? This file describes what Apple's mobile platforms
-# should show the user while the application is starting up. If you don't include one,
-# then you get placed in a compatibility mode that does not allow HighDPI.
-# This file is referenced inside Info.plist.in, where it is marked as the launch screen file.
-# It is also ignored on non-Apple platforms. 
+# Call the function to create source groups based on the source files
+create_source_groups(${SOURCES})
 
-# What is Sample.appxManifest? This file describes deployment settings for Universal Windows Platform
-# applications, like splash screen and icon resolutions, which are required for the application to run. 
-# It is ignored on other platforms. Below, we add those images. 
-if (WINDOWS_STORE)
-    target_sources("${EXECUTABLE_NAME}" PRIVATE "Source/logo44.png" "Source/logo150.png" "Source/logo50.png" "Source/logo620x300.png")
-elseif(APPLE)
-    target_sources("${EXECUTABLE_NAME}" PRIVATE "Source/logo.png")
+# Create an executable or shared library based on the platform and add our sources to it
+if (ANDROID)
+    # The SDL java code is hardcoded to load libmain.so on android, so we need to change EXECUTABLE_NAME
+    set(EXECUTABLE_NAME main)
+    add_library(${EXECUTABLE_NAME} SHARED)
+else()
+    add_executable(${EXECUTABLE_NAME})
 endif()
 
-# use C++11
+# Add sources to target
+target_sources(${EXECUTABLE_NAME}
+    PRIVATE ${SOURCES}
+)
+
+# Add additional platform-specific settings
+if (WINDOWS_STORE)
+    target_sources("${EXECUTABLE_NAME}" PRIVATE 
+        Source/logo44.png 
+        Source/logo150.png 
+        Source/logo50.png 
+        Source/logo620x300.png
+    )
+elseif(APPLE)
+    target_sources("${EXECUTABLE_NAME}" PRIVATE Source/logo.png)
+endif()
+
+# use C++20
 target_compile_features(${EXECUTABLE_NAME} PUBLIC cxx_std_20)
 
 if(CMAKE_SYSTEM_NAME MATCHES Emscripten)
-	set(CMAKE_EXECUTABLE_SUFFIX ".html" CACHE INTERNAL "")
+    set(CMAKE_EXECUTABLE_SUFFIX ".html" CACHE INTERNAL "")
 endif()
 
-# If targeting Windows UWP, enable Windows Runtime Compilation
-# if using a C++ version older than C++20, you also need /ZW
 if(WINDOWS_STORE)
     target_compile_options(${EXECUTABLE_NAME} PUBLIC "/EHsc")
 endif()
@@ -85,42 +122,30 @@ target_include_directories(${PROJECT_NAME}
     PRIVATE ThirdParty/The-Forge/ThirdParty # Hack for TF
 )
 
-# Link SDL to our executable. This also makes its include directory available to us. 
-target_link_libraries(${EXECUTABLE_NAME} 	
-	PRIVATE
-		RHI
+target_link_libraries(${EXECUTABLE_NAME} 
+    PRIVATE
+        RHI
         flecs_static
         glm::glm
         $<$<CONFIG:Debug>:${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/efsw_artifacts/lib/efsw-static-debug.lib>
-		$<$<CONFIG:Release>:${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/efsw_artifacts/lib/efsw-static-release.lib>
-		$<$<CONFIG:RelWithDebInfo>:${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/efsw_artifacts/lib/efsw-static-reldbginfo.lib>
-	PUBLIC 
-		SDL3::SDL3
+        $<$<CONFIG:Release>:${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/efsw_artifacts/lib/efsw-static-release.lib>
+        $<$<CONFIG:RelWithDebInfo>:${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/efsw_artifacts/lib/efsw-static-reldbginfo.lib>
+    PUBLIC 
+        SDL3::SDL3
 )
 target_compile_definitions(${EXECUTABLE_NAME} PUBLIC SDL_MAIN_USE_CALLBACKS)
 
-# set some extra configs for each platform
 set_target_properties(${EXECUTABLE_NAME} PROPERTIES 
-    # On macOS, make a proper .app bundle instead of a bare executable
     MACOSX_BUNDLE TRUE
-    # Set the Info.plist file for Apple Mobile platforms. Without this file, your app
-    # will not launch. 
     MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/Source/Info.plist.in"
-
-    # in Xcode, create a Scheme in the schemes dropdown for the app.
     XCODE_GENERATE_SCHEME TRUE
-    # Identification for Xcode
     XCODE_ATTRIBUTE_BUNDLE_IDENTIFIER "com.sharmoota.the-fork"
-	XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.sharmoota.the-fork"
-	XCODE_ATTRIBUTE_CURRENTYEAR "${CURRENTYEAR}"
+    XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.sharmoota.the-fork"
+    XCODE_ATTRIBUTE_CURRENTYEAR "${CURRENTYEAR}"
 )
 
-# on Visual Studio, set our app as the default project
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT "${EXECUTABLE_NAME}")
 
-# On macOS Platforms, ensure that the bundle is valid for distribution by calling fixup_bundle.
-# note that fixup_bundle does not work on iOS, so you will want to use static libraries 
-# or manually copy dylibs and set rpaths
 if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
     INSTALL(CODE 
         "include(BundleUtilities)
@@ -129,26 +154,23 @@ if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
         COMPONENT Runtime
     )
 endif()
+
 install(TARGETS ${EXECUTABLE_NAME} BUNDLE DESTINATION ./install)
 
-# Copy dlls/so
 if (WIN32)
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
         ${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/The-Forge/ThirdParty/winpixeventruntime/bin/WinPixEventRuntime.dll
         ${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/The-Forge/ThirdParty/DirectXShaderCompiler/bin/x64/dxcompiler.dll
-         ${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/The-Forge/ThirdParty/ags/ags_lib/lib/amd_ags_x64.dll
+        ${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/The-Forge/ThirdParty/ags/ags_lib/lib/amd_ags_x64.dll
         $<TARGET_FILE_DIR:${PROJECT_NAME}>
     )
 endif (WIN32)
 
 # Assets
 set(ASSETS_DIR "${CMAKE_SOURCE_DIR}/Assets")
-
-# Collect all files in the assets directory
 file(GLOB_RECURSE ASSET_FILES "${ASSETS_DIR}/*")
 
-# Add a custom command to copy the assets
 add_custom_command(
     OUTPUT "${CMAKE_BINARY_DIR}/$<CONFIG>/Assets"
     COMMAND ${CMAKE_COMMAND} -E copy_directory "${ASSETS_DIR}" "${CMAKE_BINARY_DIR}/$<CONFIG>/Assets"
@@ -156,9 +178,5 @@ add_custom_command(
     COMMENT "Copying assets..."
 )
 
-# Add a custom target that depends on the command
 add_custom_target(copy_assets ALL DEPENDS "${CMAKE_BINARY_DIR}/$<CONFIG>/Assets")
-
-# Ensure the assets are copied after the executable is built
 add_dependencies(${EXECUTABLE_NAME} copy_assets)
-
