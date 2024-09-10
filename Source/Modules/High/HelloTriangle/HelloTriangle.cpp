@@ -5,6 +5,7 @@
 #include <IResourceLoader.h>
 #include "ILog.h"
 #include "Low/Engine.h"
+#include "Low/Inputs.h"
 #include "Low/RHI.h"
 #include "Low/Window.h"
 #include "HelloTriangle.h"
@@ -201,14 +202,17 @@ namespace HelloTriangle
 
         ecs.set<RenderPassData>(renderPassData);
 
-        // System to update gpu constants
-        ecs.system("HelloTriangle::Prepare")
+        // Main update logic (in practice this would be distributed across multiple systems)
+        ecs.system("HelloTriangle::Update")
             .kind(flecs::OnUpdate)
             .run([](flecs::iter& it)
                 {
                     RHI::RHI const* pRHI = it.world().has<RHI::RHI>() ? it.world().get<RHI::RHI>() : nullptr;
                     RenderPassData const* pRPD = it.world().has<RenderPassData>() ? it.world().get<RenderPassData>() : nullptr;
+                    Inputs::RawKeboardStates const* pKeyboard = it.world().has<Inputs::RawKeboardStates>() ? it.world().get<Inputs::RawKeboardStates>() : nullptr;
+                    Engine::Context* pEngineContext = it.world().has<Engine::Context>() ? it.world().get_mut<Engine::Context>() : nullptr;
 
+                    // Rendering update
                     if (pRHI && pRPD)
                     {
                         RenderPassData::UniformsData updatedData = {};
@@ -220,6 +224,16 @@ namespace HelloTriangle
                         beginUpdateResource(&updateDesc);
                         memcpy(updateDesc.pMappedData, &updatedData, sizeof(RenderPassData::UniformsData));
                         endUpdateResource(&updateDesc);
+                    }
+
+                    // Exit if ESC is pressed
+                    if (pKeyboard && pEngineContext)
+                    {
+                        if (pKeyboard->WasPressed(SDLK_ESCAPE))
+                        {
+                            LOGF(eDEBUG, "ESC pressed, requesting to exit the app.");
+                            pEngineContext->RequestExit();
+                        }
                     }
                 }
             );

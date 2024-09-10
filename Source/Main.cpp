@@ -7,8 +7,9 @@
 
 // Modules
 #include "Modules/Low/Engine.h"
-#include "Modules/Low/Window.h"
+#include "Modules/Low/Inputs.h"
 #include "Modules/Low/RHI.h"
+#include "Modules/Low/Window.h"
 
 #include "Modules/High/HelloTriangle/HelloTriangle.h"
 
@@ -87,6 +88,7 @@ int SDL_AppInit(void** appstate, int argc, char* argv[])
     pApp->lowModules.push_back(pApp->ecs.import<Engine::module>().get_mut<Engine::module>());
     pApp->lowModules.push_back(pApp->ecs.import<Window::module>().get_mut<Window::module>());
     pApp->lowModules.push_back(pApp->ecs.import<RHI::module>().get_mut<RHI::module>());
+    pApp->lowModules.push_back(pApp->ecs.import<Inputs::module>().get_mut<Inputs::module>());
 
     // Create the RHI (this might not always be needed depending on the app type)
     if (!RHI::CreateRHI(pApp->ecs))
@@ -122,6 +124,15 @@ int SDL_AppEvent(void *appstate, const SDL_Event* event)
 int SDL_AppIterate(void *appstate) 
 {
     AppState* pApp = (AppState*)appstate;
+
+    // Before progressing the world, check on the engine context state and act accordingly
+    auto pEngineContext = pApp->ecs.has<Engine::Context>() ? pApp->ecs.get<Engine::Context>() : nullptr;
+    if (pEngineContext)
+    {
+        if (pEngineContext->HasRequestedExit())
+            pApp->quitApp = true;
+    }
+
     pApp->ecs.progress();
     
     return pApp->quitApp;
