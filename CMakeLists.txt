@@ -61,10 +61,12 @@ set(SOURCES
     # LOW
     Source/Modules/Low/Engine.h
     Source/Modules/Low/Engine.cpp
-    Source/Modules/Low/Window.h
-    Source/Modules/Low/Window.cpp
+    Source/Modules/Low/Inputs.h
+    Source/Modules/Low/Inputs.cpp
     Source/Modules/Low/RHI.h
     Source/Modules/Low/RHI.cpp
+    Source/Modules/Low/Window.h
+    Source/Modules/Low/Window.cpp
     # High
     Source/Modules/High/HelloTriangle/HelloTriangle.h
     Source/Modules/High/HelloTriangle/HelloTriangle.cpp
