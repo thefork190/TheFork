@@ -19,3 +19,6 @@
 [submodule "ThirdParty/The-Forge"]
 	path = ThirdParty/The-Forge
 	url = https://github.com/thefork190/The-Forge.git
+[submodule "ThirdParty/CLI11"]
+	path = ThirdParty/CLI11
+	url = https://github.com/CLIUtils/CLI11.git

@@ -122,6 +122,7 @@ target_include_directories(${PROJECT_NAME}
     PRIVATE "Source/Modules"
     PRIVATE ThirdParty/The-Forge/RHI/Private # Hack for TF
     PRIVATE ThirdParty/The-Forge/ThirdParty # Hack for TF
+    PRIVATE ThirdParty/CLI11/include/CLI  # CLI11 header only 3rd party
 )
 
 target_link_libraries(${EXECUTABLE_NAME} 

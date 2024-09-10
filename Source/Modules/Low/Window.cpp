@@ -57,7 +57,10 @@ namespace Window
                         h = canvas->height;
                     }
 
-                    sdlWin.pWindow = SDL_CreateWindow(APP_NAME, 1920, 1080, SDL_WINDOW_RESIZABLE | SDL_WINDOW_VULKAN);
+                    sdlWin.pWindow = SDL_CreateWindow(
+                        e.world().has<Engine::Context>() ? e.world().get<Engine::Context>()->AppName().c_str() : APP_NAME,
+                        1920, 1080, 
+                        SDL_WINDOW_RESIZABLE | SDL_WINDOW_VULKAN);
                     if (!sdlWin.pWindow)
                     {
                         ASSERTMSG(eERROR, "SDL failed to create window.");

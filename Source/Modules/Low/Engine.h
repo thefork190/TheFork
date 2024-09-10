@@ -5,7 +5,7 @@
 #include "LifeCycledModule.h"
 
 #ifndef APP_NAME
-#define APP_NAME "TheFork"
+#define APP_NAME "The Fork"
 #endif
 
 namespace Engine
@@ -27,6 +27,7 @@ namespace Engine
 
 	public:
 		std::string const AppName() const { return mAppName; }
+		void SetAppName(std::string const& appName) { mAppName = appName; }
 		void RequestExit() { mRequestedExit = true; }
 		bool const HasRequestedExit() const { return mRequestedExit; }
 	};
@@ -39,5 +40,5 @@ namespace Engine
 
 
 	// Creates the required components to start getting systems to run
-	void KickstartEngine(flecs::world& ecs);
+	void KickstartEngine(flecs::world& ecs, std::string const* pAppName = nullptr);
 }
