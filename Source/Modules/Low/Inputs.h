@@ -16,15 +16,16 @@ namespace Inputs
 	{
 		std::vector<Uint8> last;  // managed by this struct
 		const Uint8* pCur = nullptr;   // managed by SDL
-		int arrLen;  // length of arrays above
+		int numStates;  // length of arrays above
 
 		RawKeboardStates();
 
 		// Utilities to check if something was just pressed or release
-		bool WasPressed(SDL_Keycode const keyCode, SDL_Keymod* pKeyMod = nullptr);
-		bool WasRelease(SDL_Keycode const keyCode, SDL_Keymod* pKeyMod = nullptr);
-		bool WasPressed(SDL_Scancode const scanCode);
-		bool WasRelease(SDL_Scancode const scanCode);
+		// pKeyMod will be returned with what the key modifier would be to get the passed in key code
+		bool WasPressed(SDL_Keycode const keyCode, SDL_Keymod* pKeyMod = nullptr) const;
+		bool WasReleased(SDL_Keycode const keyCode, SDL_Keymod* pKeyMod = nullptr) const;
+		bool WasPressed(SDL_Scancode const scanCode) const;
+		bool WasReleased(SDL_Scancode const scanCode) const;
 	};
 
 	class module : public LifeCycledModule

@@ -124,6 +124,15 @@ int SDL_AppEvent(void *appstate, const SDL_Event* event)
 int SDL_AppIterate(void *appstate) 
 {
     AppState* pApp = (AppState*)appstate;
+
+    // Before progressing the world, check on the engine context state and act accordingly
+    auto pEngineContext = pApp->ecs.has<Engine::Context>() ? pApp->ecs.get<Engine::Context>() : nullptr;
+    if (pEngineContext)
+    {
+        if (pEngineContext->HasRequestedExit())
+            pApp->quitApp = true;
+    }
+
     pApp->ecs.progress();
     
     return pApp->quitApp;

@@ -11,30 +11,30 @@ namespace Inputs
         ASSERT(pCur);
         ASSERT(numStates > 0);
 
-        last.reserve(numStates);
+        last.resize(numStates);
         std::memcpy(last.data(), pCur, sizeof(Uint8) * numStates);
     }
 
-    bool RawKeboardStates::WasPressed(SDL_Keycode const keyCode, SDL_Keymod* pKeyMod)
+    bool RawKeboardStates::WasPressed(SDL_Keycode const keyCode, SDL_Keymod* pKeyMod) const
     {
         SDL_Scancode scanCode = SDL_GetScancodeFromKey(keyCode, pKeyMod);
         return WasPressed(scanCode);
     }
 
-    bool RawKeboardStates::WasRelease(SDL_Keycode const keyCode, SDL_Keymod* pKeyMod)
+    bool RawKeboardStates::WasReleased(SDL_Keycode const keyCode, SDL_Keymod* pKeyMod) const
     {
         SDL_Scancode scanCode = SDL_GetScancodeFromKey(keyCode, pKeyMod);
-        return WasRelease(scanCode);
+        return WasReleased(scanCode);
     }
 
-    bool RawKeboardStates::WasPressed(SDL_Scancode const scanCode)
+    bool RawKeboardStates::WasPressed(SDL_Scancode const scanCode) const
     {
         ASSERT(pCur);
         ASSERT(last.size() == numStates);
         return !last[scanCode] && pCur[scanCode];
     }
 
-    bool RawKeboardStates::WasRelease(SDL_Scancode const scanCode)
+    bool RawKeboardStates::WasReleased(SDL_Scancode const scanCode) const
     {
         ASSERT(pCur);
         ASSERT(last.size() == numStates);
@@ -50,7 +50,7 @@ namespace Inputs
 
         // System to poll states and update singletons
         auto pollStates = ecs.system("Poll Inputs")
-            .kind(flecs::OnLoad)
+            .kind(flecs::OnStore)
             .run([](flecs::iter& it)
                 {
                    ASSERTMSG(it.world().has<RawKeboardStates>(), "Raw keyboard states singleton doesn't exist.");

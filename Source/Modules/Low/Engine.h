@@ -19,9 +19,16 @@ namespace Engine
 
 	// Contains general and commonly used data related to the current state(s) of the engine
 	// The creation of the context singleton kickstarts the whole engine
-	struct Context
+	class Context
 	{
-		std::string appName = APP_NAME;
+	private:
+		std::string mAppName = APP_NAME;
+		bool mRequestedExit = false;
+
+	public:
+		std::string const AppName() const { return mAppName; }
+		void RequestExit() { mRequestedExit = true; }
+		bool const HasRequestedExit() const { return mRequestedExit; }
 	};
 	
 	class module : public LifeCycledModule
