@@ -56,9 +56,6 @@ namespace Inputs
                    ASSERTMSG(it.world().has<RawKeboardStates>(), "Raw keyboard states singleton doesn't exist.");
                    auto pRawKb = it.world().get_mut<RawKeboardStates>();
                    std::memcpy(pRawKb->last.data(), pRawKb->pCur, sizeof(Uint8) * pRawKb->numStates);
-
-                   if (pRawKb->pCur[SDL_SCANCODE_ESCAPE])
-                       LOGF(eDEBUG, "ESC pressed");
                 }
             );
     }
