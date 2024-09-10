@@ -11,14 +11,8 @@ namespace Inputs
         ASSERT(pCur);
         ASSERT(arrLen > 0);
 
-        pLast = new Uint8[arrLen];
-        std::memcpy(pLast, pCur, sizeof(Uint8) * arrLen);
-    }
-
-    RawKeboardStates::~RawKeboardStates()
-    {
-        if (pLast)
-            delete[] pLast;
+        pLast.reserve(arrLen);
+        std::memcpy(pLast.data(), pCur, sizeof(Uint8) * arrLen);
     }
 
     module::module(flecs::world& ecs)
@@ -26,14 +20,19 @@ namespace Inputs
         ecs.module<module>();
 
         // Create singletons
-        ecs.set<RawKeboardStates>({});
+        ecs.set<RawKeboardStates>(RawKeboardStates());
 
         // System to poll states and update singletons
         auto pollStates = ecs.system("Poll Inputs")
             .kind(flecs::OnLoad)
             .run([](flecs::iter& it)
                 {
-                   
+                   ASSERTMSG(it.world().has<RawKeboardStates>(), "Raw keyboard states singleton doesn't exist.");
+                   auto pRawKb = it.world().get_mut<RawKeboardStates>();
+                   std::memcpy(pRawKb->pLast.data(), pRawKb->pCur, sizeof(Uint8) * pRawKb->arrLen);
+
+                   if (pRawKb->pCur[SDL_SCANCODE_ESCAPE])
+                       LOGF(eDEBUG, "ESC pressed");
                 }
             );
     }
