@@ -7,12 +7,38 @@ namespace Inputs
 {
     RawKeboardStates::RawKeboardStates()
     {
-        pCur = SDL_GetKeyboardState(&arrLen);
+        pCur = SDL_GetKeyboardState(&numStates);
         ASSERT(pCur);
-        ASSERT(arrLen > 0);
+        ASSERT(numStates > 0);
 
-        pLast.reserve(arrLen);
-        std::memcpy(pLast.data(), pCur, sizeof(Uint8) * arrLen);
+        last.reserve(numStates);
+        std::memcpy(last.data(), pCur, sizeof(Uint8) * numStates);
+    }
+
+    bool RawKeboardStates::WasPressed(SDL_Keycode const keyCode, SDL_Keymod* pKeyMod)
+    {
+        SDL_Scancode scanCode = SDL_GetScancodeFromKey(keyCode, pKeyMod);
+        return WasPressed(scanCode);
+    }
+
+    bool RawKeboardStates::WasRelease(SDL_Keycode const keyCode, SDL_Keymod* pKeyMod)
+    {
+        SDL_Scancode scanCode = SDL_GetScancodeFromKey(keyCode, pKeyMod);
+        return WasRelease(scanCode);
+    }
+
+    bool RawKeboardStates::WasPressed(SDL_Scancode const scanCode)
+    {
+        ASSERT(pCur);
+        ASSERT(last.size() == numStates);
+        return !last[scanCode] && pCur[scanCode];
+    }
+
+    bool RawKeboardStates::WasRelease(SDL_Scancode const scanCode)
+    {
+        ASSERT(pCur);
+        ASSERT(last.size() == numStates);
+        return last[scanCode] && !pCur[scanCode];
     }
 
     module::module(flecs::world& ecs)
@@ -29,7 +55,7 @@ namespace Inputs
                 {
                    ASSERTMSG(it.world().has<RawKeboardStates>(), "Raw keyboard states singleton doesn't exist.");
                    auto pRawKb = it.world().get_mut<RawKeboardStates>();
-                   std::memcpy(pRawKb->pLast.data(), pRawKb->pCur, sizeof(Uint8) * pRawKb->arrLen);
+                   std::memcpy(pRawKb->last.data(), pRawKb->pCur, sizeof(Uint8) * pRawKb->numStates);
 
                    if (pRawKb->pCur[SDL_SCANCODE_ESCAPE])
                        LOGF(eDEBUG, "ESC pressed");
