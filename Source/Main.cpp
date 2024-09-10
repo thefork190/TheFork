@@ -14,6 +14,7 @@
 #include "Modules/Low/RHI.h"
 #include "Modules/Low/Window.h"
 
+#include "Modules/High/FlappyClone/FlappyClone.h"
 #include "Modules/High/HelloTriangle/HelloTriangle.h"
 
 // TF 
@@ -116,6 +117,8 @@ int SDL_AppInit(void** appstate, int argc, char* argv[])
     //          Need to find a better way to the following.
     if ("Hello Triangle" == moduleName)
         pApp->highModules.push_back(pApp->ecs.import<HelloTriangle::module>().get_mut<HelloTriangle::module>());
+    else if("Flappy Clone" == moduleName)
+        pApp->highModules.push_back(pApp->ecs.import<FlappyClone::module>().get_mut<FlappyClone::module>());
     
     LOGF(eINFO, "SDL_AppInit returns success.");
 

@@ -68,6 +68,8 @@ set(SOURCES
     Source/Modules/Low/Window.h
     Source/Modules/Low/Window.cpp
     # High
+    Source/Modules/High/FlappyClone/FlappyClone.h
+    Source/Modules/High/FlappyClone/FlappyClone.cpp
     Source/Modules/High/HelloTriangle/HelloTriangle.h
     Source/Modules/High/HelloTriangle/HelloTriangle.cpp
 )
