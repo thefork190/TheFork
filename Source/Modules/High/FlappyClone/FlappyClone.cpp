@@ -48,8 +48,8 @@ namespace FlappyClone
     static void AddShaders(Renderer* const pRenderer, RenderPassData& passDataInOut)
     {
         ShaderLoadDesc basicShader = {};
-        basicShader.mStages[0].pFileName = "HelloTriangle.vert";
-        basicShader.mStages[1].pFileName = "HelloTriangle.frag";
+        basicShader.mStages[0].pFileName = "DrawQuad.vert";
+        basicShader.mStages[1].pFileName = "DrawQuad.frag";
         addShader(pRenderer, &basicShader, &passDataInOut.pTriShader);
     }
 

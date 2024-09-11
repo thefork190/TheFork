@@ -1,0 +1,23 @@
+#include "DrawQuad.h.fsl"
+
+STRUCT(VSInput)
+{
+	DATA(float3, Position, POSITION);
+};
+
+STRUCT(VSOutput)
+{
+	DATA(float4, Position, SV_Position);
+	DATA(float4, Color,    COLOR);
+};
+
+VSOutput VS_MAIN( VSInput In, SV_InstanceID(uint) InstanceID )
+{
+    INIT_MAIN;
+    VSOutput Out;
+    
+    Out.Position = mul(Get(mvp), float4(In.Position, 1.0f));
+    Out.Color = Get(color);
+
+    RETURN(Out);
+}
