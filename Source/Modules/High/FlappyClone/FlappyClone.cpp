@@ -12,7 +12,11 @@
 
 namespace FlappyClone
 {
-    // Storing everything here, but in practice this wouldn't be the case.
+    // Game related constants (TODO: drive these via debug UI)
+    const float OBSTACLE_WIDTH = 0.1f;              // Width of an obstacle
+    const float X_DIST_BETWEEN_OBSTACLES = 0.4f;    // Horizontal distance between obstacles
+
+    // Rendering resources.
     struct RenderPassData
     {
         Shader* pTriShader = nullptr;
@@ -144,7 +148,7 @@ namespace FlappyClone
         ubDesc.pData = nullptr;
         for (uint32_t i = 0; i < pRHI->dataBufferCount; ++i)
         {
-            ubDesc.mDesc.pName = "HelloTriangle_UniformBuffer";
+            ubDesc.mDesc.pName = "FlappyClone_UniformBuffer";
             ubDesc.mDesc.mSize = sizeof(RenderPassData::UniformsData);
             ubDesc.ppBuffer = &renderPassData.uniformsBuffers[i];
             addResource(&ubDesc, nullptr);
@@ -164,28 +168,32 @@ namespace FlappyClone
         renderPassData.vertexLayout.mAttribs[0].mLocation = 0;
         renderPassData.vertexLayout.mAttribs[0].mOffset = 0;
 
-        std::vector<glm::vec3> triPositions(3);
+        std::vector<glm::vec3> triPositions(4);
         triPositions[0] = { -0.5f, -0.5f , 0.5f };
         triPositions[1] = { 0.5f, -0.5f , 0.5f };
-        triPositions[2] = { 0.f, 0.5f , 0.5f };
+        triPositions[2] = { 0.5f, 0.5f , 0.5f };
+        triPositions[3] = { -0.5f, 0.5f , 0.5f };
 
         BufferLoadDesc vbDesc = {};
         vbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
         vbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-        vbDesc.mDesc.mSize = 3 * 12;
+        vbDesc.mDesc.mSize = triPositions.size() * 12;
         vbDesc.pData = triPositions.data();
         vbDesc.ppBuffer = &renderPassData.pVertexBuffer;
         addResource(&vbDesc, nullptr);
 
-        std::vector<uint16_t> triIndices(4); // 4 for alignment/padding
+        std::vector<uint16_t> triIndices(8); 
         triIndices[0] = 0;
         triIndices[1] = 1;
         triIndices[2] = 2;
+        triIndices[3] = 2;
+        triIndices[4] = 3;
+        triIndices[5] = 0;
 
         BufferLoadDesc ibDesc = {};
         ibDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDEX_BUFFER;
         ibDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-        ibDesc.mDesc.mSize = sizeof(uint16_t) * 4;
+        ibDesc.mDesc.mSize = triIndices.size() * sizeof(uint16_t);
         ibDesc.pData = triIndices.data();
         ibDesc.ppBuffer = &renderPassData.pIndexBuffer;
         addResource(&ibDesc, nullptr);
@@ -203,10 +211,12 @@ namespace FlappyClone
         ecs.set<RenderPassData>(renderPassData);
 
         // Main update logic (in practice this would be distributed across multiple systems)
-        ecs.system("HelloTriangle::Update")
-            .kind(flecs::OnUpdate)
-            .run([](flecs::iter& it)
+        ecs.system<Engine::Canvas, Window::SDLWindow>("FlappyClone::Update")
+            .kind(flecs::PreStore)
+            .each([](flecs::iter& it, size_t i, Engine::Canvas const& canvas, Window::SDLWindow const& sdlWin)
                 {
+                    ASSERTMSG(i == 0, "Drawing to more than one window not implemented.");
+
                     RHI::RHI const* pRHI = it.world().has<RHI::RHI>() ? it.world().get<RHI::RHI>() : nullptr;
                     RenderPassData const* pRPD = it.world().has<RenderPassData>() ? it.world().get<RenderPassData>() : nullptr;
                     Inputs::RawKeboardStates const* pKeyboard = it.world().has<Inputs::RawKeboardStates>() ? it.world().get<Inputs::RawKeboardStates>() : nullptr;
@@ -216,7 +226,12 @@ namespace FlappyClone
                     if (pRHI && pRPD)
                     {
                         RenderPassData::UniformsData updatedData = {};
-                        updatedData.mvp = glm::orthoLH_ZO(-1.f, 1.f, -1.f, 1.f, 0.1f, 1.f);
+
+                        float const aspect = canvas.width / static_cast<float>(canvas.height);
+                        glm::mat4 modelMat(1.f);
+                        modelMat = glm::translate(modelMat, glm::vec3(OBSTACLE_WIDTH/2.f, OBSTACLE_WIDTH/2.f, 0.f));
+                        modelMat = glm::scale(modelMat, glm::vec3(OBSTACLE_WIDTH, OBSTACLE_WIDTH, 1.f));
+                        updatedData.mvp = glm::orthoLH_ZO(0.f, aspect, 0.f, 1.f, 0.1f, 1.f) * modelMat;
                         updatedData.color = glm::vec4(0.f, 1.f, 1.f, 1.f);
 
                         // Update uniform buffers
@@ -238,7 +253,7 @@ namespace FlappyClone
                 }
             );
 
-        ecs.system<Engine::Canvas, Window::SDLWindow>("HelloTriangle::Draw")
+        ecs.system<Engine::Canvas, Window::SDLWindow>("FlappyClone::Draw")
             .kind(flecs::PreStore)
             .each([](flecs::iter& it, size_t i, Engine::Canvas& canvas, Window::SDLWindow& sdlWin)
                 {
@@ -252,20 +267,20 @@ namespace FlappyClone
                         Cmd* pCmd = pRHI->curCmdRingElem.pCmds[0];
                         ASSERT(pCmd);
 
-                        cmdBeginDebugMarker(pCmd, 1, 0, 1, "HelloTriangle::DrawTri");
+                        cmdBeginDebugMarker(pCmd, 1, 0, 1, "FlappyClone::DrawObstacles");
 
                         BindRenderTargetsDesc bindRenderTargets = {};
                         bindRenderTargets.mRenderTargetCount = 1;
                         bindRenderTargets.mRenderTargets[0] = { sdlWin.pCurRT, LOAD_ACTION_LOAD };
                         cmdBindRenderTargets(pCmd, &bindRenderTargets);
-                        cmdSetViewport(pCmd, 0.0f, 0.0f, (float)canvas.width, (float)canvas.height, 0.0f, 1.0f);
+                        cmdSetViewport(pCmd, 0.0f, 0.0f, static_cast<float>(canvas.width), static_cast<float>(canvas.height), 0.0f, 1.0f);
                         cmdSetScissor(pCmd, 0, 0, canvas.width, canvas.height);
 
                         cmdBindPipeline(pCmd, pRPD->pPipeline);
                         cmdBindDescriptorSet(pCmd, pRHI->frameIndex, pRPD->pDescriptorSetUniforms);
                         cmdBindVertexBuffer(pCmd, 1, &pRPD->pVertexBuffer, &pRPD->vertexLayout.mBindings[0].mStride, nullptr);
                         cmdBindIndexBuffer(pCmd, pRPD->pIndexBuffer, INDEX_TYPE_UINT16, 0);
-                        cmdDrawIndexed(pCmd, 3, 0, 0);
+                        cmdDrawIndexed(pCmd, 6, 0, 0);
 
                         cmdBindRenderTargets(pCmd, nullptr);
 
