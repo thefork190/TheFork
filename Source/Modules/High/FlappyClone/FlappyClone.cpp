@@ -13,11 +13,9 @@
 namespace FlappyClone
 {
     // Game related constants (TODO: drive these via debug UI)
-    const float OBSTACLE_WIDTH = 0.1f;              // Width of an obstacle
-    const float X_DIST_BETWEEN_OBSTACLES = 0.4f;    // Horizontal distance between obstacles
-    const unsigned int NUM_TOP_OBSTACLES = 20;      // Should be large enough to cover max display width
-    const unsigned int NUM_BOTTOM_OBSTACLES = 20;   // Should be large enough to cover max display width
-    
+    float const             OBSTACLE_WIDTH = 0.1f;              // Width of an obstacle
+    unsigned int const      TOTAL_OBSTACLES = 20u;              // Should have enough to cover ultra wide resolution
+   
     // COMPONENT /////////////
     // Rendering resources.
     struct RenderPassData
@@ -58,6 +56,7 @@ namespace FlappyClone
     {
         float x = 0.f;
         float y = 0.f;
+        float z = 0.1f;
     };
 
     // Scale for each gameplay elements
@@ -66,6 +65,15 @@ namespace FlappyClone
         float x = 1.f;
         float y = 1.f;
     };
+
+    struct Color
+    {
+        float r = 1.f;
+        float g = 1.f;
+        float b = 1.f;
+        float a = 1.f;
+    };
+
     
     //////////////////////////
     
@@ -150,6 +158,9 @@ namespace FlappyClone
         ecs.module<module>();
 
         ecs.component<RenderPassData>();
+        ecs.component<Scale>();
+        ecs.component<Position>();
+        ecs.component<Color>();
         
         RHI::RHI const* pRHI = ecs.has<RHI::RHI>() ? ecs.get<RHI::RHI>() : nullptr;
         ASSERTMSG(pRHI, "RHI singleton doesn't exist.");
@@ -189,10 +200,10 @@ namespace FlappyClone
         renderPassData.vertexLayout.mAttribs[0].mOffset = 0;
 
         std::vector<glm::vec3> triPositions(4);
-        triPositions[0] = { -0.5f, -0.5f , 0.5f };
-        triPositions[1] = { 0.5f, -0.5f , 0.5f };
-        triPositions[2] = { 0.5f, 0.5f , 0.5f };
-        triPositions[3] = { -0.5f, 0.5f , 0.5f };
+        triPositions[0] = { -0.5f, -0.5f , 0.f };
+        triPositions[1] = { 0.5f, -0.5f , 0.f };
+        triPositions[2] = { 0.5f, 0.5f , 0.f };
+        triPositions[3] = { -0.5f, 0.5f , 0.f };
 
         BufferLoadDesc vbDesc = {};
         vbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
@@ -230,7 +241,29 @@ namespace FlappyClone
 
         ecs.set<RenderPassData>(renderPassData);
 
-        // Main update logic (in practice this would be distributed across multiple systems)
+        // Create obstacle entities
+        // Pipe entities
+        // A pipe entity will have 2 children: a top and bottom obstacle.  In flappy bird, a bottom and top pipe are always on the same Y axis.
+        float const start_x_offset = 0; // TODO: start from outside of view based on aspect ratio
+        for (unsigned int i = 0; i < TOTAL_OBSTACLES; ++i)
+        {
+            auto obstacle = ecs.entity((std::string("Obstacle ") + std::to_string(i)).c_str());
+
+            for (unsigned int j = 0; j < 2; ++j)
+            {
+                auto child = ecs.entity((std::string("Obstacle ") + std::to_string(i) + (j == 0 ? " :: TOP" : " :: BOTTOM")).c_str());
+
+                child.set<Color>({ 0.f, 0.0, 1.f, 1.f });
+                child.set<Scale>({ OBSTACLE_WIDTH, OBSTACLE_WIDTH });
+                child.set<Position>({ OBSTACLE_WIDTH / 2.f, j == 0 ? 1.f - OBSTACLE_WIDTH / 2.f : OBSTACLE_WIDTH / 2.f , 0.f});
+
+                child.add(flecs::ChildOf, obstacle);
+            }
+        }
+
+        // SYSTEMS (note that the order of declaration is important for systems within the same phase)
+                
+        // Main update logic
         ecs.system<Engine::Canvas, Window::SDLWindow>("FlappyClone::Update")
             .kind(flecs::PreStore)
             .each([](flecs::iter& it, size_t i, Engine::Canvas const& canvas, Window::SDLWindow const& sdlWin)
@@ -249,7 +282,7 @@ namespace FlappyClone
 
                         float const aspect = canvas.width / static_cast<float>(canvas.height);
                         glm::mat4 modelMat(1.f);
-                        modelMat = glm::translate(modelMat, glm::vec3(OBSTACLE_WIDTH/2.f, 1.f - OBSTACLE_WIDTH/2.f, 0.f));
+                        modelMat = glm::translate(modelMat, glm::vec3(OBSTACLE_WIDTH/2.f, 1.f - OBSTACLE_WIDTH/2.f, 0.1f));
                         modelMat = glm::scale(modelMat, glm::vec3(OBSTACLE_WIDTH, OBSTACLE_WIDTH, 1.f));
                         updatedData.mvp[0] = glm::orthoLH_ZO(0.f, aspect, 0.f, 1.f, 0.1f, 1.f) * modelMat;
                         updatedData.color[0] = glm::vec4(0.f, 1.f, 1.f, 1.f);
