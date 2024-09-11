@@ -15,7 +15,10 @@ namespace FlappyClone
     // Game related constants (TODO: drive these via debug UI)
     const float OBSTACLE_WIDTH = 0.1f;              // Width of an obstacle
     const float X_DIST_BETWEEN_OBSTACLES = 0.4f;    // Horizontal distance between obstacles
-
+    const unsigned int NUM_TOP_OBSTACLES = 20;      // Should be large enough to cover max display width
+    const unsigned int NUM_BOTTOM_OBSTACLES = 20;   // Should be large enough to cover max display width
+    
+    // COMPONENT /////////////
     // Rendering resources.
     struct RenderPassData
     {
@@ -29,10 +32,11 @@ namespace FlappyClone
         std::vector<Buffer*> uniformsBuffers;
 
         // Uniforms data
+#define MAX_QUADS 64 // this needs to match the same define in DrawQuad.h.fsl
         struct UniformsData
         {
-            glm::mat4 mvp = {};
-            glm::vec4 color = {};
+            glm::mat4 mvp[MAX_QUADS] = {};
+            glm::vec4 color[MAX_QUADS] = {};
         } uniformsData;
 
         void Reset()
@@ -48,6 +52,22 @@ namespace FlappyClone
             uniformsData = {};
         }
     };
+
+    // Position for each gameplay elements (player, obstacles, etc...)
+    struct Position
+    {
+        float x = 0.f;
+        float y = 0.f;
+    };
+
+    // Scale for each gameplay elements
+    struct Scale
+    {
+        float x = 1.f;
+        float y = 1.f;
+    };
+    
+    //////////////////////////
     
     static void AddShaders(Renderer* const pRenderer, RenderPassData& passDataInOut)
     {
@@ -229,10 +249,10 @@ namespace FlappyClone
 
                         float const aspect = canvas.width / static_cast<float>(canvas.height);
                         glm::mat4 modelMat(1.f);
-                        modelMat = glm::translate(modelMat, glm::vec3(OBSTACLE_WIDTH/2.f, OBSTACLE_WIDTH/2.f, 0.f));
+                        modelMat = glm::translate(modelMat, glm::vec3(OBSTACLE_WIDTH/2.f, 1.f - OBSTACLE_WIDTH/2.f, 0.f));
                         modelMat = glm::scale(modelMat, glm::vec3(OBSTACLE_WIDTH, OBSTACLE_WIDTH, 1.f));
-                        updatedData.mvp = glm::orthoLH_ZO(0.f, aspect, 0.f, 1.f, 0.1f, 1.f) * modelMat;
-                        updatedData.color = glm::vec4(0.f, 1.f, 1.f, 1.f);
+                        updatedData.mvp[0] = glm::orthoLH_ZO(0.f, aspect, 0.f, 1.f, 0.1f, 1.f) * modelMat;
+                        updatedData.color[0] = glm::vec4(0.f, 1.f, 1.f, 1.f);
 
                         // Update uniform buffers
                         BufferUpdateDesc updateDesc = { pRPD->uniformsBuffers[pRHI->frameIndex] };
@@ -280,7 +300,7 @@ namespace FlappyClone
                         cmdBindDescriptorSet(pCmd, pRHI->frameIndex, pRPD->pDescriptorSetUniforms);
                         cmdBindVertexBuffer(pCmd, 1, &pRPD->pVertexBuffer, &pRPD->vertexLayout.mBindings[0].mStride, nullptr);
                         cmdBindIndexBuffer(pCmd, pRPD->pIndexBuffer, INDEX_TYPE_UINT16, 0);
-                        cmdDrawIndexed(pCmd, 6, 0, 0);
+                        cmdDrawIndexedInstanced(pCmd, 6, 0, 1, 0, 0);
 
                         cmdBindRenderTargets(pCmd, nullptr);
 

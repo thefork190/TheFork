@@ -1,10 +1,12 @@
 #ifndef RESOURCES_H
 #define RESOURCES_H
 
+#define MAX_QUADS 64
+
 CBUFFER(UniformBlock, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
 {
-    DATA(float4x4, mvp, None);
-    DATA(float4, color, None);
+    DATA(float4x4, mvp[MAX_QUADS], None);
+    DATA(float4, color[MAX_QUADS], None);
 };
 
 #endif
