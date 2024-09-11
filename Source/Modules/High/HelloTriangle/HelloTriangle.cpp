@@ -29,7 +29,7 @@ namespace HelloTriangle
         {
             glm::mat4 mvp = {};
             glm::vec4 color = {};
-        } uniformsData;
+        };
 
         void Reset()
         {
@@ -41,7 +41,6 @@ namespace HelloTriangle
             pVertexBuffer = nullptr;
             pIndexBuffer = nullptr;
             uniformsBuffers.clear();
-            uniformsData = {};
         }
     };
     
