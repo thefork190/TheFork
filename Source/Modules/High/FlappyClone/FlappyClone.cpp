@@ -102,6 +102,13 @@ namespace FlappyClone
     struct GameContext
     {
         flecs::query<Position const, Scale const> obstaclesQuery;
+
+        enum eSTATE
+        {
+            START,
+            IN_PLAY,
+            GAME_OVER
+        } state = START;
     };
     //////////////////////////
     
@@ -346,7 +353,6 @@ namespace FlappyClone
 
         // Following are all systems (note the decl' order is important for systems within the same flecs phase)
 
-
         // Update Obstacles:
         // - Scrolls obstacles
         // - Resets them in position (and randomizes gap) once they go past the left side of the screen
@@ -356,13 +362,18 @@ namespace FlappyClone
             .with<Obstacle>().up(flecs::ChildOf)
             .each([](flecs::iter& it, size_t i, Position& position, Scale& scale, Color const& color)
                 {
-                    // Translate obstacle
-                    position.x -= SCROLL_SPEED * it.delta_system_time();
+                    GameContext const* pGameCtx = it.world().has<GameContext>() ? it.world().get<GameContext>() : nullptr;
 
-                    // Has it gone out of view?  If so reset the position to the other end
-                    if (position.x < -scale.x)
+                    if (pGameCtx && GameContext::IN_PLAY == pGameCtx->state)
                     {
-                        position.x += DIST_BETWEEN_OBSTACLES * TOTAL_OBSTACLES;
+                        // Translate obstacle
+                        position.x -= SCROLL_SPEED * it.delta_system_time();
+
+                        // Has it gone out of view?  If so reset the position to the other end
+                        if (position.x < -scale.x)
+                        {
+                            position.x += DIST_BETWEEN_OBSTACLES * TOTAL_OBSTACLES;
+                        }
                     }
 
                     // Update rendering data
@@ -389,13 +400,18 @@ namespace FlappyClone
             .kind(flecs::OnUpdate)
             .each([](flecs::iter& it, size_t i, Velocity& vel, Position& pos)
                 {
-                    vel.y += GRAVITY * it.delta_system_time();
-                    pos.y += vel.y * it.delta_system_time();
+                    GameContext const* pGameCtx = it.world().has<GameContext>() ? it.world().get<GameContext>() : nullptr;
 
-                    if (pos.y < 0.f)
+                    if (pGameCtx && GameContext::IN_PLAY == pGameCtx->state)
                     {
-                        pos.y = 0.f;
-                        vel.y = 0.f;
+                        vel.y += GRAVITY * it.delta_system_time();
+                        pos.y += vel.y * it.delta_system_time();
+
+                        if (pos.y < 0.f)
+                        {
+                            pos.y = 0.f;
+                            vel.y = 0.f;
+                        }
                     }
                 }
             );
@@ -411,7 +427,7 @@ namespace FlappyClone
                     
                     // Update rendering data
                     RenderPassData* pRPD = it.world().has<RenderPassData>() ? it.world().get_mut<RenderPassData>() : nullptr;
-
+                    
                     if (pRPD)
                     {
                         RenderPassData::UniformsData& updatedData = pRPD->uniformsData;
@@ -434,9 +450,21 @@ namespace FlappyClone
                             pEngineContext->RequestExit();
                         }
 
-                        if (pKeyboard->WasPressed(SDLK_SPACE))
+                        GameContext* pGameCtx = it.world().has<GameContext>() ? it.world().get_mut<GameContext>() : nullptr;
+                        if (pGameCtx &&
+                            pKeyboard->WasPressed(SDLK_SPACE))
                         {
-                            vel.y = IMPULSE_FORCE;
+                            if (GameContext::START == pGameCtx->state)
+                            {
+                                // TODO: reset entities
+                                pGameCtx->state = GameContext::IN_PLAY;
+                            }
+
+                            if (GameContext::IN_PLAY == pGameCtx->state)
+                                vel.y = IMPULSE_FORCE;
+
+                            if (GameContext::GAME_OVER == pGameCtx->state)
+                                pGameCtx->state = GameContext::START;
                         }
                     }
                 }
@@ -450,11 +478,11 @@ namespace FlappyClone
                 {
                     ASSERTMSG(i == 0, "More than 1 player not supported.");
 
-                    GameContext const* pGameCtx = it.world().has<GameContext>() ? it.world().get<GameContext>() : nullptr;
-                    
+                    GameContext* pGameCtx = it.world().has<GameContext>() ? it.world().get_mut<GameContext>() : nullptr;
+
                     bool intersected = false;
                     
-                    if (pGameCtx)
+                    if (pGameCtx && GameContext::IN_PLAY == pGameCtx->state)
                     {
                         glm::vec2 const minPlayer = { playerPos.x - playerScale.x * 0.5f,  playerPos.y - playerScale.y * 0.5f };
                         glm::vec2 const maxPlayer = { playerPos.x + playerScale.x * 0.5f,  playerPos.y + playerScale.y * 0.5f };
@@ -486,21 +514,23 @@ namespace FlappyClone
                                 }
                             }
                         });
-                    }
 
-                    if (intersected)
-                    {
-                        playerColor.r = 1.f;
-                        playerColor.g = 0.f;
-                        playerColor.b = 0.f;
-                        playerColor.a = 1.f;
-                    }
-                    else
-                    {
-                        playerColor.r = 0.f;
-                        playerColor.g = 1.f;
-                        playerColor.b = 0.f;
-                        playerColor.a = 1.f;
+                        if (intersected)
+                        {
+                            playerColor.r = 1.f;
+                            playerColor.g = 0.f;
+                            playerColor.b = 0.f;
+                            playerColor.a = 1.f;
+
+                            pGameCtx->state = GameContext::GAME_OVER;
+                        }
+                        else
+                        {
+                            playerColor.r = 0.f;
+                            playerColor.g = 1.f;
+                            playerColor.b = 0.f;
+                            playerColor.a = 1.f;
+                        }
                     }
                 }
             );
