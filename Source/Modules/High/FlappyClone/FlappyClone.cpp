@@ -259,8 +259,7 @@ namespace FlappyClone
         ecs.set<RenderPassData>(renderPassData);
 
         // Create obstacle entities
-        // Pipe entities
-        // A pipe entity will have 2 children: a top and bottom obstacle.  In flappy bird, a bottom and top pipe are always on the same Y axis.
+        // An obstacle entity will have 2 children: a top and bottom "pipe".  In flappy bird, a bottom and top pipe are always on the same Y axis.
         float const obstacleStartOffsetX = 1.f;
         for (unsigned int i = 0; i < TOTAL_OBSTACLES; ++i)
         {
