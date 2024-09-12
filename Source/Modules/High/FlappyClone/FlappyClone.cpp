@@ -13,7 +13,8 @@
 namespace FlappyClone
 {
     // Game related constants (TODO: drive these via debug UI)
-    float const             OBSTACLE_WIDTH = 0.1f;              // Width of an obstacle
+    float const             OBSTACLE_WIDTH = 0.2f;              // Width of an obstacle
+    float const             DIST_BETWEEN_OBSTACLES = 0.5f;      // Dist to next obstacle
     unsigned int const      TOTAL_OBSTACLES = 20u;              // Should have enough to cover ultra wide resolution
    
     // COMPONENT /////////////
@@ -33,9 +34,11 @@ namespace FlappyClone
 #define MAX_QUADS 64 // this needs to match the same define in DrawQuad.h.fsl
         struct UniformsData
         {
-            glm::mat4 mvp[MAX_QUADS] = {};
+            glm::mat4 proj = {};
+            glm::mat4 mv[MAX_QUADS] = {};
             glm::vec4 color[MAX_QUADS] = {};
         } uniformsData;
+        size_t curUniformIndex = 0;
 
         void Reset()
         {
@@ -51,7 +54,6 @@ namespace FlappyClone
         }
     };
 
-    // Position for each gameplay elements (player, obstacles, etc...)
     struct Position
     {
         float x = 0.f;
@@ -59,7 +61,6 @@ namespace FlappyClone
         float z = 0.1f;
     };
 
-    // Scale for each gameplay elements
     struct Scale
     {
         float x = 1.f;
@@ -74,7 +75,7 @@ namespace FlappyClone
         float a = 1.f;
     };
 
-    
+    struct Obstacle {};
     //////////////////////////
     
     static void AddShaders(Renderer* const pRenderer, RenderPassData& passDataInOut)
@@ -248,50 +249,72 @@ namespace FlappyClone
         for (unsigned int i = 0; i < TOTAL_OBSTACLES; ++i)
         {
             auto obstacle = ecs.entity((std::string("Obstacle ") + std::to_string(i)).c_str());
+            obstacle.add<Obstacle>();
 
             for (unsigned int j = 0; j < 2; ++j)
             {
-                auto child = ecs.entity((std::string("Obstacle ") + std::to_string(i) + (j == 0 ? " :: TOP" : " :: BOTTOM")).c_str());
+                auto child = ecs.entity((std::string("Obstacle ") + std::to_string(i) + (j == 0 ? "  TOP" : "  BOTTOM")).c_str());
 
                 child.set<Color>({ 0.f, 0.0, 1.f, 1.f });
                 child.set<Scale>({ OBSTACLE_WIDTH, OBSTACLE_WIDTH });
-                child.set<Position>({ OBSTACLE_WIDTH / 2.f, j == 0 ? 1.f - OBSTACLE_WIDTH / 2.f : OBSTACLE_WIDTH / 2.f , 0.f});
-
+                Position pos = {};
+                pos.x = start_x_offset + OBSTACLE_WIDTH / 2.f + (i * DIST_BETWEEN_OBSTACLES);
+                pos.y = (j == 0) ? 1.f - OBSTACLE_WIDTH / 2.f : OBSTACLE_WIDTH / 2.f;
+                pos.z = 0.1f;
+                child.set<Position>(pos);
                 child.add(flecs::ChildOf, obstacle);
             }
         }
 
         // SYSTEMS (note that the order of declaration is important for systems within the same phase)
+        ecs.system<Position, Scale, Color>("FlappyClone::UpdateObstacles")
+            .kind(flecs::OnUpdate)
+            .with<Obstacle>().up(flecs::ChildOf)
+            .each([](flecs::iter& it, size_t i, Position& position, Scale& scale, Color const& color)
+                {
+                    RenderPassData* pRPD = it.world().has<RenderPassData>() ? it.world().get_mut<RenderPassData>() : nullptr;
+                    
+                    // Rendering data
+                    if (pRPD)
+                    {
+                        RenderPassData::UniformsData& updatedData = pRPD->uniformsData;
+
+                        glm::mat4 modelMat(1.f);
+                        modelMat = glm::translate(modelMat, glm::vec3(position.x, position.y, position.z));
+                        modelMat = glm::scale(modelMat, glm::vec3(scale.x, scale.y, 1.f));
+                        updatedData.mv[pRPD->curUniformIndex] = modelMat;
+                        updatedData.color[pRPD->curUniformIndex] = glm::vec4(color.r, color.g, color.b, color.a);
+
+                        pRPD->curUniformIndex++;
+                    }
+                }
+            );
                 
-        // Main update logic
-        ecs.system<Engine::Canvas, Window::SDLWindow>("FlappyClone::Update")
+        ecs.system<Engine::Canvas, Window::SDLWindow>("FlappyClone::UpdateUniforms")
             .kind(flecs::PreStore)
             .each([](flecs::iter& it, size_t i, Engine::Canvas const& canvas, Window::SDLWindow const& sdlWin)
                 {
                     ASSERTMSG(i == 0, "Drawing to more than one window not implemented.");
 
                     RHI::RHI const* pRHI = it.world().has<RHI::RHI>() ? it.world().get<RHI::RHI>() : nullptr;
-                    RenderPassData const* pRPD = it.world().has<RenderPassData>() ? it.world().get<RenderPassData>() : nullptr;
+                    RenderPassData* pRPD = it.world().has<RenderPassData>() ? it.world().get_mut<RenderPassData>() : nullptr;
                     Inputs::RawKeboardStates const* pKeyboard = it.world().has<Inputs::RawKeboardStates>() ? it.world().get<Inputs::RawKeboardStates>() : nullptr;
                     Engine::Context* pEngineContext = it.world().has<Engine::Context>() ? it.world().get_mut<Engine::Context>() : nullptr;
 
                     // Rendering update
                     if (pRHI && pRPD)
                     {
-                        RenderPassData::UniformsData updatedData = {};
-
                         float const aspect = canvas.width / static_cast<float>(canvas.height);
-                        glm::mat4 modelMat(1.f);
-                        modelMat = glm::translate(modelMat, glm::vec3(OBSTACLE_WIDTH/2.f, 1.f - OBSTACLE_WIDTH/2.f, 0.1f));
-                        modelMat = glm::scale(modelMat, glm::vec3(OBSTACLE_WIDTH, OBSTACLE_WIDTH, 1.f));
-                        updatedData.mvp[0] = glm::orthoLH_ZO(0.f, aspect, 0.f, 1.f, 0.1f, 1.f) * modelMat;
-                        updatedData.color[0] = glm::vec4(0.f, 1.f, 1.f, 1.f);
-
+                        pRPD->uniformsData.proj = glm::orthoLH_ZO(0.f, aspect, 0.f, 1.f, 0.1f, 1.f);
+                        
                         // Update uniform buffers
                         BufferUpdateDesc updateDesc = { pRPD->uniformsBuffers[pRHI->frameIndex] };
                         beginUpdateResource(&updateDesc);
-                        memcpy(updateDesc.pMappedData, &updatedData, sizeof(RenderPassData::UniformsData));
+                        memcpy(updateDesc.pMappedData, &pRPD->uniformsData, sizeof(RenderPassData::UniformsData));
                         endUpdateResource(&updateDesc);
+
+                        // Reset uniform index for next frame
+                        pRPD->curUniformIndex = 0;
                     }
 
                     // Exit if ESC is pressed
@@ -333,7 +356,9 @@ namespace FlappyClone
                         cmdBindDescriptorSet(pCmd, pRHI->frameIndex, pRPD->pDescriptorSetUniforms);
                         cmdBindVertexBuffer(pCmd, 1, &pRPD->pVertexBuffer, &pRPD->vertexLayout.mBindings[0].mStride, nullptr);
                         cmdBindIndexBuffer(pCmd, pRPD->pIndexBuffer, INDEX_TYPE_UINT16, 0);
-                        cmdDrawIndexedInstanced(pCmd, 6, 0, 1, 0, 0);
+
+                        unsigned int const totalObstacles = TOTAL_OBSTACLES * 2; // bottom and top "pipes"
+                        cmdDrawIndexedInstanced(pCmd, 6, 0, totalObstacles, 0, 0);
 
                         cmdBindRenderTargets(pCmd, nullptr);
 

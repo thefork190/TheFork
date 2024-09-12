@@ -16,7 +16,7 @@ VSOutput VS_MAIN( VSInput In, SV_InstanceID(uint) InstanceID )
     INIT_MAIN;
     VSOutput Out;
     
-    Out.Position = mul(Get(mvp)[InstanceID], float4(In.Position, 1.0f));
+    Out.Position = mul(Get(proj), mul(Get(mv)[InstanceID], float4(In.Position, 1.0f)));
     Out.Color = Get(color)[InstanceID];
 
     RETURN(Out);
