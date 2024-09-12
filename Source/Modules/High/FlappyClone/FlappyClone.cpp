@@ -16,7 +16,7 @@ namespace FlappyClone
     float const             OBSTACLE_WIDTH = 0.15f;             // Width of an obstacle
     float const             DIST_BETWEEN_OBSTACLES = 0.5f;      // Dist to next obstacle
     unsigned int const      TOTAL_OBSTACLES = 20u;              // Should have enough to cover ultra wide resolution
-    float const             SCROLL_SPEED = 0.1f;                // How fast obstacles translate towards the player
+    float const             SCROLL_SPEED = 0.2f;                // How fast obstacles translate towards the player
    
     // COMPONENT /////////////
     // Rendering resources.
@@ -249,7 +249,7 @@ namespace FlappyClone
         // Create obstacle entities
         // Pipe entities
         // A pipe entity will have 2 children: a top and bottom obstacle.  In flappy bird, a bottom and top pipe are always on the same Y axis.
-        float const start_x_offset = 0; // TODO: start from outside of view based on aspect ratio
+        float const start_x_offset = 1.f; 
         for (unsigned int i = 0; i < TOTAL_OBSTACLES; ++i)
         {
             auto obstacle = ecs.entity((std::string("Obstacle ") + std::to_string(i)).c_str());
@@ -278,6 +278,12 @@ namespace FlappyClone
                 {
                     // Translate obstacle
                     position.x -= SCROLL_SPEED * it.delta_system_time();
+
+                    // Has it gone out of view?  If so reset the position to the other end
+                    if (position.x < -scale.x)
+                    {
+                        position.x += DIST_BETWEEN_OBSTACLES * TOTAL_OBSTACLES;
+                    }
 
                     // Update rendering data
                     RenderPassData* pRPD = it.world().has<RenderPassData>() ? it.world().get_mut<RenderPassData>() : nullptr;
