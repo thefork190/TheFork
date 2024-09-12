@@ -98,6 +98,11 @@ namespace FlappyClone
         float y = 0.f;
         float z = 0.f;
     };
+
+    struct GameContext
+    {
+        flecs::query<Position const, Scale const> obstaclesQuery;
+    };
     //////////////////////////
     
     static void AddShaders(Renderer* const pRenderer, RenderPassData& passDataInOut)
@@ -331,6 +336,14 @@ namespace FlappyClone
             player.set<Velocity>({});
         }
 
+        // Create the game context
+        GameContext gameContext = {};
+        gameContext.obstaclesQuery = ecs.query_builder<Position const, Scale const>().
+            with<Obstacle>().up(flecs::ChildOf).
+            cached().
+            build();
+        ecs.set<GameContext>(gameContext);
+
         // Following are all systems (note the decl' order is important for systems within the same flecs phase)
 
 
@@ -425,6 +438,69 @@ namespace FlappyClone
                         {
                             vel.y = IMPULSE_FORCE;
                         }
+                    }
+                }
+            );
+
+        // Validate Player
+        // - Checks if player collided with obstacles
+        ecs.system<Player, Position, Scale, Color>("FlappyClone::ValidatePlayer")
+            .kind(flecs::OnUpdate)
+            .each([](flecs::iter& it, size_t i, Player, Position const& playerPos, Scale const& playerScale, Color& playerColor)
+                {
+                    ASSERTMSG(i == 0, "More than 1 player not supported.");
+
+                    GameContext const* pGameCtx = it.world().has<GameContext>() ? it.world().get<GameContext>() : nullptr;
+                    
+                    bool intersected = false;
+                    
+                    if (pGameCtx)
+                    {
+                        glm::vec2 const minPlayer = { playerPos.x - playerScale.x * 0.5f,  playerPos.y - playerScale.y * 0.5f };
+                        glm::vec2 const maxPlayer = { playerPos.x + playerScale.x * 0.5f,  playerPos.y + playerScale.y * 0.5f };
+
+                        pGameCtx->obstaclesQuery.run([&intersected, &minPlayer, &maxPlayer](flecs::iter& it) {
+                            while (it.next()) 
+                            {
+                                auto obsPositions = it.field<Position const>(0);
+                                auto obsScales = it.field<Scale const>(1);
+
+                                for (auto i : it)
+                                {
+                                    auto obsPos = obsPositions[i];
+                                    auto obsScale = obsScales[i];
+
+                                    glm::vec2 const minObs = { obsPos.x - obsScale.x * 0.5f,  obsPos.y - obsScale.y * 0.5f };
+                                    glm::vec2 const maxObs = { obsPos.x + obsScale.x * 0.5f,  obsPos.y + obsScale.y * 0.5f };
+
+                                    if (maxPlayer.x < minObs.x || minPlayer.x > maxObs.x)
+                                        continue;
+                                    
+                                    if (maxPlayer.y < minObs.y || minPlayer.y > maxObs.y)
+                                        continue;
+
+                                    intersected = true;
+
+                                    it.fini();
+                                    return;
+                                }
+                            }
+                        });
+                    }
+
+                    if (intersected)
+                    {
+                        playerColor.r = 1.f;
+                        playerColor.g = 0.f;
+                        playerColor.b = 0.f;
+                        playerColor.a = 1.f;
+                    }
+                    else
+                    {
+                        playerColor.r = 0.f;
+                        playerColor.g = 1.f;
+                        playerColor.b = 0.f;
+                        playerColor.a = 1.f;
                     }
                 }
             );
