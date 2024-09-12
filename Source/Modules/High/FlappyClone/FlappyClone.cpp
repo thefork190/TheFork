@@ -22,8 +22,8 @@ namespace FlappyClone
 
     // Rendering constants
 #define MAX_QUADS 64 // this needs to match the same define in DrawQuad.h.fsl
-    size_t const            TOTALS_QUADS_TO_DRAW = TOTAL_OBSTACLES + 1;
-    size_t const            UNIFORMS_PLAYER_INDEX = TOTAL_OBSTACLES;
+    size_t const            TOTALS_QUADS_TO_DRAW = (TOTAL_OBSTACLES * 2) + 1;
+    size_t const            UNIFORMS_PLAYER_INDEX = (TOTAL_OBSTACLES * 2);
    
     // COMPONENT /////////////
     // Rendering resources.
@@ -249,7 +249,7 @@ namespace FlappyClone
                 AddPipeline(pRHI, &window, renderPassData);
 
                 // While we're at it, cap the min window size
-                SDL_SetWindowMinimumSize(window.pWindow, 800, 600);
+                //SDL_SetWindowMinimumSize(window.pWindow, 800, 600);
             });
 
 
@@ -273,7 +273,7 @@ namespace FlappyClone
                 child.set<Color>({ 0.f, 0.0, 1.f, 1.f });
                 child.set<Scale>({ OBSTACLE_WIDTH, OBSTACLE_WIDTH });
                 Position pos = {};
-                pos.x = obstacleStartOffsetX + OBSTACLE_WIDTH / 2.f + (i * DIST_BETWEEN_OBSTACLES);
+                pos.x = obstacleStartOffsetX + (i * DIST_BETWEEN_OBSTACLES);
                 pos.y = (j == 0) ? 1.f - OBSTACLE_WIDTH / 2.f : OBSTACLE_WIDTH / 2.f;
                 pos.z = 0.1f;
                 child.set<Position>(pos);
