@@ -249,7 +249,7 @@ namespace FlappyClone
                 AddPipeline(pRHI, &window, renderPassData);
 
                 // While we're at it, cap the min window size
-                //SDL_SetWindowMinimumSize(window.pWindow, 800, 600);
+                SDL_SetWindowMinimumSize(window.pWindow, 800, 600);
             });
 
 
