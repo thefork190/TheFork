@@ -1,4 +1,5 @@
 #include <vector>
+#include <random>
 #define GLM_FORCE_LEFT_HANDED
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -265,7 +266,12 @@ namespace FlappyClone
         {
             auto obstacleEnt = ecs.entity((std::string("Obstacle ") + std::to_string(i)).c_str());
             
-            Obstacle obstacle = {}; // TODO randomize where the gap is
+            Obstacle obstacle = {};
+            std::random_device rd;
+            std::mt19937 gen(rd());
+            float const minVerticalOffset = OBSTACLE_WIDTH + OBSTACLE_WIDTH * 0.5f;
+            std::uniform_real_distribution<float> dis(minVerticalOffset, 1.f - minVerticalOffset);
+            obstacle.gapPosY = dis(gen);
             obstacleEnt.set<Obstacle>(obstacle);
 
             for (unsigned int j = 0; j < 2; ++j)
@@ -274,10 +280,7 @@ namespace FlappyClone
 
                 child.set<Color>({ 0.f, 0.0, 1.f, 1.f });
 
-                
                 Scale scale = {};
-
-                // To position and scale the top/bottom "pipes", we need to figure out what they're height should be for the gap position                
                 scale.x = OBSTACLE_WIDTH;
                 scale.y = OBSTACLE_WIDTH;
 
