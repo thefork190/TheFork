@@ -13,9 +13,10 @@
 namespace FlappyClone
 {
     // Game related constants (TODO: drive these via debug UI)
-    float const             OBSTACLE_WIDTH = 0.2f;              // Width of an obstacle
+    float const             OBSTACLE_WIDTH = 0.15f;             // Width of an obstacle
     float const             DIST_BETWEEN_OBSTACLES = 0.5f;      // Dist to next obstacle
     unsigned int const      TOTAL_OBSTACLES = 20u;              // Should have enough to cover ultra wide resolution
+    float const             SCROLL_SPEED = 0.1f;                // How fast obstacles translate towards the player
    
     // COMPONENT /////////////
     // Rendering resources.
@@ -235,6 +236,9 @@ namespace FlappyClone
             {
                 ASSERTMSG(i == 0, "Drawing to more than one window not implemented.");
                 AddPipeline(pRHI, &window, renderPassData);
+
+                // While we're at it, cap the min window size
+                SDL_SetWindowMinimumSize(window.pWindow, 800, 600);
             });
 
 
@@ -272,9 +276,12 @@ namespace FlappyClone
             .with<Obstacle>().up(flecs::ChildOf)
             .each([](flecs::iter& it, size_t i, Position& position, Scale& scale, Color const& color)
                 {
+                    // Translate obstacle
+                    position.x -= SCROLL_SPEED * it.delta_system_time();
+
+                    // Update rendering data
                     RenderPassData* pRPD = it.world().has<RenderPassData>() ? it.world().get_mut<RenderPassData>() : nullptr;
                     
-                    // Rendering data
                     if (pRPD)
                     {
                         RenderPassData::UniformsData& updatedData = pRPD->uniformsData;
