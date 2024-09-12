@@ -201,13 +201,29 @@ endif (WIN32)
 # Assets
 set(ASSETS_DIR "${CMAKE_SOURCE_DIR}/Assets")
 file(GLOB_RECURSE ASSET_FILES "${ASSETS_DIR}/*")
+if(APPLE)
+# Define the path to the Resources folder inside the .app bundle
+set(ASSETS_DESTINATION "$<TARGET_BUNDLE_DIR:${EXECUTABLE_NAME}>/Contents/Resources/Assets")
+
+# Define a post-build command to copy assets to the .app bundle
+add_custom_command(
+    TARGET ${EXECUTABLE_NAME}
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${ASSETS_DESTINATION}"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "${ASSETS_DIR}" "${ASSETS_DESTINATION}"
+    COMMENT "Copying assets to .app bundle..."
+)
+else()
+# Define the path to the Resources folder inside the .app bundle
+set(ASSETS_DESTINATION "${CMAKE_BINARY_DIR}/$<CONFIG>/Assets")
 
 add_custom_command(
-    OUTPUT "${CMAKE_BINARY_DIR}/$<CONFIG>/Assets"
-    COMMAND ${CMAKE_COMMAND} -E copy_directory "${ASSETS_DIR}" "${CMAKE_BINARY_DIR}/$<CONFIG>/Assets"
+    OUTPUT "${ASSETS_DESTINATION}"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "${ASSETS_DIR}" "${ASSETS_DESTINATION}"
     DEPENDS ${ASSET_FILES}
     COMMENT "Copying assets..."
 )
+endif()
 
-add_custom_target(copy_assets ALL DEPENDS "${CMAKE_BINARY_DIR}/$<CONFIG>/Assets")
+add_custom_target(copy_assets ALL DEPENDS "${ASSETS_DESTINATION}")
 add_dependencies(${EXECUTABLE_NAME} copy_assets)
