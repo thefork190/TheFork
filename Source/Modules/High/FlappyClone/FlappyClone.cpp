@@ -3,6 +3,7 @@
 #define GLM_FORCE_LEFT_HANDED
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <SDL3/SDL_timer.h>
 #include <IResourceLoader.h>
 #include "ILog.h"
 #include "Low/Engine.h"
@@ -20,6 +21,7 @@ namespace FlappyClone
     unsigned int const      TOTAL_OBSTACLES = 20u;                              // Should have enough to cover ultra wide resolution
     float const             PLAYER_SIZE = OBSTACLE_GAP_HEIGHT * 0.2f;           // Player size
     float const             SCROLL_SPEED = 0.2f;                                // How fast obstacles translate towards the player
+    float const             GRAVITY = -2.33f;
 
     // Rendering constants
 #define MAX_QUADS 64 // this needs to match the same define in DrawQuad.h.fsl
@@ -27,7 +29,6 @@ namespace FlappyClone
     size_t const            UNIFORMS_PLAYER_INDEX = (TOTAL_OBSTACLES * 2);
    
     // COMPONENT /////////////
-    // Rendering resources.
     struct RenderPassData
     {
         Shader* pTriShader = nullptr;
@@ -89,6 +90,13 @@ namespace FlappyClone
     };
 
     struct Player {};
+
+    struct Velocity
+    {
+        float x = 0.f;
+        float y = 0.f;
+        float z = 0.f;
+    };
     //////////////////////////
     
     static void AddShaders(Renderer* const pRenderer, RenderPassData& passDataInOut)
@@ -319,9 +327,16 @@ namespace FlappyClone
             pos.y = 0.5f;
             pos.z = 0.1f;
             player.set<Position>(pos);
+            player.set<Velocity>({});
         }
 
-        // SYSTEMS (note that the order of declaration is important for systems within the same phase)
+        // Following are all systems (note the decl' order is important for systems within the same flecs phase)
+
+
+        // Update Obstacles:
+        // - Scrolls obstacles
+        // - Resets them in position (and randomizes gap) once they go past the left side of the screen
+        // - Updates uniforms data so we can render them
         ecs.system<Position, Scale, Color>("FlappyClone::UpdateObstacles")
             .kind(flecs::OnUpdate)
             .with<Obstacle>().up(flecs::ChildOf)
@@ -354,11 +369,29 @@ namespace FlappyClone
                 }
             );
 
+        // Apply Gravity
+        // - Simulates gravity on entities with a velocity and position component
+        ecs.system<Velocity, Position>("FlappyClone::ApplyGravity")
+            .kind(flecs::OnUpdate)
+            .each([](flecs::iter& it, size_t i, Velocity& vel, Position& pos)
+                {
+                    vel.y += GRAVITY * it.delta_system_time();
+                    pos.y += vel.y * it.delta_system_time();
+                }
+            );
+
+        // Update Player
+        // - Handles physics simulation on the player 
+        // - Updates uniforms data for rendering
+        // - Handles player inputs 
         ecs.system<Player, Position, Scale, Color>("FlappyClone::UpdatePlayer")
             .kind(flecs::OnUpdate)
             .each([](flecs::iter& it, size_t i, Player, Position& position, Scale& scale, Color const& color)
                 {
                     ASSERTMSG(i == 0, "More than 1 player not supported.");
+
+                    // Physics
+                   // position.y += std::cosf(SDL_GetTicks()) * 0.005f;
                     
                     // Update rendering data
                     RenderPassData* pRPD = it.world().has<RenderPassData>() ? it.world().get_mut<RenderPassData>() : nullptr;
@@ -373,9 +406,23 @@ namespace FlappyClone
                         updatedData.mv[UNIFORMS_PLAYER_INDEX] = modelMat;
                         updatedData.color[UNIFORMS_PLAYER_INDEX] = glm::vec4(color.r, color.g, color.b, color.a);
                     }
+
+                    // Exit if ESC is pressed
+                    Inputs::RawKeboardStates const* pKeyboard = it.world().has<Inputs::RawKeboardStates>() ? it.world().get<Inputs::RawKeboardStates>() : nullptr;
+                    Engine::Context* pEngineContext = it.world().has<Engine::Context>() ? it.world().get_mut<Engine::Context>() : nullptr;
+                    if (pKeyboard && pEngineContext)
+                    {
+                        if (pKeyboard->WasPressed(SDLK_ESCAPE))
+                        {
+                            LOGF(eDEBUG, "ESC pressed, requesting to exit the app.");
+                            pEngineContext->RequestExit();
+                        }
+                    }
                 }
             );
-                
+        
+        // Update Uniforms
+        // - Updates gpu unif buffer
         ecs.system<Engine::Canvas, Window::SDLWindow>("FlappyClone::UpdateUniforms")
             .kind(flecs::PreStore)
             .each([](flecs::iter& it, size_t i, Engine::Canvas const& canvas, Window::SDLWindow const& sdlWin)
@@ -384,8 +431,6 @@ namespace FlappyClone
 
                     RHI::RHI const* pRHI = it.world().has<RHI::RHI>() ? it.world().get<RHI::RHI>() : nullptr;
                     RenderPassData* pRPD = it.world().has<RenderPassData>() ? it.world().get_mut<RenderPassData>() : nullptr;
-                    Inputs::RawKeboardStates const* pKeyboard = it.world().has<Inputs::RawKeboardStates>() ? it.world().get<Inputs::RawKeboardStates>() : nullptr;
-                    Engine::Context* pEngineContext = it.world().has<Engine::Context>() ? it.world().get_mut<Engine::Context>() : nullptr;
 
                     // Rendering update
                     if (pRHI && pRPD)
@@ -403,18 +448,12 @@ namespace FlappyClone
                         pRPD->curUniformIndex = 0;
                     }
 
-                    // Exit if ESC is pressed
-                    if (pKeyboard && pEngineContext)
-                    {
-                        if (pKeyboard->WasPressed(SDLK_ESCAPE))
-                        {
-                            LOGF(eDEBUG, "ESC pressed, requesting to exit the app.");
-                            pEngineContext->RequestExit();
-                        }
-                    }
+                    
                 }
             );
 
+        // Draw
+        // - Records GPU cmds
         ecs.system<Engine::Canvas, Window::SDLWindow>("FlappyClone::Draw")
             .kind(flecs::PreStore)
             .each([](flecs::iter& it, size_t i, Engine::Canvas& canvas, Window::SDLWindow& sdlWin)
