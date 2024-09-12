@@ -13,10 +13,17 @@
 namespace FlappyClone
 {
     // Game related constants (TODO: drive these via debug UI)
-    float const             OBSTACLE_WIDTH = 0.15f;             // Width of an obstacle
-    float const             DIST_BETWEEN_OBSTACLES = 0.5f;      // Dist to next obstacle
-    unsigned int const      TOTAL_OBSTACLES = 20u;              // Should have enough to cover ultra wide resolution
-    float const             SCROLL_SPEED = 0.2f;                // How fast obstacles translate towards the player
+    float const             OBSTACLE_WIDTH = 0.15f;                             // Width of an obstacle
+    float const             OBSTACLE_GAP_HEIGHT = OBSTACLE_WIDTH * 2.f;         // Obstacle gap (in between top and bottom "pipes")
+    float const             DIST_BETWEEN_OBSTACLES = 0.5f;                      // Dist to next obstacle
+    unsigned int const      TOTAL_OBSTACLES = 20u;                              // Should have enough to cover ultra wide resolution
+    float const             PLAYER_SIZE = OBSTACLE_GAP_HEIGHT * 0.2f;           // Player size
+    float const             SCROLL_SPEED = 0.2f;                                // How fast obstacles translate towards the player
+
+    // Rendering constants
+#define MAX_QUADS 64 // this needs to match the same define in DrawQuad.h.fsl
+    size_t const            TOTALS_QUADS_TO_DRAW = TOTAL_OBSTACLES + 1;
+    size_t const            UNIFORMS_PLAYER_INDEX = TOTAL_OBSTACLES;
    
     // COMPONENT /////////////
     // Rendering resources.
@@ -32,7 +39,6 @@ namespace FlappyClone
         std::vector<Buffer*> uniformsBuffers;
 
         // Uniforms data
-#define MAX_QUADS 64 // this needs to match the same define in DrawQuad.h.fsl
         struct UniformsData
         {
             glm::mat4 proj = {};
@@ -76,7 +82,12 @@ namespace FlappyClone
         float a = 1.f;
     };
 
-    struct Obstacle {};
+    struct Obstacle 
+    {
+        float gapPosY = 0.5f;
+    };
+
+    struct Player {};
     //////////////////////////
     
     static void AddShaders(Renderer* const pRenderer, RenderPassData& passDataInOut)
@@ -249,7 +260,7 @@ namespace FlappyClone
         // Create obstacle entities
         // Pipe entities
         // A pipe entity will have 2 children: a top and bottom obstacle.  In flappy bird, a bottom and top pipe are always on the same Y axis.
-        float const start_x_offset = 1.f; 
+        float const obstacleStartOffsetX = 1.f;
         for (unsigned int i = 0; i < TOTAL_OBSTACLES; ++i)
         {
             auto obstacle = ecs.entity((std::string("Obstacle ") + std::to_string(i)).c_str());
@@ -262,12 +273,27 @@ namespace FlappyClone
                 child.set<Color>({ 0.f, 0.0, 1.f, 1.f });
                 child.set<Scale>({ OBSTACLE_WIDTH, OBSTACLE_WIDTH });
                 Position pos = {};
-                pos.x = start_x_offset + OBSTACLE_WIDTH / 2.f + (i * DIST_BETWEEN_OBSTACLES);
+                pos.x = obstacleStartOffsetX + OBSTACLE_WIDTH / 2.f + (i * DIST_BETWEEN_OBSTACLES);
                 pos.y = (j == 0) ? 1.f - OBSTACLE_WIDTH / 2.f : OBSTACLE_WIDTH / 2.f;
                 pos.z = 0.1f;
                 child.set<Position>(pos);
                 child.add(flecs::ChildOf, obstacle);
             }
+        }
+
+        // Create the player entity
+        {
+            float const playerStartOffsetX = 0.1f;
+
+            auto player = ecs.entity((std::string("Player")).c_str());
+            player.add<Player>();
+            player.set<Color>({ 1.f, 0.0, 1.f, 1.f });
+            player.set<Scale>({ PLAYER_SIZE, PLAYER_SIZE });
+            Position pos = {};
+            pos.x = playerStartOffsetX + PLAYER_SIZE / 2.f;
+            pos.y = 0.5f;
+            pos.z = 0.1f;
+            player.set<Position>(pos);
         }
 
         // SYSTEMS (note that the order of declaration is important for systems within the same phase)
@@ -299,6 +325,28 @@ namespace FlappyClone
                         updatedData.color[pRPD->curUniformIndex] = glm::vec4(color.r, color.g, color.b, color.a);
 
                         pRPD->curUniformIndex++;
+                    }
+                }
+            );
+
+        ecs.system<Player, Position, Scale, Color>("FlappyClone::UpdatePlayer")
+            .kind(flecs::OnUpdate)
+            .each([](flecs::iter& it, size_t i, Player, Position& position, Scale& scale, Color const& color)
+                {
+                    ASSERTMSG(i == 0, "More than 1 player not supported.");
+                    
+                    // Update rendering data
+                    RenderPassData* pRPD = it.world().has<RenderPassData>() ? it.world().get_mut<RenderPassData>() : nullptr;
+
+                    if (pRPD)
+                    {
+                        RenderPassData::UniformsData& updatedData = pRPD->uniformsData;
+
+                        glm::mat4 modelMat(1.f);
+                        modelMat = glm::translate(modelMat, glm::vec3(position.x, position.y, position.z));
+                        modelMat = glm::scale(modelMat, glm::vec3(scale.x, scale.y, 1.f));
+                        updatedData.mv[UNIFORMS_PLAYER_INDEX] = modelMat;
+                        updatedData.color[UNIFORMS_PLAYER_INDEX] = glm::vec4(color.r, color.g, color.b, color.a);
                     }
                 }
             );
@@ -356,22 +404,34 @@ namespace FlappyClone
                         Cmd* pCmd = pRHI->curCmdRingElem.pCmds[0];
                         ASSERT(pCmd);
 
-                        cmdBeginDebugMarker(pCmd, 1, 0, 1, "FlappyClone::DrawObstacles");
+                        cmdBeginDebugMarker(pCmd, 1, 0, 1, "FlappyClone::ClearScreen");
+
+                        RenderTargetBarrier barriers[] = {
+                                 { sdlWin.pCurRT, RESOURCE_STATE_PRESENT, RESOURCE_STATE_RENDER_TARGET },
+                        };
+                        cmdResourceBarrier(pCmd, 0, nullptr, 0, nullptr, 1, barriers);
 
                         BindRenderTargetsDesc bindRenderTargets = {};
                         bindRenderTargets.mRenderTargetCount = 1;
-                        bindRenderTargets.mRenderTargets[0] = { sdlWin.pCurRT, LOAD_ACTION_LOAD };
+                        bindRenderTargets.mRenderTargets[0] = { sdlWin.pCurRT, LOAD_ACTION_CLEAR };
                         cmdBindRenderTargets(pCmd, &bindRenderTargets);
-                        cmdSetViewport(pCmd, 0.0f, 0.0f, static_cast<float>(canvas.width), static_cast<float>(canvas.height), 0.0f, 1.0f);
-                        cmdSetScissor(pCmd, 0, 0, canvas.width, canvas.height);
+                        cmdSetViewport(pCmd, 0.0f, 0.0f, static_cast<float>(sdlWin.pCurRT->mWidth), static_cast<float>(sdlWin.pCurRT->mHeight), 0.0f, 1.0f);
+                        cmdSetScissor(pCmd, 0, 0, sdlWin.pCurRT->mWidth, sdlWin.pCurRT->mHeight);
 
+                        cmdBindRenderTargets(pCmd, nullptr);
+
+                        barriers[0] = { sdlWin.pCurRT, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };
+                        cmdResourceBarrier(pCmd, 0, nullptr, 0, nullptr, 1, barriers);
+
+                        cmdEndDebugMarker(pCmd);
+
+                        cmdBeginDebugMarker(pCmd, 1, 0, 1, "FlappyClone::DrawObstacles");
+                        
                         cmdBindPipeline(pCmd, pRPD->pPipeline);
                         cmdBindDescriptorSet(pCmd, pRHI->frameIndex, pRPD->pDescriptorSetUniforms);
                         cmdBindVertexBuffer(pCmd, 1, &pRPD->pVertexBuffer, &pRPD->vertexLayout.mBindings[0].mStride, nullptr);
                         cmdBindIndexBuffer(pCmd, pRPD->pIndexBuffer, INDEX_TYPE_UINT16, 0);
-
-                        unsigned int const totalObstacles = TOTAL_OBSTACLES * 2; // bottom and top "pipes"
-                        cmdDrawIndexedInstanced(pCmd, 6, 0, totalObstacles, 0, 0);
+                        cmdDrawIndexedInstanced(pCmd, 6, 0, TOTALS_QUADS_TO_DRAW, 0, 0);
 
                         cmdBindRenderTargets(pCmd, nullptr);
 

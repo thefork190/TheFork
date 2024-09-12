@@ -4,7 +4,7 @@
 #include "RHI.h"
 #include "Window.h"
 
-#define DEBUG_PRESENTATION_CLEAR_COLOR_RED 1
+#define DEBUG_PRESENTATION_CLEAR_COLOR_RED 0
 
 namespace Window
 {
