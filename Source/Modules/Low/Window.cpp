@@ -5,7 +5,9 @@
 #include "Window.h"
 
 #define DEBUG_PRESENTATION_CLEAR_COLOR_RED 1
-
+#if defined(__APPLE__)
+#define HWND void*
+#endif
 namespace Window
 {
     void CreateWindowSwapchain(RHI::RHI* pRHI, SDLWindow& sdlWin, int const w, int const h)
