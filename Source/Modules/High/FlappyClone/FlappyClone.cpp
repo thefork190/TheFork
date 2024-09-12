@@ -16,10 +16,10 @@ namespace FlappyClone
 {
     // Game related constants (TODO: drive these via debug UI)
     float const             OBSTACLE_WIDTH = 0.15f;                             // Width of an obstacle
-    float const             OBSTACLE_GAP_HEIGHT = OBSTACLE_WIDTH * 2.f;         // Obstacle gap (in between top and bottom "pipes")
+    float const             OBSTACLE_GAP_HEIGHT = OBSTACLE_WIDTH * 1.75f;       // Obstacle gap (in between top and bottom "pipes")
     float const             DIST_BETWEEN_OBSTACLES = 0.5f;                      // Dist to next obstacle
     unsigned int const      TOTAL_OBSTACLES = 20u;                              // Should have enough to cover ultra wide resolution
-    float const             PLAYER_SIZE = OBSTACLE_GAP_HEIGHT * 0.2f;           // Player size
+    float const             PLAYER_SIZE = OBSTACLE_GAP_HEIGHT * 0.35f;          // Player size (relative to gap height)
     float const             SCROLL_SPEED = 0.33f;                               // How fast obstacles translate towards the player
     float const             GRAVITY = -2.33f;
     float const             IMPULSE_FORCE = 0.75f;                              // Impulse force to apply upwards to simulate flapping
