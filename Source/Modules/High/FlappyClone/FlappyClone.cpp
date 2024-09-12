@@ -263,21 +263,44 @@ namespace FlappyClone
         float const obstacleStartOffsetX = 1.f;
         for (unsigned int i = 0; i < TOTAL_OBSTACLES; ++i)
         {
-            auto obstacle = ecs.entity((std::string("Obstacle ") + std::to_string(i)).c_str());
-            obstacle.add<Obstacle>();
+            auto obstacleEnt = ecs.entity((std::string("Obstacle ") + std::to_string(i)).c_str());
+            
+            Obstacle obstacle = {}; // TODO randomize where the gap is
+            obstacleEnt.set<Obstacle>(obstacle);
 
             for (unsigned int j = 0; j < 2; ++j)
             {
                 auto child = ecs.entity((std::string("Obstacle ") + std::to_string(i) + (j == 0 ? "  TOP" : "  BOTTOM")).c_str());
 
                 child.set<Color>({ 0.f, 0.0, 1.f, 1.f });
-                child.set<Scale>({ OBSTACLE_WIDTH, OBSTACLE_WIDTH });
+
+                
+                Scale scale = {};
+
+                // To position and scale the top/bottom "pipes", we need to figure out what they're height should be for the gap position                
+                scale.x = OBSTACLE_WIDTH;
+                scale.y = OBSTACLE_WIDTH;
+
+                if (j == 0)
+                {
+                    float const topPos = obstacle.gapPosY + OBSTACLE_GAP_HEIGHT / 2.f;
+                    scale.y = 1.f - topPos;
+                }
+                else
+                {
+                    float const bottomPos = obstacle.gapPosY - OBSTACLE_GAP_HEIGHT / 2.f;
+                    scale.y = bottomPos;
+                }
+
+                child.set<Scale>(scale);
+
                 Position pos = {};
                 pos.x = obstacleStartOffsetX + (i * DIST_BETWEEN_OBSTACLES);
-                pos.y = (j == 0) ? 1.f - OBSTACLE_WIDTH / 2.f : OBSTACLE_WIDTH / 2.f;
+                pos.y = (j == 0) ? 1.f - scale.y / 2.f : scale.y / 2.f;
                 pos.z = 0.1f;
                 child.set<Position>(pos);
-                child.add(flecs::ChildOf, obstacle);
+
+                child.add(flecs::ChildOf, obstacleEnt);
             }
         }
 
