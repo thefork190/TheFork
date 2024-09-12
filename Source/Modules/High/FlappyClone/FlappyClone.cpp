@@ -20,8 +20,9 @@ namespace FlappyClone
     float const             DIST_BETWEEN_OBSTACLES = 0.5f;                      // Dist to next obstacle
     unsigned int const      TOTAL_OBSTACLES = 20u;                              // Should have enough to cover ultra wide resolution
     float const             PLAYER_SIZE = OBSTACLE_GAP_HEIGHT * 0.2f;           // Player size
-    float const             SCROLL_SPEED = 0.2f;                                // How fast obstacles translate towards the player
+    float const             SCROLL_SPEED = 0.33f;                               // How fast obstacles translate towards the player
     float const             GRAVITY = -2.33f;
+    float const             IMPULSE_FORCE = 0.75f;                              // Impulse force to apply upwards to simulate flapping
 
     // Rendering constants
 #define MAX_QUADS 64 // this needs to match the same define in DrawQuad.h.fsl
@@ -377,21 +378,23 @@ namespace FlappyClone
                 {
                     vel.y += GRAVITY * it.delta_system_time();
                     pos.y += vel.y * it.delta_system_time();
+
+                    if (pos.y < 0.f)
+                    {
+                        pos.y = 0.f;
+                        vel.y = 0.f;
+                    }
                 }
             );
 
         // Update Player
-        // - Handles physics simulation on the player 
         // - Updates uniforms data for rendering
         // - Handles player inputs 
-        ecs.system<Player, Position, Scale, Color>("FlappyClone::UpdatePlayer")
+        ecs.system<Player, Position, Scale, Color, Velocity>("FlappyClone::UpdatePlayer")
             .kind(flecs::OnUpdate)
-            .each([](flecs::iter& it, size_t i, Player, Position& position, Scale& scale, Color const& color)
+            .each([](flecs::iter& it, size_t i, Player, Position& position, Scale& scale, Color const& color, Velocity& vel)
                 {
                     ASSERTMSG(i == 0, "More than 1 player not supported.");
-
-                    // Physics
-                   // position.y += std::cosf(SDL_GetTicks()) * 0.005f;
                     
                     // Update rendering data
                     RenderPassData* pRPD = it.world().has<RenderPassData>() ? it.world().get_mut<RenderPassData>() : nullptr;
@@ -416,6 +419,11 @@ namespace FlappyClone
                         {
                             LOGF(eDEBUG, "ESC pressed, requesting to exit the app.");
                             pEngineContext->RequestExit();
+                        }
+
+                        if (pKeyboard->WasPressed(SDLK_SPACE))
+                        {
+                            vel.y = IMPULSE_FORCE;
                         }
                     }
                 }
