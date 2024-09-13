@@ -1,3 +1,4 @@
+#include <array>
 #include <vector>
 #include <random>
 #define GLM_FORCE_LEFT_HANDED
@@ -23,13 +24,13 @@ namespace FlappyClone
     float const             SCROLL_SPEED = 0.33f;                               // How fast obstacles translate towards the player
     float const             GRAVITY = -2.33f;
     float const             IMPULSE_FORCE = 0.75f;                              // Impulse force to apply upwards to simulate flapping
-    float const             PLAYER_START_COLOR[4] = {0.45f, 0.45f, 0.45f, 1.f}; // Player default color when starting a game
+    float const             PLAYER_START_COLOR[4] = { 0.45f, 0.45f, 0.45f, 1.f }; // Player default color when starting a game
 
     // Rendering constants
 #define MAX_QUADS 64 // this needs to match the same define in DrawQuad.h.fsl
     size_t const            TOTALS_QUADS_TO_DRAW = (TOTAL_OBSTACLES * 2) + 1;
     size_t const            UNIFORMS_PLAYER_INDEX = (TOTAL_OBSTACLES * 2);
-   
+
     // COMPONENT /////////////
     struct RenderPassData
     {
@@ -86,10 +87,7 @@ namespace FlappyClone
         float a = 1.f;
     };
 
-    struct Obstacle 
-    {
-        float gapPosY = 0.5f;
-    };
+    struct Obstacle {};
 
     struct Player {};
 
@@ -112,7 +110,7 @@ namespace FlappyClone
         } state = START;
     };
     //////////////////////////
-    
+
     // Rendering /////////////
     static void AddShaders(Renderer* const pRenderer, RenderPassData& passDataInOut)
     {
@@ -196,6 +194,43 @@ namespace FlappyClone
         position.y = 0.5f;
         position.z = 0.1f;
         velocity = {};
+    }
+
+    static void ResetObstacle(
+        std::array<Position, 2>& position,
+        std::array<Scale, 2>& scale,
+        std::array<Color, 2>& color,
+        float const xOffset0,
+        float const xOffset1)
+    {
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        float const minVerticalOffset = OBSTACLE_WIDTH + OBSTACLE_WIDTH * 0.5f;
+        std::uniform_real_distribution<float> dis(minVerticalOffset, 1.f - minVerticalOffset);
+        float const gapPosY = dis(gen);
+
+        for (unsigned int i = 0; i < 2; ++i)
+        {
+            color[i] = {0.f, 0.0, 1.f, 1.f};
+
+            scale[i].x = OBSTACLE_WIDTH;
+            scale[i].y = OBSTACLE_WIDTH;
+
+            if (i == 0)
+            {
+                float const topPos = gapPosY + OBSTACLE_GAP_HEIGHT / 2.f;
+                scale[i].y = 1.f - topPos;
+            }
+            else
+            {
+                float const bottomPos = gapPosY - OBSTACLE_GAP_HEIGHT / 2.f;
+                scale[i].y = bottomPos;
+            }
+
+            position[i].x = xOffset0 + xOffset1;
+            position[i].y = (i == 0) ? 1.f - scale[i].y / 2.f : scale[i].y / 2.f;
+            position[i].z = 0.1f;
+        }
     }
     //////////////////////////
 
@@ -299,46 +334,27 @@ namespace FlappyClone
         float const obstacleStartOffsetX = 1.f;
         for (unsigned int i = 0; i < TOTAL_OBSTACLES; ++i)
         {
-            auto obstacleEnt = ecs.entity((std::string("Obstacle ") + std::to_string(i)).c_str());
-            
-            Obstacle obstacle = {};
-            std::random_device rd;
-            std::mt19937 gen(rd());
-            float const minVerticalOffset = OBSTACLE_WIDTH + OBSTACLE_WIDTH * 0.5f;
-            std::uniform_real_distribution<float> dis(minVerticalOffset, 1.f - minVerticalOffset);
-            obstacle.gapPosY = dis(gen);
-            obstacleEnt.set<Obstacle>(obstacle);
+            auto obstacleEnt = ecs.entity((std::string("Obstacle") + std::to_string(i)).c_str());
+            obstacleEnt.add<Obstacle>();
+
+            std::array<Position, 2> positions = {};
+            std::array<Scale, 2> scales = {};
+            std::array<Color, 2> colors = {};
+
+            flecs::entity child[2] =
+            {
+                ecs.entity((std::string("Obstacle") + std::to_string(i) + "::TOP").c_str()),
+                ecs.entity((std::string("Obstacle") + std::to_string(i) + "::BOTTOM").c_str())
+            };
+
+            ResetObstacle(positions, scales, colors, obstacleStartOffsetX, (i * DIST_BETWEEN_OBSTACLES));
 
             for (unsigned int j = 0; j < 2; ++j)
             {
-                auto child = ecs.entity((std::string("Obstacle ") + std::to_string(i) + (j == 0 ? "  TOP" : "  BOTTOM")).c_str());
-
-                child.set<Color>({ 0.f, 0.0, 1.f, 1.f });
-
-                Scale scale = {};
-                scale.x = OBSTACLE_WIDTH;
-                scale.y = OBSTACLE_WIDTH;
-
-                if (j == 0)
-                {
-                    float const topPos = obstacle.gapPosY + OBSTACLE_GAP_HEIGHT / 2.f;
-                    scale.y = 1.f - topPos;
-                }
-                else
-                {
-                    float const bottomPos = obstacle.gapPosY - OBSTACLE_GAP_HEIGHT / 2.f;
-                    scale.y = bottomPos;
-                }
-
-                child.set<Scale>(scale);
-
-                Position pos = {};
-                pos.x = obstacleStartOffsetX + (i * DIST_BETWEEN_OBSTACLES);
-                pos.y = (j == 0) ? 1.f - scale.y / 2.f : scale.y / 2.f;
-                pos.z = 0.1f;
-                child.set<Position>(pos);
-
-                child.add(flecs::ChildOf, obstacleEnt);
+                child[j].set<Position>(positions[j]);
+                child[j].set<Scale>(scales[j]);
+                child[j].set<Color>(colors[j]);
+                child[j].add(flecs::ChildOf, obstacleEnt);
             }
         }
 
