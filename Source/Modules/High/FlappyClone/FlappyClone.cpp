@@ -575,13 +575,13 @@ namespace FlappyClone
 
                                     glm::vec2 const minObs = { obsPos.x - obsScale.x * 0.5f,  obsPos.y - obsScale.y * 0.5f };
                                     glm::vec2 const maxObs = { obsPos.x + obsScale.x * 0.5f,  obsPos.y + obsScale.y * 0.5f };
-
+                                    
                                     if (maxPlayer.x < minObs.x || minPlayer.x > maxObs.x)
                                         continue;
                                     
                                     if (maxPlayer.y < minObs.y || minPlayer.y > maxObs.y)
                                         continue;
-
+                                    
                                     intersected = true;
 
                                     it.fini();
@@ -589,6 +589,10 @@ namespace FlappyClone
                                 }
                             }
                         });
+
+                        // Check if player went too far down and hit the ground
+                        if (playerPos.y - playerScale.y * 0.5f < 0.f)
+                            intersected = true;
 
                         if (intersected)
                         {
