@@ -188,7 +188,15 @@ namespace FlappyClone
     //////////////////////////
 
     // Game Utils ////////////
-    //static void ResetObstacle(
+    static void ResetPlayer(Position& position, Scale& scale, Color& color, Velocity& velocity, float const xOffset)
+    {
+        scale = { PLAYER_SIZE, PLAYER_SIZE };
+        color = { PLAYER_START_COLOR[0], PLAYER_START_COLOR[1], PLAYER_START_COLOR[2], PLAYER_START_COLOR[3] };
+        position.x = xOffset + PLAYER_SIZE / 2.f;
+        position.y = 0.5f;
+        position.z = 0.1f;
+        velocity = {};
+    }
     //////////////////////////
 
     module::module(flecs::world& ecs)
@@ -340,14 +348,18 @@ namespace FlappyClone
 
             auto player = ecs.entity((std::string("Player")).c_str());
             player.add<Player>();
-            player.set<Color>({ PLAYER_START_COLOR[0], PLAYER_START_COLOR[1], PLAYER_START_COLOR[2], PLAYER_START_COLOR[3] });
-            player.set<Scale>({ PLAYER_SIZE, PLAYER_SIZE });
-            Position pos = {};
-            pos.x = playerStartOffsetX + PLAYER_SIZE / 2.f;
-            pos.y = 0.5f;
-            pos.z = 0.1f;
+
+            Color color;
+            Scale scale;
+            Position pos;
+            Velocity vel;
+
+            ResetPlayer(pos, scale, color, vel, playerStartOffsetX);
+
+            player.set<Color>(color);
+            player.set<Scale>(scale);
             player.set<Position>(pos);
-            player.set<Velocity>({});
+            player.set<Velocity>(vel);
         }
 
         // Create the game context
