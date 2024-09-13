@@ -353,6 +353,41 @@ namespace FlappyClone
 
         // Following are all systems (note the decl' order is important for systems within the same flecs phase)
 
+        // State Transitioning
+        // - Handles game context state transitions
+        ecs.system("FlappyClone::StateTransitioning")
+            .kind(flecs::PreUpdate)
+            .run([](flecs::iter& it)
+                {
+                    // Exit if ESC is pressed
+                    Inputs::RawKeboardStates const* pKeyboard = it.world().has<Inputs::RawKeboardStates>() ? it.world().get<Inputs::RawKeboardStates>() : nullptr;
+                    Engine::Context* pEngineContext = it.world().has<Engine::Context>() ? it.world().get_mut<Engine::Context>() : nullptr;
+                    if (pKeyboard && pEngineContext)
+                    {
+                        if (pKeyboard->WasPressed(SDLK_ESCAPE))
+                        {
+                            LOGF(eDEBUG, "ESC pressed, requesting to exit the app.");
+                            pEngineContext->RequestExit();
+                        }
+
+                        GameContext* pGameCtx = it.world().has<GameContext>() ? it.world().get_mut<GameContext>() : nullptr;
+                        if (pGameCtx &&
+                            pKeyboard->WasPressed(SDLK_SPACE))
+                        {
+                            if (GameContext::START == pGameCtx->state)
+                            {
+                                // TODO: reset entities
+                                pGameCtx->state = GameContext::IN_PLAY;
+                            }
+
+                            if (GameContext::GAME_OVER == pGameCtx->state)
+                                pGameCtx->state = GameContext::START;
+                        }
+                    }
+                }
+            );
+
+
         // Update Obstacles:
         // - Scrolls obstacles
         // - Resets them in position (and randomizes gap) once they go past the left side of the screen
@@ -440,31 +475,15 @@ namespace FlappyClone
                     }
 
                     // Exit if ESC is pressed
-                    Inputs::RawKeboardStates const* pKeyboard = it.world().has<Inputs::RawKeboardStates>() ? it.world().get<Inputs::RawKeboardStates>() : nullptr;
-                    Engine::Context* pEngineContext = it.world().has<Engine::Context>() ? it.world().get_mut<Engine::Context>() : nullptr;
-                    if (pKeyboard && pEngineContext)
+                    Inputs::RawKeboardStates const* pKeyboard = it.world().has<Inputs::RawKeboardStates>() ? it.world().get<Inputs::RawKeboardStates>() : nullptr;                   
+                    if (pKeyboard)
                     {
-                        if (pKeyboard->WasPressed(SDLK_ESCAPE))
-                        {
-                            LOGF(eDEBUG, "ESC pressed, requesting to exit the app.");
-                            pEngineContext->RequestExit();
-                        }
-
                         GameContext* pGameCtx = it.world().has<GameContext>() ? it.world().get_mut<GameContext>() : nullptr;
                         if (pGameCtx &&
                             pKeyboard->WasPressed(SDLK_SPACE))
-                        {
-                            if (GameContext::START == pGameCtx->state)
-                            {
-                                // TODO: reset entities
-                                pGameCtx->state = GameContext::IN_PLAY;
-                            }
-
+                        {                            
                             if (GameContext::IN_PLAY == pGameCtx->state)
                                 vel.y = IMPULSE_FORCE;
-
-                            if (GameContext::GAME_OVER == pGameCtx->state)
-                                pGameCtx->state = GameContext::START;
                         }
                     }
                 }
