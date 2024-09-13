@@ -23,6 +23,7 @@ namespace FlappyClone
     float const             SCROLL_SPEED = 0.33f;                               // How fast obstacles translate towards the player
     float const             GRAVITY = -2.33f;
     float const             IMPULSE_FORCE = 0.75f;                              // Impulse force to apply upwards to simulate flapping
+    float const             PLAYER_START_COLOR[4] = {0.45f, 0.45f, 0.45f, 1.f}; // Player default color when starting a game
 
     // Rendering constants
 #define MAX_QUADS 64 // this needs to match the same define in DrawQuad.h.fsl
@@ -112,6 +113,7 @@ namespace FlappyClone
     };
     //////////////////////////
     
+    // Rendering /////////////
     static void AddShaders(Renderer* const pRenderer, RenderPassData& passDataInOut)
     {
         ShaderLoadDesc basicShader = {};
@@ -183,6 +185,11 @@ namespace FlappyClone
     {
         removePipeline(pRenderer, passDataInOut.pPipeline);
     }
+    //////////////////////////
+
+    // Game Utils ////////////
+    //static void ResetObstacle(
+    //////////////////////////
 
     module::module(flecs::world& ecs)
     {
@@ -333,7 +340,7 @@ namespace FlappyClone
 
             auto player = ecs.entity((std::string("Player")).c_str());
             player.add<Player>();
-            player.set<Color>({ 1.f, 0.0, 1.f, 1.f });
+            player.set<Color>({ PLAYER_START_COLOR[0], PLAYER_START_COLOR[1], PLAYER_START_COLOR[2], PLAYER_START_COLOR[3] });
             player.set<Scale>({ PLAYER_SIZE, PLAYER_SIZE });
             Position pos = {};
             pos.x = playerStartOffsetX + PLAYER_SIZE / 2.f;
@@ -355,9 +362,9 @@ namespace FlappyClone
 
         // State Transitioning
         // - Handles game context state transitions
-        ecs.system("FlappyClone::StateTransitioning")
-            .kind(flecs::PreUpdate)
-            .run([](flecs::iter& it)
+        ecs.system<Player, Position, Scale, Color>("FlappyClone::StateTransitioning")
+                .kind(flecs::PreUpdate)
+                .each([](flecs::iter& it, size_t i, Player, Position& position, Scale& scale, Color& color)
                 {
                     // Exit if ESC is pressed
                     Inputs::RawKeboardStates const* pKeyboard = it.world().has<Inputs::RawKeboardStates>() ? it.world().get<Inputs::RawKeboardStates>() : nullptr;
