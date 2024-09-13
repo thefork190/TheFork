@@ -16,15 +16,16 @@
 namespace FlappyClone
 {
     // Game related constants (TODO: drive these via debug UI)
-    float const             OBSTACLE_WIDTH = 0.15f;                             // Width of an obstacle
-    float const             OBSTACLE_GAP_HEIGHT = OBSTACLE_WIDTH * 1.75f;       // Obstacle gap (in between top and bottom "pipes")
-    float const             DIST_BETWEEN_OBSTACLES = 0.5f;                      // Dist to next obstacle
-    unsigned int const      TOTAL_OBSTACLES = 20u;                              // Should have enough to cover ultra wide resolution
-    float const             PLAYER_SIZE = OBSTACLE_GAP_HEIGHT * 0.35f;          // Player size (relative to gap height)
-    float const             SCROLL_SPEED = 0.33f;                               // How fast obstacles translate towards the player
+    float const             OBSTACLE_WIDTH = 0.15f;                                 // Width of an obstacle
+    float const             OBSTACLE_GAP_HEIGHT = OBSTACLE_WIDTH * 1.75f;           // Obstacle gap (in between top and bottom "pipes")
+    float const             DIST_BETWEEN_OBSTACLES = 0.5f;                          // Dist to next obstacle
+    unsigned int const      TOTAL_OBSTACLES = 20u;                                  // Should have enough to cover ultra wide resolution
+    float const             PLAYER_SIZE = OBSTACLE_GAP_HEIGHT * 0.35f;              // Player size (relative to gap height)
+    float const             SCROLL_SPEED = 0.33f;                                   // How fast obstacles translate towards the player
     float const             GRAVITY = -2.33f;
-    float const             IMPULSE_FORCE = 0.75f;                              // Impulse force to apply upwards to simulate flapping
-    float const             PLAYER_START_COLOR[4] = { 0.45f, 0.45f, 0.45f, 1.f }; // Player default color when starting a game
+    float const             IMPULSE_FORCE = 0.75f;                                  // Impulse force to apply upwards to simulate flapping
+    float const             PLAYER_START_COLOR[4] = { 0.45f, 0.45f, 0.45f, 1.f };   // Player default color when starting a game
+    float const             PLAYER_X_OFFSET = 0.1f;                                 // X offset that the player is positioned at
 
     // Rendering constants
 #define MAX_QUADS 64 // this needs to match the same define in DrawQuad.h.fsl
@@ -100,15 +101,17 @@ namespace FlappyClone
 
     struct GameContext
     {
-        flecs::query<Position const, Scale const> obstaclesQuery;
+        flecs::query<Position const, Scale const> obstacleChildrenQuery; // used for collision detection with player
 
         enum eSTATE
         {
             START,
-            RESET_WORLD,
             IN_PLAY,
-            GAME_OVER
-        } state = START;
+            GAME_OVER,
+            RESET_WORLD,
+        } state = RESET_WORLD;
+
+        unsigned int obstaclesCreated = 0; // used to create unique names for obstacles
     };
     //////////////////////////
 
@@ -330,48 +333,17 @@ namespace FlappyClone
 
         ecs.set<RenderPassData>(renderPassData);
 
-        // Create obstacle entities
-        // An obstacle entity will have 2 children: a top and bottom "pipe".  In flappy bird, a bottom and top pipe are always on the same Y axis.
-        float const obstacleStartOffsetX = 1.f;
-        for (unsigned int i = 0; i < TOTAL_OBSTACLES; ++i)
-        {
-            auto obstacleEnt = ecs.entity((std::string("Obstacle") + std::to_string(i)).c_str());
-            obstacleEnt.add<Obstacle>();
-
-            std::array<Position, 2> positions = {};
-            std::array<Scale, 2> scales = {};
-            std::array<Color, 2> colors = {};
-
-            flecs::entity child[2] =
-            {
-                ecs.entity((std::string("Obstacle") + std::to_string(i) + "::TOP").c_str()),
-                ecs.entity((std::string("Obstacle") + std::to_string(i) + "::BOTTOM").c_str())
-            };
-
-            ResetObstacle(positions, scales, colors, obstacleStartOffsetX, (i * DIST_BETWEEN_OBSTACLES));
-
-            for (unsigned int j = 0; j < 2; ++j)
-            {
-                child[j].set<Position>(positions[j]);
-                child[j].set<Scale>(scales[j]);
-                child[j].set<Color>(colors[j]);
-                child[j].add(flecs::ChildOf, obstacleEnt);
-            }
-        }
-
         // Create the player entity
         {
-            float const playerStartOffsetX = 0.1f;
-
             auto player = ecs.entity((std::string("Player")).c_str());
             player.add<Player>();
 
-            Color color;
-            Scale scale;
-            Position pos;
-            Velocity vel;
+            Color color = {};
+            Scale scale = {};
+            Position pos = {};
+            Velocity vel = {};
 
-            ResetPlayer(pos, scale, color, vel, playerStartOffsetX);
+            ResetPlayer(pos, scale, color, vel, PLAYER_X_OFFSET);
 
             player.set<Color>(color);
             player.set<Scale>(scale);
@@ -381,7 +353,7 @@ namespace FlappyClone
 
         // Create the game context
         GameContext gameContext = {};
-        gameContext.obstaclesQuery = ecs.query_builder<Position const, Scale const>().
+        gameContext.obstacleChildrenQuery = ecs.query_builder<Position const, Scale const>().
             with<Obstacle>().up(flecs::ChildOf).
             cached().
             build();
@@ -391,34 +363,80 @@ namespace FlappyClone
 
         // State Transitioning
         // - Handles game context state transitions
-        ecs.system<Player, Position, Scale, Color>("FlappyClone::StateTransitioning")
+        // - Checks for ESC key press to exit app
+        ecs.system("FlappyClone::StateTransitioning")
                 .kind(flecs::PreUpdate)
-                .each([](flecs::iter& it, size_t i, Player, Position& position, Scale& scale, Color& color)
+                .run([](flecs::iter& it)
                 {
-                    // Exit if ESC is pressed
                     Inputs::RawKeboardStates const* pKeyboard = it.world().has<Inputs::RawKeboardStates>() ? it.world().get<Inputs::RawKeboardStates>() : nullptr;
                     Engine::Context* pEngineContext = it.world().has<Engine::Context>() ? it.world().get_mut<Engine::Context>() : nullptr;
                     if (pKeyboard && pEngineContext)
                     {
+                        // Exit if ESC is pressed
                         if (pKeyboard->WasPressed(SDLK_ESCAPE))
                         {
                             LOGF(eDEBUG, "ESC pressed, requesting to exit the app.");
                             pEngineContext->RequestExit();
                         }
 
+                        // State transitions
                         GameContext* pGameCtx = it.world().has<GameContext>() ? it.world().get_mut<GameContext>() : nullptr;
                         if (pGameCtx)
                         {
                             if (pKeyboard->WasPressed(SDLK_SPACE))
                             {
                                 if (GameContext::START == pGameCtx->state)
-                                {
-                                    // TODO: reset entities
                                     pGameCtx->state = GameContext::IN_PLAY;
-                                }
 
                                 if (GameContext::GAME_OVER == pGameCtx->state)
-                                    pGameCtx->state = GameContext::START;
+                                    pGameCtx->state = GameContext::RESET_WORLD;
+                            }
+
+                            if (GameContext::RESET_WORLD == pGameCtx->state)
+                            {
+                                // Reset players
+                                auto playerQuery = it.world().query_builder<Player, Position, Scale, Color, Velocity>();
+                                playerQuery.each([](Player, Position& pos, Scale& scale, Color& color, Velocity& vel) {
+                                        ResetPlayer(pos, scale, color, vel, PLAYER_X_OFFSET);
+                                    });
+
+                                // Delete all obstacle entities (we'll just recreate them)
+                                flecs::query<Obstacle> obstacleQuery = it.world().query_builder<Obstacle>().build();
+                                obstacleQuery.each([&](flecs::entity e, Obstacle) {
+                                        e.destruct();
+                                    });
+
+                                // Create obstacle entities
+                                // An obstacle entity will have 2 children: a top and bottom "pipe".  In flappy bird, a bottom and top pipe are always on the same Y axis.                                
+                                for (unsigned int i = 0; i < TOTAL_OBSTACLES; ++i)
+                                {
+                                    auto obstacleEnt = it.world().entity((std::string("FlappyClone::Obstacle") + std::to_string(pGameCtx->obstaclesCreated)).c_str());
+                                    obstacleEnt.add<Obstacle>();
+
+                                    std::array<Position, 2> positions = {};
+                                    std::array<Scale, 2> scales = {};
+                                    std::array<Color, 2> colors = {};
+
+                                    flecs::entity child[2] =
+                                    {
+                                        it.world().entity((std::string("FlappyClone::Obstacle") + std::to_string(pGameCtx->obstaclesCreated) + "::TOP").c_str()),
+                                        it.world().entity((std::string("FlappyClone::Obstacle") + std::to_string(pGameCtx->obstaclesCreated) + "::BOTTOM").c_str())
+                                    };
+
+                                    ResetObstacle(positions, scales, colors, 1.f, (i * DIST_BETWEEN_OBSTACLES));
+
+                                    for (unsigned int j = 0; j < 2; ++j)
+                                    {
+                                        child[j].set<Position>(positions[j]);
+                                        child[j].set<Scale>(scales[j]);
+                                        child[j].set<Color>(colors[j]);
+                                        child[j].add(flecs::ChildOf, obstacleEnt);
+                                    }
+
+                                    pGameCtx->obstaclesCreated += 1;
+                                }
+
+                                pGameCtx->state = GameContext::START;
                             }
                         }
                     }
@@ -544,7 +562,7 @@ namespace FlappyClone
                         glm::vec2 const minPlayer = { playerPos.x - playerScale.x * 0.5f,  playerPos.y - playerScale.y * 0.5f };
                         glm::vec2 const maxPlayer = { playerPos.x + playerScale.x * 0.5f,  playerPos.y + playerScale.y * 0.5f };
 
-                        pGameCtx->obstaclesQuery.run([&intersected, &minPlayer, &maxPlayer](flecs::iter& it) {
+                        pGameCtx->obstacleChildrenQuery.run([&intersected, &minPlayer, &maxPlayer](flecs::iter& it) {
                             while (it.next()) 
                             {
                                 auto obsPositions = it.field<Position const>(0);
