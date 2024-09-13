@@ -473,7 +473,7 @@ namespace FlappyClone
         // Validate Player
         // - Checks if player collided with obstacles
         ecs.system<Player, Position, Scale, Color>("FlappyClone::ValidatePlayer")
-            .kind(flecs::OnUpdate)
+            .kind(flecs::OnValidate)
             .each([](flecs::iter& it, size_t i, Player, Position const& playerPos, Scale const& playerScale, Color& playerColor)
                 {
                     ASSERTMSG(i == 0, "More than 1 player not supported.");
