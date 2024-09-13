@@ -105,6 +105,7 @@ namespace FlappyClone
         enum eSTATE
         {
             START,
+            RESET_WORLD,
             IN_PLAY,
             GAME_OVER
         } state = START;
@@ -406,17 +407,19 @@ namespace FlappyClone
                         }
 
                         GameContext* pGameCtx = it.world().has<GameContext>() ? it.world().get_mut<GameContext>() : nullptr;
-                        if (pGameCtx &&
-                            pKeyboard->WasPressed(SDLK_SPACE))
+                        if (pGameCtx)
                         {
-                            if (GameContext::START == pGameCtx->state)
+                            if (pKeyboard->WasPressed(SDLK_SPACE))
                             {
-                                // TODO: reset entities
-                                pGameCtx->state = GameContext::IN_PLAY;
-                            }
+                                if (GameContext::START == pGameCtx->state)
+                                {
+                                    // TODO: reset entities
+                                    pGameCtx->state = GameContext::IN_PLAY;
+                                }
 
-                            if (GameContext::GAME_OVER == pGameCtx->state)
-                                pGameCtx->state = GameContext::START;
+                                if (GameContext::GAME_OVER == pGameCtx->state)
+                                    pGameCtx->state = GameContext::START;
+                            }
                         }
                     }
                 }
@@ -513,7 +516,7 @@ namespace FlappyClone
                     Inputs::RawKeboardStates const* pKeyboard = it.world().has<Inputs::RawKeboardStates>() ? it.world().get<Inputs::RawKeboardStates>() : nullptr;                   
                     if (pKeyboard)
                     {
-                        GameContext* pGameCtx = it.world().has<GameContext>() ? it.world().get_mut<GameContext>() : nullptr;
+                        GameContext const* pGameCtx = it.world().has<GameContext>() ? it.world().get<GameContext>() : nullptr;
                         if (pGameCtx &&
                             pKeyboard->WasPressed(SDLK_SPACE))
                         {                            
