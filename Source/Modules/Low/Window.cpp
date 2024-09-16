@@ -28,7 +28,7 @@ namespace Window
 #if defined(__APPLE__)
         tfWindowHandle.window = sdlWin.pView;
 #else
-        tfWindowHandle.window = sdlWin;
+        tfWindowHandle.window = pWinHandle;
 #endif
         tfWindowHandle.type = WINDOW_HANDLE_TYPE_WIN32;
 
