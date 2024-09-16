@@ -5,19 +5,31 @@
 #include "Window.h"
 
 #define DEBUG_PRESENTATION_CLEAR_COLOR_RED 1
-
+#if defined(__APPLE__)
+#define HWND NSWindow *
+#define WINDOW_PROP SDL_PROP_WINDOW_COCOA_WINDOW_POINTER
+#define WINDOW_FLAGS SDL_WINDOW_RESIZABLE | SDL_WINDOW_METAL | SDL_WINDOW_HIGH_PIXEL_DENSITY
+#else
+#define WINDOW_PROP SDL_PROP_WINDOW_WIN32_HWND_POINTER
+#define __bridge
+#define WINDOW_FLAGS SDL_WINDOW_RESIZABLE | SDL_WINDOW_VULKAN
+#endif
 namespace Window
 {
     void CreateWindowSwapchain(RHI::RHI* pRHI, SDLWindow& sdlWin, int const w, int const h)
     {
         // TODO this is platform specific
-        HWND pWinHandle = (HWND)SDL_GetPointerProperty(SDL_GetWindowProperties(sdlWin.pWindow), SDL_PROP_WINDOW_WIN32_HWND_POINTER, NULL);
+        HWND pWinHandle = (__bridge HWND)SDL_GetPointerProperty(SDL_GetWindowProperties(sdlWin.pWindow), WINDOW_PROP, NULL);
         ASSERT(pWinHandle);
 
         SwapChainDesc swapChainDesc = {};
 
         WindowHandle tfWindowHandle = {};
+#if defined(__APPLE__)
+        tfWindowHandle.window = sdlWin.pView;
+#else
         tfWindowHandle.window = pWinHandle;
+#endif
         tfWindowHandle.type = WINDOW_HANDLE_TYPE_WIN32;
 
         swapChainDesc.mWindowHandle = tfWindowHandle;
@@ -57,13 +69,15 @@ namespace Window
                         h = canvas->height;
                     }
 
-                    sdlWin.pWindow = SDL_CreateWindow(APP_NAME, 1920, 1080, SDL_WINDOW_RESIZABLE | SDL_WINDOW_VULKAN);
+                    sdlWin.pWindow = SDL_CreateWindow(APP_NAME, 1920, 1080, WINDOW_FLAGS);
                     if (!sdlWin.pWindow)
                     {
                         ASSERTMSG(eERROR, "SDL failed to create window.");
                         return;
                     }
-
+#if defined(__APPLE__)
+                    sdlWin.pView = SDL_Metal_CreateView(sdlWin.pWindow);
+#endif
                     SDL_ShowWindow(sdlWin.pWindow);
 
                     int width, height, bbwidth, bbheight;

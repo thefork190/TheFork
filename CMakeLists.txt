@@ -13,6 +13,10 @@ project("TheFork"
     DESCRIPTION "An ECS engine."
 )
 
+if(APPLE)
+    enable_language(OBJC)
+    enable_language(OBJCXX)
+endif()
 # Set the name of the executable
 set(EXECUTABLE_NAME ${PROJECT_NAME})
 
@@ -52,12 +56,15 @@ function(create_source_groups)
     endforeach()
 endfunction()
 
+set(IOSASSETS 
+    Source/iosLaunchScreen.storyboard
+    Source/Sample.appxManifest
+)
+
 # List all sources
 set(SOURCES
     Source/Main.cpp
     Source/Modules/LifeCycledModule.h
-    Source/iosLaunchScreen.storyboard
-    Source/Sample.appxManifest
     # LOW
     Source/Modules/Low/Engine.h
     Source/Modules/Low/Engine.cpp
@@ -72,8 +79,15 @@ set(SOURCES
     Source/Modules/High/HelloTriangle/HelloTriangle.cpp
 )
 
+if(APPLE)
+# could be more granular than that.
+# we shouldn't have to compile everything as objc++
+set_source_files_properties(
+    ${SOURCES} PROPERTIES LANGUAGE OBJCXX
+)
+endif()
 # Call the function to create source groups based on the source files
-create_source_groups(${SOURCES})
+create_source_groups(${SOURCES} ${IOSASSETS})
 
 # Create an executable or shared library based on the platform and add our sources to it
 if (ANDROID)
@@ -86,7 +100,7 @@ endif()
 
 # Add sources to target
 target_sources(${EXECUTABLE_NAME}
-    PRIVATE ${SOURCES}
+    PRIVATE ${SOURCES} ${IOSASSETS}
 )
 
 # Add additional platform-specific settings
@@ -99,6 +113,7 @@ if (WINDOWS_STORE)
     )
 elseif(APPLE)
     target_sources("${EXECUTABLE_NAME}" PRIVATE Source/logo.png)
+    set(CMAKE_EXE_LINKER_FLAGS "-framework Cocoa -framework AppKit -framework CoreData -framework Foundation -framework Metal -framework MetalPerformanceShaders -framework CoreVideo -framework IOKit")
 endif()
 
 # use C++20
@@ -122,8 +137,21 @@ target_include_directories(${PROJECT_NAME}
     PRIVATE "Source/Modules"
     PRIVATE ThirdParty/The-Forge/RHI/Private # Hack for TF
     PRIVATE ThirdParty/The-Forge/ThirdParty # Hack for TF
+    PUBLIC ThirdParty/The-Forge/RHI/Public
 )
-
+if(APPLE)
+target_link_libraries(${EXECUTABLE_NAME} 
+    PRIVATE
+        RHI
+        flecs_static
+        glm::glm
+        $<$<CONFIG:Debug>:${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/efsw_artifacts/mac-lib/libefsw-static-debug.a>
+        $<$<CONFIG:Release>:${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/efsw_artifacts/mac-lib/libefsw-static-release.lib>
+        $<$<CONFIG:RelWithDebInfo>:${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/efsw_artifacts/mac-lib/libefsw-static-reldbginfo.lib>
+    PUBLIC 
+        SDL3::SDL3
+)
+else()
 target_link_libraries(${EXECUTABLE_NAME} 
     PRIVATE
         RHI
@@ -135,10 +163,12 @@ target_link_libraries(${EXECUTABLE_NAME}
     PUBLIC 
         SDL3::SDL3
 )
+endif()
 target_compile_definitions(${EXECUTABLE_NAME} PUBLIC SDL_MAIN_USE_CALLBACKS)
 
 set_target_properties(${EXECUTABLE_NAME} PROPERTIES 
     MACOSX_BUNDLE TRUE
+    XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC YES  
     MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/Source/Info.plist.in"
     XCODE_GENERATE_SCHEME TRUE
     XCODE_ATTRIBUTE_BUNDLE_IDENTIFIER "com.sharmoota.the-fork"
@@ -172,13 +202,29 @@ endif (WIN32)
 # Assets
 set(ASSETS_DIR "${CMAKE_SOURCE_DIR}/Assets")
 file(GLOB_RECURSE ASSET_FILES "${ASSETS_DIR}/*")
+if(APPLE)
+# Define the path to the Resources folder inside the .app bundle
+set(ASSETS_DESTINATION "$<TARGET_BUNDLE_DIR:${EXECUTABLE_NAME}>/Contents/Resources/Assets")
+
+# Define a post-build command to copy assets to the .app bundle
+add_custom_command(
+    TARGET ${EXECUTABLE_NAME}
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${ASSETS_DESTINATION}"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "${ASSETS_DIR}" "${ASSETS_DESTINATION}"
+    COMMENT "Copying assets to .app bundle..."
+)
+else()
+# Define the path to the Resources folder inside the .app bundle
+set(ASSETS_DESTINATION "${CMAKE_BINARY_DIR}/$<CONFIG>/Assets")
 
 add_custom_command(
-    OUTPUT "${CMAKE_BINARY_DIR}/$<CONFIG>/Assets"
-    COMMAND ${CMAKE_COMMAND} -E copy_directory "${ASSETS_DIR}" "${CMAKE_BINARY_DIR}/$<CONFIG>/Assets"
+    OUTPUT "${ASSETS_DESTINATION}"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "${ASSETS_DIR}" "${ASSETS_DESTINATION}"
     DEPENDS ${ASSET_FILES}
     COMMENT "Copying assets..."
 )
+endif()
 
-add_custom_target(copy_assets ALL DEPENDS "${CMAKE_BINARY_DIR}/$<CONFIG>/Assets")
+add_custom_target(copy_assets ALL DEPENDS "${ASSETS_DESTINATION}")
 add_dependencies(${EXECUTABLE_NAME} copy_assets)
