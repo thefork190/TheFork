@@ -12,6 +12,9 @@ namespace Window
 	struct SDLWindow
 	{
 		SDL_Window* pWindow = nullptr;
+#if defined(__APPLE__)
+        SDL_MetalView pView = nullptr;
+#endif
 		SwapChain* pSwapChain = nullptr;
 		Semaphore* pImgAcqSemaphore = nullptr;
 		unsigned int imageIndex = 0;
