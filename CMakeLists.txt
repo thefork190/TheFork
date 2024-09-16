@@ -75,6 +75,8 @@ set(SOURCES
     Source/Modules/Low/Window.h
     Source/Modules/Low/Window.cpp
     # High
+    Source/Modules/High/FlappyClone/FlappyClone.h
+    Source/Modules/High/FlappyClone/FlappyClone.cpp
     Source/Modules/High/HelloTriangle/HelloTriangle.h
     Source/Modules/High/HelloTriangle/HelloTriangle.cpp
 )
@@ -138,6 +140,7 @@ target_include_directories(${PROJECT_NAME}
     PRIVATE ThirdParty/The-Forge/RHI/Private # Hack for TF
     PRIVATE ThirdParty/The-Forge/ThirdParty # Hack for TF
     PUBLIC ThirdParty/The-Forge/RHI/Public
+    PRIVATE ThirdParty/CLI11/include/CLI  # CLI11 header only 3rd party
 )
 if(APPLE)
 target_link_libraries(${EXECUTABLE_NAME} 

@@ -4,7 +4,7 @@
 #include "RHI.h"
 #include "Window.h"
 
-#define DEBUG_PRESENTATION_CLEAR_COLOR_RED 1
+#define DEBUG_PRESENTATION_CLEAR_COLOR_RED 0
 #if defined(__APPLE__)
 #define HWND NSWindow *
 #define WINDOW_PROP SDL_PROP_WINDOW_COCOA_WINDOW_POINTER
@@ -14,6 +14,7 @@
 #define __bridge
 #define WINDOW_FLAGS SDL_WINDOW_RESIZABLE | SDL_WINDOW_VULKAN
 #endif
+
 namespace Window
 {
     void CreateWindowSwapchain(RHI::RHI* pRHI, SDLWindow& sdlWin, int const w, int const h)
@@ -69,7 +70,11 @@ namespace Window
                         h = canvas->height;
                     }
 
-                    sdlWin.pWindow = SDL_CreateWindow(APP_NAME, 1920, 1080, WINDOW_FLAGS);
+                    sdlWin.pWindow = SDL_CreateWindow(
+                        e.world().has<Engine::Context>() ? e.world().get<Engine::Context>()->AppName().c_str() : APP_NAME, 
+                        1920, 1080, 
+                        WINDOW_FLAGS);
+
                     if (!sdlWin.pWindow)
                     {
                         ASSERTMSG(eERROR, "SDL failed to create window.");

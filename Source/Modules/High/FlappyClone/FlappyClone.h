@@ -3,7 +3,7 @@
 #include <flecs.h>
 #include "LifeCycledModule.h"
 
-namespace HelloTriangle
+namespace FlappyClone
 {
 	class module : public LifeCycledModule
 	{

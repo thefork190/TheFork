@@ -1,0 +1,8 @@
+#frag DrawQuad.frag
+#include "DrawQuad.frag.fsl"
+#end
+
+#vert DrawQuad.vert
+#include "DrawQuad.vert.fsl"
+#end
+
