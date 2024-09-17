@@ -40,8 +40,8 @@ namespace FontRendering
 	// Component to draw font text
 	struct FontText
 	{
-		std::string text;
-		eAvailableFonts font;
+		std::string text = "";
+		eAvailableFonts font = static_cast<eAvailableFonts>(0);
 		unsigned int color = 0xFFFFFFFF;
 		float fontSize = 16.f;
 		float fontSpacing = 0.f;
