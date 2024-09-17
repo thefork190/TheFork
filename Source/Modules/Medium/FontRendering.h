@@ -42,9 +42,7 @@ namespace FontRendering
 	{
 		std::string text;
 		eAvailableFonts font;
-		float r = 1.f;
-		float g = 1.f;
-		float b = 1.f;
+		unsigned int color = 0xFFFFFFFF;
 		float fontSize = 16.f;
 		float fontSpacing = 0.f;
 		float fontBlur = 0.f;

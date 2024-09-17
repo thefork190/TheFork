@@ -28,6 +28,9 @@ namespace FontRendering
         
         ecs.module<module>();
 
+        ecs.component<Context>();
+        ecs.component<FontText>();
+
         // Create the context singleton
         ecs.add<Context>();
         
@@ -135,6 +138,44 @@ namespace FontRendering
                         pContext->width = canvas.width;
                         pContext->height = canvas.height;
                     }
+                }
+            );
+
+        auto fontRenderer = ecs.system<FontText>("Font Renderer")
+            .kind(Engine::GetCustomPhaseEntity(ecs, Engine::FONTS_RENDER))
+            .each([](flecs::iter& it, size_t i, FontText const& fontText)
+                {
+                    if (!it.world().has<Context>())
+                        return;
+
+                    Context const* pContext = it.world().get<Context>();
+                    if (!pContext->isInitialized)
+                        return;
+
+                    RHI::RHI const* pRHI = it.world().has<RHI::RHI>() ? it.world().get<RHI::RHI>() : nullptr;
+
+                    if (!pRHI)
+                        return;
+
+                    // Validate incoming data
+                    if (pContext->fontNameToIdMap.find(fontText.font) == pContext->fontNameToIdMap.end())
+                    {
+                        LOGF(eWARNING, "Could not find font ID for entity FontText component.");
+                        return;
+                    }
+
+                    Cmd* pCmd = pRHI->curCmdRingElem.pCmds[0];
+                    ASSERT(pCmd);
+
+                    FontDrawDesc desc = {};
+                    desc.mFontBlur = fontText.fontBlur;
+                    desc.mFontColor = fontText.color;
+                    desc.mFontID = pContext->fontNameToIdMap.at(fontText.font);
+                    desc.mFontSize = fontText.fontSize;
+                    desc.mFontSpacing = fontText.fontSpacing;
+                    desc.pText = fontText.text.c_str();
+
+                    cmdDrawTextWithFont(pCmd, { fontText.posX, fontText.posY }, & desc);
                 }
             );
     }
