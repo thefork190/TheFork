@@ -16,6 +16,8 @@ namespace FontRendering
     struct Context
     {
         bool isInitialized = false;
+        unsigned int width = 0;
+        unsigned int height = 0;
         std::unordered_map<eAvailableFonts, unsigned int> fontNameToIdMap;
     };
 
@@ -105,6 +107,8 @@ namespace FontRendering
                         pContext->fontNameToIdMap[static_cast<eAvailableFonts>(i)] = fontIds[i];
                     }
 
+                    pContext->width = canvas.width;
+                    pContext->height = canvas.height;
                     pContext->isInitialized = true;
 
                     // Ensure we notify modifications for following systems in the same phase that'll use the context
@@ -112,12 +116,23 @@ namespace FontRendering
                 }
             );
        
-        auto fontSysResizer = ecs.system<Engine::Canvas, Window::SDLWindow>("Font System Resizer")
+        auto fontSysResizer = ecs.system<Engine::Canvas>("Font System Resizer")
             .kind(flecs::OnLoad)
-            .each([](flecs::iter& it, size_t i, Engine::Canvas& canvas, Window::SDLWindow& sdlWin)
+            .each([](flecs::iter& it, size_t i, Engine::Canvas& canvas)
                 {
                     ASSERTMSG(i == 0, "Only 1 window is supported.");
-                    ASSERT(0 && "Implement me!");
+
+                    if (!it.world().has<Context>())
+                        return;
+
+                    Context const* pContext = it.world().get<Context>();
+                    if (!pContext->isInitialized)
+                        return;
+
+                    if (!(pContext->width == canvas.width && pContext->height == canvas.height))
+                    {
+                        ASSERT(0 && "Implement me!");
+                    }
                 }
             );
     }
