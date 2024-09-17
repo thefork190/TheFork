@@ -125,13 +125,15 @@ namespace FontRendering
                     if (!it.world().has<Context>())
                         return;
 
-                    Context const* pContext = it.world().get<Context>();
+                    Context* pContext = it.world().get_mut<Context>();
                     if (!pContext->isInitialized)
                         return;
 
                     if (!(pContext->width == canvas.width && pContext->height == canvas.height))
                     {
-                        ASSERT(0 && "Implement me!");
+                        resizeFontSystem(canvas.width, canvas.height);
+                        pContext->width = canvas.width;
+                        pContext->height = canvas.height;
                     }
                 }
             );
