@@ -74,6 +74,9 @@ set(SOURCES
     Source/Modules/Low/RHI.cpp
     Source/Modules/Low/Window.h
     Source/Modules/Low/Window.cpp
+    # MEDIUM
+    Source/Modules/Medium/FontRendering.h
+    Source/Modules/Medium/FontRendering.cpp
     # High
     Source/Modules/High/FlappyClone/FlappyClone.h
     Source/Modules/High/FlappyClone/FlappyClone.cpp
