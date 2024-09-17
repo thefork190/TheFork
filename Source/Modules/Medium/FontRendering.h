@@ -56,4 +56,7 @@ namespace FontRendering
 		module(flecs::world& ecs); // Ctor that loads the module
 		virtual void OnExit(flecs::world& ecs) override;
 	};
+
+	// Utilities
+	void MeasureText(flecs::world const& ecs, FontText const& fontText, float& xOut, float& yOut);
 }

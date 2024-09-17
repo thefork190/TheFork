@@ -18,6 +18,7 @@ namespace FlappyClone
 {
     // Game related constants (TODO: drive these via debug UI)
     float const             OBSTACLE_WIDTH = 0.15f;                                 // Width of an obstacle
+    float const             OBSTACLE_GAME_START_X_OFFSET = 1.f;                     // X offset of first obstacle when starting a new game
     float const             OBSTACLE_GAP_HEIGHT = OBSTACLE_WIDTH * 1.75f;           // Obstacle gap (in between top and bottom "pipes")
     float const             DIST_BETWEEN_OBSTACLES = 0.5f;                          // Dist to next obstacle
     unsigned int const      TOTAL_OBSTACLES = 20u;                                  // Should have enough to cover ultra wide resolution
@@ -66,6 +67,10 @@ namespace FlappyClone
             uniformsBuffers.clear();
             uniformsData = {};
         }
+
+        // Caching resolution which is useful to have (eg. positioning score text when updating the player entity)
+        unsigned int resX = 0;
+        unsigned int resY = 0;
     };
 
     struct Position
@@ -91,7 +96,10 @@ namespace FlappyClone
 
     struct Obstacle {};
 
-    struct Player {};
+    struct Player 
+    {
+        float distanceTravelled = 0.f; // used to calculate score
+    };
 
     struct Velocity
     {
@@ -304,7 +312,7 @@ namespace FlappyClone
         vbDesc.ppBuffer = &renderPassData.pVertexBuffer;
         addResource(&vbDesc, nullptr);
 
-        std::vector<uint16_t> triIndices(8); 
+        std::vector<uint16_t> triIndices(8);
         triIndices[0] = 0;
         triIndices[1] = 1;
         triIndices[2] = 2;
@@ -328,6 +336,10 @@ namespace FlappyClone
 
                 // While we're at it, cap the min window size
                 SDL_SetWindowMinimumSize(window.pWindow, 800, 600);
+
+                // Cache res
+                renderPassData.resX = window.pSwapChain->ppRenderTargets[0]->mWidth;
+                renderPassData.resY = window.pSwapChain->ppRenderTargets[0]->mHeight;
             });
 
 
@@ -354,10 +366,6 @@ namespace FlappyClone
 
             // FontText to show current score
             FontRendering::FontText fontText {};
-            fontText.text = "SHARmootA!";
-            fontText.posX = 0.f;
-            fontText.posY = 0.f;
-            fontText.fontSize = 250.f;
             player.set<FontRendering::FontText>(fontText);
         }
 
@@ -406,13 +414,16 @@ namespace FlappyClone
                             {
                                 // Reset players
                                 auto playerQuery = it.world().query_builder<Player, Position, Scale, Color, Velocity>();
-                                playerQuery.each([](Player, Position& pos, Scale& scale, Color& color, Velocity& vel) {
+                                playerQuery.each([](Player& player, Position& pos, Scale& scale, Color& color, Velocity& vel) 
+                                    {
+                                        player.distanceTravelled = 0.f;
                                         ResetPlayer(pos, scale, color, vel, PLAYER_X_OFFSET);
                                     });
 
                                 // Delete all obstacle entities (we'll just recreate them)
                                 flecs::query<Obstacle> obstacleQuery = it.world().query_builder<Obstacle>().build();
-                                obstacleQuery.each([&](flecs::entity e, Obstacle) {
+                                obstacleQuery.each([&](flecs::entity e, Obstacle) 
+                                    {
                                         e.destruct();
                                     });
 
@@ -433,7 +444,7 @@ namespace FlappyClone
                                         it.world().entity((std::string("FlappyClone::Obstacle") + std::to_string(pGameCtx->obstaclesCreated) + "::BOTTOM").c_str())
                                     };
 
-                                    ResetObstacle(positions, scales, colors, 1.f, (i * DIST_BETWEEN_OBSTACLES));
+                                    ResetObstacle(positions, scales, colors, OBSTACLE_GAME_START_X_OFFSET, (i * DIST_BETWEEN_OBSTACLES));
 
                                     for (unsigned int j = 0; j < 2; ++j)
                                     {
@@ -520,9 +531,9 @@ namespace FlappyClone
         // Update Player
         // - Updates uniforms data for rendering
         // - Handles player inputs 
-        ecs.system<Player, Position, Scale, Color, Velocity>("FlappyClone::UpdatePlayer")
+        ecs.system<Player, Position, Scale, Color, Velocity, FontRendering::FontText>("FlappyClone::UpdatePlayer")
             .kind(flecs::OnUpdate)
-            .each([](flecs::iter& it, size_t i, Player, Position& position, Scale& scale, Color const& color, Velocity& vel)
+            .each([](flecs::iter& it, size_t i, Player& player, Position& position, Scale& scale, Color const& color, Velocity& vel, FontRendering::FontText& fontText)
                 {
                     ASSERTMSG(i == 0, "More than 1 player not supported.");
                     
@@ -542,15 +553,37 @@ namespace FlappyClone
 
                     // Exit if ESC is pressed
                     Inputs::RawKeboardStates const* pKeyboard = it.world().has<Inputs::RawKeboardStates>() ? it.world().get<Inputs::RawKeboardStates>() : nullptr;                   
+                    GameContext const* pGameCtx = it.world().has<GameContext>() ? it.world().get<GameContext>() : nullptr;
                     if (pKeyboard)
                     {
-                        GameContext const* pGameCtx = it.world().has<GameContext>() ? it.world().get<GameContext>() : nullptr;
                         if (pGameCtx &&
                             pKeyboard->WasPressed(SDLK_SPACE))
                         {                            
                             if (GameContext::IN_PLAY == pGameCtx->state)
                                 vel.y = IMPULSE_FORCE;
                         }
+                    }
+
+                    // Update score and text
+                    float score = 0;
+                    if (pGameCtx && GameContext::IN_PLAY == pGameCtx->state)
+                    {
+                        player.distanceTravelled += SCROLL_SPEED * it.delta_system_time();
+                    }
+                    score = ((player.distanceTravelled - OBSTACLE_GAME_START_X_OFFSET + PLAYER_X_OFFSET + PLAYER_SIZE * 0.5f) / (DIST_BETWEEN_OBSTACLES)) + 1.f;
+                    if (score < 0.f)
+                        score = 0.f;
+
+                    fontText.text = std::to_string(static_cast<unsigned int>(score));
+                    fontText.fontSize = 85.f;
+
+                    float textSize[2] = {};
+                    FontRendering::MeasureText(it.world(), fontText, textSize[0], textSize[1]);
+
+                    if (pRPD)
+                    {
+                        fontText.posX = (pRPD->resX * 0.5f) - (textSize[0] * 0.5f);
+                        fontText.posY = (pRPD->resY * 0.15f) - (textSize[1] * 0.5f);
                     }
                 }
             );
@@ -591,7 +624,7 @@ namespace FlappyClone
                                     
                                     if (maxPlayer.y < minObs.y || minPlayer.y > maxObs.y)
                                         continue;
-                                    
+                                     
                                     intersected = true;
 
                                     it.fini();
@@ -665,6 +698,10 @@ namespace FlappyClone
 
                     RHI::RHI const* pRHI = it.world().has<RHI::RHI>() ? it.world().get<RHI::RHI>() : nullptr;
                     RenderPassData* pRPD = it.world().has<RenderPassData>() ? it.world().get_mut<RenderPassData>() : nullptr;
+
+                    // Updated latest res so that it can be used if needed during next frame's update
+                    pRPD->resX = sdlWin.pSwapChain->ppRenderTargets[0]->mWidth;
+                    pRPD->resY = sdlWin.pSwapChain->ppRenderTargets[0]->mHeight;
 
                     if (pRHI && pRPD && sdlWin.pCurRT)
                     {

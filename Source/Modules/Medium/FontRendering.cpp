@@ -237,4 +237,30 @@ namespace FontRendering
             ASSERTMSG(0, "RHI is expected to be valid.");
         }
     }
+
+    void MeasureText(flecs::world const& ecs, FontText const& fontText, float& xOut, float& yOut)
+    {
+        xOut = 0.f;
+        yOut = 0.f;
+
+        if (!ecs.has<Context>())
+            return;
+
+        Context const* pContext = ecs.get<Context>();
+        if (!pContext->isInitialized)
+            return;
+
+        FontDrawDesc desc = {};
+        desc.mFontBlur = fontText.fontBlur;
+        desc.mFontColor = fontText.color;
+        desc.mFontID = pContext->fontNameToIdMap.at(fontText.font);
+        desc.mFontSize = fontText.fontSize;
+        desc.mFontSpacing = fontText.fontSpacing;
+        desc.pText = fontText.text.c_str();
+
+        auto sizes = fntMeasureFontText(fontText.text.c_str(), &desc);
+
+        xOut = sizes.x;
+        yOut = sizes.y;
+    }
 }
