@@ -199,13 +199,8 @@ namespace Window
                 }
             );
 
-        // Custom phase for presentation
-        flecs::entity Presentation = ecs.entity()
-            .add(flecs::Phase)
-            .depends_on(flecs::OnStore);
-
         auto present = ecs.system<Window::SDLWindow>("Present")
-            .kind(Presentation)
+            .kind(Engine::GetCustomPhaseEntity(ecs, Engine::PRESENT))
             .each([](flecs::iter& it, size_t i, Window::SDLWindow& sdlWin)
                 {
                     ASSERTMSG(i == 0, "More than one window not implemented.");
