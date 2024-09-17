@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include <flecs.h>
 #include "LifeCycledModule.h"
 
@@ -34,6 +35,21 @@ namespace FontRendering
 		TITILLIUM_TEXT_BOLD,
 
 		NUM_AVAILABLE_FONTS
+	};
+
+	// Component to draw font text
+	struct FontText
+	{
+		std::string text;
+		eAvailableFonts font;
+		float r = 1.f;
+		float g = 1.f;
+		float b = 1.f;
+		float fontSize = 16.f;
+		float fontSpacing = 0.f;
+		float fontBlur = 0.f;
+		float posX = 0.f;
+		float posY = 0.f;
 	};
 
 	class module : public LifeCycledModule
