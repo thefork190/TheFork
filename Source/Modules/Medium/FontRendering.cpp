@@ -143,7 +143,7 @@ namespace FontRendering
 
         auto fontRenderer = ecs.system<FontText>("Font Renderer")
             .kind(Engine::GetCustomPhaseEntity(ecs, Engine::FONTS_RENDER))
-            .each([](flecs::iter& it, size_t i, FontText const& fontText)
+            .run([](flecs::iter& it) 
                 {
                     if (!it.world().has<Context>())
                         return;
@@ -157,25 +157,37 @@ namespace FontRendering
                     if (!pRHI)
                         return;
 
-                    // Validate incoming data
-                    if (pContext->fontNameToIdMap.find(fontText.font) == pContext->fontNameToIdMap.end())
-                    {
-                        LOGF(eWARNING, "Could not find font ID for entity FontText component.");
-                        return;
-                    }
-
                     Cmd* pCmd = pRHI->curCmdRingElem.pCmds[0];
                     ASSERT(pCmd);
 
-                    FontDrawDesc desc = {};
-                    desc.mFontBlur = fontText.fontBlur;
-                    desc.mFontColor = fontText.color;
-                    desc.mFontID = pContext->fontNameToIdMap.at(fontText.font);
-                    desc.mFontSize = fontText.fontSize;
-                    desc.mFontSpacing = fontText.fontSpacing;
-                    desc.pText = fontText.text.c_str();
+                    cmdBeginDebugMarker(pCmd, 1, 0, 1, "FontRendering::Render");
 
-                    cmdDrawTextWithFont(pCmd, { fontText.posX, fontText.posY }, & desc);
+                    while (it.next())
+                    {
+                        auto fontTexts = it.field<FontText>(0);
+                        
+                        for (size_t i : it)
+                        {
+                            // Validate incoming data
+                            if (pContext->fontNameToIdMap.find(fontTexts[i].font) == pContext->fontNameToIdMap.end())
+                            {
+                                LOGF(eWARNING, "Could not find font ID for entity FontText component.");
+                                return;
+                            }
+
+                            FontDrawDesc desc = {};
+                            desc.mFontBlur = fontTexts[i].fontBlur;
+                            desc.mFontColor = fontTexts[i].color;
+                            desc.mFontID = pContext->fontNameToIdMap.at(fontTexts[i].font);
+                            desc.mFontSize = fontTexts[i].fontSize;
+                            desc.mFontSpacing = fontTexts[i].fontSpacing;
+                            desc.pText = fontTexts[i].text.c_str();
+
+                            cmdDrawTextWithFont(pCmd, { fontTexts[i].posX, fontTexts[i].posY }, &desc);
+                        }
+                    }
+
+                    cmdEndDebugMarker(pCmd);
                 }
             );
     }
