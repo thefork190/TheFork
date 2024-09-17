@@ -19,6 +19,7 @@ namespace FontRendering
         unsigned int width = 0;
         unsigned int height = 0;
         std::unordered_map<eAvailableFonts, unsigned int> fontNameToIdMap;
+        flecs::query<FontText const> fontTextQuery;
     };
 
     module::module(flecs::world& ecs)
@@ -32,7 +33,9 @@ namespace FontRendering
         ecs.component<FontText>();
 
         // Create the context singleton
-        ecs.add<Context>();
+        Context context = {};
+        context.fontTextQuery = ecs.query_builder<FontText const>().cached().build();
+        ecs.set<Context>(context);
         
         auto fontSysInitializer = ecs.system<Engine::Canvas, Window::SDLWindow>("Init Font System")
             .kind(flecs::OnLoad)
@@ -75,6 +78,8 @@ namespace FontRendering
                         ASSERTMSG(eERROR, "Failed to init TF font system.");
                         return;
                     }
+
+                    resizeFontSystem(canvas.width, canvas.height);
 
                     // Define available font names to asset files and create context singleton
                     std::unordered_map<eAvailableFonts, std::string> availableFontToAssetName;
@@ -141,10 +146,12 @@ namespace FontRendering
                 }
             );
 
-        auto fontRenderer = ecs.system<FontText>("Font Renderer")
+        auto fontRenderer = ecs.system<Engine::Canvas, Window::SDLWindow>("Font Renderer")
             .kind(Engine::GetCustomPhaseEntity(ecs, Engine::FONTS_RENDER))
-            .run([](flecs::iter& it) 
+            .each([](flecs::iter& it, size_t i, Engine::Canvas& canvas, Window::SDLWindow& sdlWin)
                 {
+                    ASSERTMSG(i == 0, "Drawing to more than one window not implemented.");
+
                     if (!it.world().has<Context>())
                         return;
 
@@ -157,39 +164,64 @@ namespace FontRendering
                     if (!pRHI)
                         return;
 
+                    if (!sdlWin.pCurRT)
+                        return;
+
                     Cmd* pCmd = pRHI->curCmdRingElem.pCmds[0];
                     ASSERT(pCmd);
 
-                    cmdBeginDebugMarker(pCmd, 1, 0, 1, "FontRendering::Render");
 
-                    while (it.next())
-                    {
-                        auto fontTexts = it.field<FontText>(0);
-                        
-                        for (size_t i : it)
+                    unsigned int runIterations = 0;
+
+                    pContext->fontTextQuery.run([pContext, pRHI, pCmd, &runIterations, sdlWin, canvas](flecs::iter& it)
                         {
-                            // Validate incoming data
-                            if (pContext->fontNameToIdMap.find(fontTexts[i].font) == pContext->fontNameToIdMap.end())
+                            while (it.next())
                             {
-                                LOGF(eWARNING, "Could not find font ID for entity FontText component.");
-                                return;
+
+                                auto fontTexts = it.field<FontText const>(0);
+
+                                for (size_t j : it)
+                                {
+                                    if (runIterations == 0) // on first iteration, setup the render pass
+                                    {
+                                        cmdBeginDebugMarker(pCmd, 1, 0, 1, "FontRendering::Render");
+
+                                        BindRenderTargetsDesc bindRenderTargets = {};
+                                        bindRenderTargets.mRenderTargetCount = 1;
+                                        bindRenderTargets.mRenderTargets[0] = { sdlWin.pCurRT, LOAD_ACTION_LOAD };
+                                        cmdBindRenderTargets(pCmd, &bindRenderTargets);
+                                        cmdSetViewport(pCmd, 0.0f, 0.0f, (float)canvas.width, (float)canvas.height, 0.0f, 1.0f);
+                                        cmdSetScissor(pCmd, 0, 0, canvas.width, canvas.height);
+                                    }
+
+                                    // Validate incoming data
+                                    if (pContext->fontNameToIdMap.find(fontTexts[j].font) == pContext->fontNameToIdMap.end())
+                                    {
+                                        LOGF(eWARNING, "Could not find font ID for entity FontText component.");
+                                        return;
+                                    }
+
+                                    FontDrawDesc desc = {};
+                                    desc.mFontBlur = fontTexts[j].fontBlur;
+                                    desc.mFontColor = fontTexts[j].color;
+                                    desc.mFontID = pContext->fontNameToIdMap.at(fontTexts[j].font);
+                                    desc.mFontSize = fontTexts[j].fontSize;
+                                    desc.mFontSpacing = fontTexts[j].fontSpacing;
+                                    desc.pText = fontTexts[j].text.c_str();
+
+                                    cmdDrawTextWithFont(pCmd, { fontTexts[j].posX, fontTexts[j].posY }, &desc);
+
+                                    runIterations += 1;
+                                }
                             }
+                        });
 
-                            FontDrawDesc desc = {};
-                            desc.mFontBlur = fontTexts[i].fontBlur;
-                            desc.mFontColor = fontTexts[i].color;
-                            desc.mFontID = pContext->fontNameToIdMap.at(fontTexts[i].font);
-                            desc.mFontSize = fontTexts[i].fontSize;
-                            desc.mFontSpacing = fontTexts[i].fontSpacing;
-                            desc.pText = fontTexts[i].text.c_str();
-
-                            cmdDrawTextWithFont(pCmd, { fontTexts[i].posX, fontTexts[i].posY }, &desc);
-                        }
+                    if (runIterations > 0) // need to clean things up if anything was ran
+                    {
+                        cmdBindRenderTargets(pCmd, nullptr);
+                        cmdEndDebugMarker(pCmd);
                     }
-
-                    cmdEndDebugMarker(pCmd);
-                }
-            );
+                });
     }
 
     void module::OnExit(flecs::world& ecs)

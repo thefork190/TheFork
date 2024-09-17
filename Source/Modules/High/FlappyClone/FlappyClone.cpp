@@ -355,8 +355,9 @@ namespace FlappyClone
             // FontText to show current score
             FontRendering::FontText fontText {};
             fontText.text = "SHARmootA!";
-            fontText.posX = 0.25f;
-            fontText.posY = 0.25f;
+            fontText.posX = 0.f;
+            fontText.posY = 0.f;
+            fontText.fontSize = 250.f;
             player.set<FontRendering::FontText>(fontText);
         }
 
