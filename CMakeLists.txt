@@ -61,8 +61,31 @@ set(IOSASSETS
     Source/Sample.appxManifest
 )
 
+# Imgui sources
+set(IMGUI_SRC 
+    ThirdParty/imgui/imconfig.h
+    ThirdParty/imgui/imgui.cpp
+    ThirdParty/imgui/imgui.h
+    ThirdParty/imgui/imgui_demo.cpp
+    ThirdParty/imgui/imgui_draw.cpp
+    ThirdParty/imgui/imgui_internal.h
+    ThirdParty/imgui/imgui_tables.cpp
+    ThirdParty/imgui/imgui_widgets.cpp
+    ThirdParty/imgui/imstb_rectpack.h
+    ThirdParty/imgui/imstb_textedit.h
+    ThirdParty/imgui/imstb_truetype.h
+    #ThirdParty/imgui/backends/imgui_impl_sdl3.h
+    #ThirdParty/imgui/backends/imgui_impl_sdl3.cpp
+    )
+
+if (WIN32)
+endif (WIN32)
+
 # List all sources
 set(SOURCES
+    ${IMGUI_SRC}
+
+    # Engine
     Source/Main.cpp
     Source/Modules/LifeCycledModule.h
     # LOW
@@ -140,10 +163,11 @@ add_subdirectory(ThirdParty/glm EXCLUDE_FROM_ALL)
 
 target_include_directories(${PROJECT_NAME}
     PRIVATE "Source/Modules"
-    PRIVATE ThirdParty/The-Forge/RHI/Private # Hack for TF
-    PRIVATE ThirdParty/The-Forge/ThirdParty # Hack for TF
+    PRIVATE ThirdParty/The-Forge/RHI/Private    # Hack for TF
+    PRIVATE ThirdParty/The-Forge/ThirdParty     # Hack for TF
     PUBLIC ThirdParty/The-Forge/RHI/Public
-    PRIVATE ThirdParty/CLI11/include/CLI  # CLI11 header only 3rd party
+    PRIVATE ThirdParty/CLI11/include/CLI        # CLI11 header only 3rd party
+    PRIVATE ThirdParty/imgui                    # Required to compile imgui
 )
 if(APPLE)
 target_link_libraries(${EXECUTABLE_NAME} 

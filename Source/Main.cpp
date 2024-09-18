@@ -60,22 +60,22 @@ struct AppState
     std::vector<LifeCycledModule*> highModules;
 };
 
-int SDL_Fail()
+SDL_AppResult SDL_Fail()
 {
     LOGF(eERROR, "Error %s", SDL_GetError());
-    return -1;
+    return SDL_APP_FAILURE;
 }
 
-int SDL_AppInit(void** appstate, int argc, char* argv[]) 
+SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[])
 {
     // Use TF for rendering (it still needs to init its internal OS related subsystems)
     if (!InitTheForge())
     {
-        return EXIT_FAILURE;
+        return SDL_APP_FAILURE;
     }
     
     // Init SDL.  Many systems will rely on SDL being initialized.
-    if (SDL_Init(SDL_INIT_VIDEO))
+    if (!SDL_Init(SDL_INIT_VIDEO))
     {
         return SDL_Fail();
     }
@@ -102,7 +102,7 @@ int SDL_AppInit(void** appstate, int argc, char* argv[])
     // Create the RHI (this might not always be needed depending on the app type)
     if (!RHI::CreateRHI(pApp->ecs))
     {
-        return EXIT_FAILURE;
+        return SDL_APP_FAILURE;
     }
     
     // Use the chosen module as the app name
@@ -112,7 +112,7 @@ int SDL_AppInit(void** appstate, int argc, char* argv[])
     std::string moduleName = "Hello Triangle";
     cli.add_option("-a,--appmodule", moduleName, "The app (high level) module to use.");
 
-    CLI11_PARSE(cli, argc, argv);
+    cli.parse(argc, argv);
 
     // Kickstart the engine to activate the first systems
     Engine::KickstartEngine(pApp->ecs, &moduleName);
@@ -127,22 +127,22 @@ int SDL_AppInit(void** appstate, int argc, char* argv[])
     
     LOGF(eINFO, "SDL_AppInit returns success.");
 
-    return 0;
+    return SDL_APP_CONTINUE;
 }
 
-int SDL_AppEvent(void *appstate, const SDL_Event* event) 
+SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event* event)
 {
     AppState* pApp = (AppState*)appstate;
     
     if (event->type == SDL_EVENT_QUIT) 
     {
-        pApp->quitApp = SDL_TRUE;
+        pApp->quitApp = true;
     }
 
-    return 0;
+    return SDL_APP_CONTINUE;
 }
 
-int SDL_AppIterate(void *appstate) 
+SDL_AppResult SDL_AppIterate(void *appstate)
 {
     AppState* pApp = (AppState*)appstate;
 
@@ -156,7 +156,7 @@ int SDL_AppIterate(void *appstate)
 
     pApp->ecs.progress();
     
-    return pApp->quitApp;
+    return pApp->quitApp ? SDL_APP_SUCCESS : SDL_APP_CONTINUE;
 }
 
 void SDL_AppQuit(void* appstate) 
