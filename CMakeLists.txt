@@ -74,8 +74,9 @@ set(IMGUI_SRC
     ThirdParty/imgui/imstb_rectpack.h
     ThirdParty/imgui/imstb_textedit.h
     ThirdParty/imgui/imstb_truetype.h
-    #ThirdParty/imgui/backends/imgui_impl_sdl3.h
-    #ThirdParty/imgui/backends/imgui_impl_sdl3.cpp
+    # we use our own version of the vanilla SDL3 backend before of how often SDL3 still changes
+    Source/Modules/Medium/Imgui/imgui_impl_sdl3.h
+    Source/Modules/Medium/Imgui/imgui_impl_sdl3.cpp  
     )
 
 if (WIN32)
