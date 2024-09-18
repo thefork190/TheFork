@@ -63,7 +63,7 @@ set(IOSASSETS
 
 # Imgui sources
 set(IMGUI_SRC 
-    ThirdParty/imgui/imconfig.h
+    Source/Modules/Medium/Imgui/imconfig.h
     ThirdParty/imgui/imgui.cpp
     ThirdParty/imgui/imgui.h
     ThirdParty/imgui/imgui_demo.cpp
@@ -76,15 +76,20 @@ set(IMGUI_SRC
     ThirdParty/imgui/imstb_truetype.h
     # we use our own version of the vanilla SDL3 backend before of how often SDL3 still changes
     Source/Modules/Medium/Imgui/imgui_impl_sdl3.h
-    Source/Modules/Medium/Imgui/imgui_impl_sdl3.cpp  
+    Source/Modules/Medium/Imgui/imgui_impl_sdl3.cpp
     )
 
 if (WIN32)
+set(IMGUI_RENDERING_IMPL
+    ThirdParty/imgui/backends/imgui_impl_vulkan.h
+    ThirdParty/imgui/backends//imgui_impl_vulkan.cpp
+    )
 endif (WIN32)
 
 # List all sources
 set(SOURCES
     ${IMGUI_SRC}
+    ${IMGUI_RENDERING_IMPL}
 
     # Engine
     Source/Main.cpp
@@ -167,8 +172,9 @@ target_include_directories(${PROJECT_NAME}
     PRIVATE ThirdParty/The-Forge/RHI/Private    # Hack for TF
     PRIVATE ThirdParty/The-Forge/ThirdParty     # Hack for TF
     PUBLIC ThirdParty/The-Forge/RHI/Public
-    PRIVATE ThirdParty/CLI11/include/CLI        # CLI11 header only 3rd party
-    PRIVATE ThirdParty/imgui                    # Required to compile imgui
+    PRIVATE ThirdParty/CLI11/include/CLI                        # CLI11 header only 3rd party
+    PRIVATE ThirdParty/imgui                                    # Required to compile imgui
+    PRIVATE ThirdParty/The-Forge/ThirdParty/VulkanSDK/include   # For imgui VK backend
 )
 if(APPLE)
 target_link_libraries(${EXECUTABLE_NAME} 
@@ -195,7 +201,10 @@ target_link_libraries(${EXECUTABLE_NAME}
         SDL3::SDL3
 )
 endif()
-target_compile_definitions(${EXECUTABLE_NAME} PUBLIC SDL_MAIN_USE_CALLBACKS)
+target_compile_definitions(${EXECUTABLE_NAME} 
+    PUBLIC SDL_MAIN_USE_CALLBACKS
+    PUBLIC IMGUI_USER_CONFIG="Medium/Imgui/imconfig.h"
+    )
 
 set_target_properties(${EXECUTABLE_NAME} PROPERTIES 
     MACOSX_BUNDLE TRUE
