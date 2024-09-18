@@ -31,7 +31,7 @@ namespace Engine
 		void RequestExit() { mRequestedExit = true; }
 		bool const HasRequestedExit() const { return mRequestedExit; }
 	};
-	
+
 	class module : public LifeCycledModule
 	{
 	public:
@@ -41,4 +41,15 @@ namespace Engine
 
 	// Creates the required components to start getting systems to run
 	void KickstartEngine(flecs::world& ecs, std::string const* pAppName = nullptr);
+
+	// Enum of custom flecs phases
+	enum eCustomPhase
+	{
+		FONTS_RENDER,
+		UI_RENDER,
+		PRESENT
+	};
+
+	// Gets the related custom phase entity
+	flecs::entity GetCustomPhaseEntity(flecs::world& ecs, eCustomPhase const& phase);
 }

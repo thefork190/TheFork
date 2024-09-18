@@ -14,6 +14,8 @@
 #include "Modules/Low/RHI.h"
 #include "Modules/Low/Window.h"
 
+#include "Modules/Medium/FontRendering.h"
+
 #include "Modules/High/FlappyClone/FlappyClone.h"
 #include "Modules/High/HelloTriangle/HelloTriangle.h"
 
@@ -32,6 +34,7 @@ static bool InitTheForge()
         return false;
 
     fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_LOG, "");
+    fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Assets/Fonts");
     fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "Assets/GPUCfg");
     fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_BINARIES, "Assets/FSL/binary");
 
@@ -88,11 +91,13 @@ int SDL_AppInit(void** appstate, int argc, char* argv[])
 
 
     // Import Low/Medium modules
-    // TODO: which modules to load can be customized based on flags
     pApp->lowModules.push_back(pApp->ecs.import<Engine::module>().get_mut<Engine::module>());
     pApp->lowModules.push_back(pApp->ecs.import<Window::module>().get_mut<Window::module>());
     pApp->lowModules.push_back(pApp->ecs.import<RHI::module>().get_mut<RHI::module>());
     pApp->lowModules.push_back(pApp->ecs.import<Inputs::module>().get_mut<Inputs::module>());
+
+    pApp->lowModules.push_back(pApp->ecs.import<FontRendering::module>().get_mut<FontRendering::module>());
+
     
     // Create the RHI (this might not always be needed depending on the app type)
     if (!RHI::CreateRHI(pApp->ecs))

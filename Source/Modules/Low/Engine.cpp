@@ -8,6 +8,19 @@ namespace Engine
         ecs.module<module>();
 
         ecs.component<Context>();
+
+        // Create custom FLECS phases
+        flecs::entity FontsRenderPhase = ecs.entity("FontsRenderPhase")
+            .add(flecs::Phase)
+            .depends_on(flecs::OnStore);
+
+        flecs::entity UIRenderPhase = ecs.entity("UIRenderPhase")
+            .add(flecs::Phase)
+            .depends_on(FontsRenderPhase);
+
+        flecs::entity PresentationPhase = ecs.entity("PresentationPhase")
+            .add(flecs::Phase)
+            .depends_on(UIRenderPhase);
     }
 
     void KickstartEngine(flecs::world& ecs, std::string const* pAppName)
@@ -25,5 +38,29 @@ namespace Engine
         // Create a window entity with a canvas
         flecs::entity winEnt = ecs.entity("MainWindow");
         winEnt.set<Canvas>({ 1920, 1080 });
+    }
+
+    flecs::entity GetCustomPhaseEntity(flecs::world& ecs, eCustomPhase const& phase)
+    {
+        flecs::entity ret = {};
+
+        switch (phase)
+        {
+        case Engine::FONTS_RENDER:
+            ret = ecs.lookup("Engine::module::FontsRenderPhase");
+            break;
+        case Engine::UI_RENDER:
+            ret = ecs.lookup("Engine::module::UIRenderPhase");
+            break;
+        case Engine::PRESENT:
+            ret = ecs.lookup("Engine::module::PresentationPhase");
+            break;
+        default:
+            ASSERTMSG(0, "Unknown custom phase.");
+        }
+
+        ASSERTMSG(ret.is_valid(), "Custom phase entity isn't valid.");
+
+        return ret;
     }
 }

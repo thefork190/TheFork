@@ -6,6 +6,6 @@
 class LifeCycledModule
 {
 public:
-	// Called before exiting (and this killing the ecs world)
+	// Called before exiting (and thus killing the ecs world)
 	virtual void OnExit(flecs::world& ecs) {};
 };
