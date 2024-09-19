@@ -66,14 +66,15 @@ static uint32_t ImGui_ImplTheForge_AddImguiFont(
     uint32_t fontBufferSize, 
     void* pFontGlyphRanges, 
     uint32_t fontID, 
-    float fontSize, 
-    uintptr_t* pFont)
+    float fontSize)
 {
     ImGuiIO& io = ImGui::GetIO();
 
     // Build and load the texture atlas into a texture
     int32_t        width, height, bytesPerPixel;
     unsigned char* pixels = nullptr;
+
+    uintptr_t* pFont = nullptr;
 
     io.Fonts->ClearInputData();
     if (pFontBuffer == nullptr)
@@ -232,7 +233,7 @@ bool ImGui_TheForge_Init(ImGui_ImplTheForge_InitDesc const& initDesc)
     vertexLayout->mAttribs[1].mOffset + TinyImageFormat_BitSizeOfBlock(pBD->mVertexLayoutTextured.mAttribs[1].mFormat) / 8;
 
     // Cache default font
-    uint32_t fallbackFontTexId = ImGui_ImplTheForge_AddImguiFont(pBD, nullptr, 0, nullptr, UINT_MAX, 0.f, &pBD->pDefaultFallbackFont);
+    uint32_t fallbackFontTexId = ImGui_ImplTheForge_AddImguiFont(pBD, nullptr, 0, nullptr, UINT_MAX, 0.f);
     ASSERT(fallbackFontTexId == FALLBACK_FONT_TEXTURE_INDEX);
 
     return true;
@@ -296,4 +297,70 @@ static void cmdPrepareRenderingForUI(
 void ImGui_TheForge_RenderDrawData(ImDrawData* draw_data)
 {
 
+}
+
+ImFont* ImGui_TheForge_GetOrAddFont(uint32_t const fontId, float const size)
+{
+    ImGui_ImplTheForge_Data* pBD = ImGui_ImplTheForge_GetBackendData();
+
+    uintptr_t ret = 0;
+
+    if (pBD)
+    {
+        // Functions not accessible via normal interface header
+        extern void* fntGetRawFontData(uint32_t fontID);
+        extern uint32_t fntGetRawFontDataSize(uint32_t fontID);
+
+        bool useDefaultFallbackFont = false;
+
+        // Use Requested Forge Font
+        void* pFontBuffer = fntGetRawFontData(fontId);
+        uint32_t fontBufferSize = fntGetRawFontDataSize(fontId);
+        if (pFontBuffer)
+        {
+            // See if that specific font id and size is already in use, if so just reuse it
+            size_t cachedFontIndex = -1;
+            for (size_t i = 0; i < pBD->mCachedFonts.size(); ++i)
+            {
+                if (pBD->mCachedFonts[i].mFontId == fontId &&
+                    pBD->mCachedFonts[i].mFontSize == size)
+                {
+                    cachedFontIndex = i;
+
+                    ret = pBD->mCachedFonts[i].pFont;
+
+                    break;
+                }
+            }
+
+            if (cachedFontIndex == -1) // didn't find that font in the cache
+            {
+                // Ensure we don't pass max amount of fonts
+                if (pBD->mCachedFonts.size() < pBD->mMaxUIFonts)
+                {
+                    uint32_t fallbackFontTexId =
+                        ImGui_ImplTheForge_AddImguiFont(pBD, pFontBuffer, fontBufferSize, nullptr, fontId, size);
+                    ASSERT(fallbackFontTexId != FALLBACK_FONT_TEXTURE_INDEX);
+                }
+                else
+                {
+                    LOGF(eWARNING, "ImGui_TheForge_GetOrAddFont() has reached fonts capacity.  Consider increasing 'mMaxUIFonts' when initializing the "
+                        "user interface.");
+                    useDefaultFallbackFont = true;
+                }
+            }
+        }
+        else
+        {
+            LOGF(eWARNING, "ImGui_TheForge_GetOrAddFont() was provided an unknown font id (%u).  Will fallback to default UI font.", fontId);
+            useDefaultFallbackFont = true;
+        }
+
+        if (useDefaultFallbackFont)
+        {
+            ret = pBD->pDefaultFallbackFont;
+        }
+    }
+
+    return (ImFont*)ret;
 }
