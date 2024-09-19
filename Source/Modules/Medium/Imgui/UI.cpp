@@ -86,7 +86,7 @@ namespace UI
             );
 
         auto uiUpdater = ecs.system<UI>("UI Updater")
-            .kind(flecs::OnUpdate)
+            .kind(flecs::PostUpdate) // Want to run UI updates after OnUpdate phase is done
             .each([](flecs::iter& it, size_t i, UI& ui)
                 {
                     if (!it.world().has<Context>())
