@@ -3,11 +3,13 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <IResourceLoader.h>
+#include <imgui.h>
 #include "ILog.h"
 #include "Low/Engine.h"
 #include "Low/Inputs.h"
 #include "Low/RHI.h"
 #include "Low/Window.h"
+#include "Medium/Imgui/UI.h"
 #include "HelloTriangle.h"
 
 namespace HelloTriangle
@@ -200,6 +202,11 @@ namespace HelloTriangle
         waitForAllResourceLoads();
 
         ecs.set<RenderPassData>(renderPassData);
+
+        // Create a UI entity
+        UI::UI ui = {};
+        ui.Update = [](flecs::world&) { bool show = true; ImGui::ShowDemoWindow(&show); };
+        ecs.entity("HelloTriangle::UI").set<UI::UI>(ui);
 
         // Main update logic (in practice this would be distributed across multiple systems)
         ecs.system("HelloTriangle::Update")

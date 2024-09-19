@@ -76,13 +76,14 @@ namespace UI
                 }
             );
 
-        /*auto uiFramePacer = ecs.system("UI Frame Pacer")
+        auto uiFramePacer = ecs.system("UI Frame Pacer")
             .kind(flecs::OnLoad)
             .run([](flecs::iter& it)
                 {
-                   
+                    ImGui_ImplSDL3_NewFrame();
+                    ImGui::NewFrame();
                 }
-            );*/
+            );
 
         auto uiUpdater = ecs.system<UI>("UI Updater")
             .kind(flecs::OnUpdate)
