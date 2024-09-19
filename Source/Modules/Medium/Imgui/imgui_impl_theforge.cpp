@@ -14,6 +14,9 @@ struct ImGui_ImplTheForge_Data
     uint32_t mMaxUIFonts = 10u;
     uint32_t mFrameCount = 2u;
 
+    uint32_t mMaxVerts = 64u * 1024u;
+    uint32_t mMaxInds = 128u * 1024u;
+
     Renderer* pRenderer = nullptr;
     PipelineCache* pCache = nullptr;
     uint32_t  mFrameIdx = 0;
@@ -89,6 +92,8 @@ bool ImGui_TheForge_Init(ImGui_ImplTheForge_InitDesc const& initDesc)
 
     uint64_t const VERTEX_BUFFER_SIZE = initDesc.mMaxVerts * sizeof(ImDrawVert);
     uint64_t const INDEX_BUFFER_SIZE = initDesc.mMaxInds * sizeof(ImDrawIdx);
+    bd->mMaxVerts = initDesc.mMaxVerts;
+    bd->mMaxInds = initDesc.mMaxInds;
 
     BufferLoadDesc vbDesc = {};
     vbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
