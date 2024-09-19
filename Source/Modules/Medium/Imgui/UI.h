@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <flecs.h>
 #include "LifeCycledModule.h"
 
@@ -7,7 +8,7 @@ namespace UI
 {
 	struct UI
 	{
-		// TODO: callback where we pass in ecs world
+		std::function<void(flecs::world&)> Update;
 	};
 
 	class module : public LifeCycledModule
