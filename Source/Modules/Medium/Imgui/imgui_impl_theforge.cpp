@@ -18,6 +18,8 @@ struct ImGui_ImplTheForge_Data
     PipelineCache* pCache = nullptr;
     uint32_t  mFrameIdx = 0;
 
+    uintptr_t pDefaultFallbackFont = 0;
+
     struct TextureNode
     {
         uint64_t key = ~0ull;
@@ -155,6 +157,7 @@ void ImGui_TheForge_NewFrame()
 {
     ImGui_ImplTheForge_Data* bd = ImGui_ImplTheForge_GetBackendData();
     ASSERT(bd != nullptr && "Context or backend not initialized! Did you call ImGui_ImplTheForge_Init()?");
+    bd->mDynamicTexturesCount = 0u;
 }
 
 void ImGui_TheForge_RenderDrawData(ImDrawData* draw_data)
