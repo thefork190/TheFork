@@ -26,11 +26,7 @@ struct ImGui_ImplTheForge_Data
 
     uintptr_t pDefaultFallbackFont = 0;
 
-    struct TextureNode
-    {
-        uint64_t key = ~0ull;
-        Texture* value = nullptr;
-    }*pTextureHashmap = nullptr;
+
     uint32_t mDynamicTexturesCount = 0;
     Shader* pShaderTextured[SAMPLE_COUNT_COUNT] = { nullptr };
     RootSignature* pRootSignatureTextured = nullptr;
@@ -48,7 +44,7 @@ struct ImGui_ImplTheForge_Data
     /// Caching fonts and textures
     struct UIFontResource
     {
-        Texture* pFontTex = NULL;
+        Texture*  pFontTex = NULL;
         uint32_t  mFontId = 0;
         float     mFontSize = 0.f;
         uintptr_t pFont = 0;
@@ -65,6 +61,7 @@ static ImGui_ImplTheForge_Data* ImGui_ImplTheForge_GetBackendData()
 }
 
 static uint32_t ImGui_ImplTheForge_AddImguiFont(
+    ImGui_ImplTheForge_Data* pBD,
     void* pFontBuffer, 
     uint32_t fontBufferSize, 
     void* pFontGlyphRanges, 
@@ -72,9 +69,6 @@ static uint32_t ImGui_ImplTheForge_AddImguiFont(
     float fontSize, 
     uintptr_t* pFont)
 {
-    ImGui_ImplTheForge_Data* bd = ImGui_ImplTheForge_GetBackendData();
-    ASSERT(bd != nullptr && "Context or backend not initialized! Did you call ImGui_ImplTheForge_Init()?");
-
     ImGuiIO& io = ImGui::GetIO();
 
     // Build and load the texture atlas into a texture
@@ -137,9 +131,9 @@ static uint32_t ImGui_ImplTheForge_AddImguiFont(
     endUpdateResource(&updateDesc);
 
     ImGui_ImplTheForge_Data::UIFontResource newCachedFont = { pTexture, fontID, fontSize, *pFont };
-    bd->mCachedFonts.push_back(newCachedFont);
+    pBD->mCachedFonts.push_back(newCachedFont);
 
-    size_t fontTextureIndex = bd->mCachedFonts.size() - 1;
+    size_t fontTextureIndex = pBD->mCachedFonts.size() - 1;
     io.Fonts->TexID = (ImTextureID)fontTextureIndex;
 
     return (uint32_t)fontTextureIndex;
@@ -157,8 +151,8 @@ bool ImGui_TheForge_Init(ImGui_ImplTheForge_InitDesc const& initDesc)
     }
 
     // Setup backend capabilities flags
-    ImGui_ImplTheForge_Data* bd = IM_NEW(ImGui_ImplTheForge_Data)();
-    io.BackendRendererUserData = (void*)bd;
+    ImGui_ImplTheForge_Data* pBD = IM_NEW(ImGui_ImplTheForge_Data)();
+    io.BackendRendererUserData = (void*)pBD;
     io.BackendRendererName = "imgui_impl_theforge";
     //TODO: multi-viewports
     //io.BackendFlags |= ImGuiBackendFlags_RendererHasViewports;
@@ -169,12 +163,12 @@ bool ImGui_TheForge_Init(ImGui_ImplTheForge_InitDesc const& initDesc)
         return false;
     }
 
-    bd->pRenderer = initDesc.pRenderer;
-    bd->pCache = initDesc.pCache;
-    bd->mMaxDynamicUIUpdatesPerBatch = initDesc.mMaxDynamicUIUpdatesPerBatch;
-    bd->mMaxUIFonts = initDesc.mMaxUIFonts + 1; // +1 to account for a default fallback font
-    bd->mFrameCount = initDesc.mFrameCount;
-    ASSERT(bd->mFrameCount <= MAX_FRAMES);
+    pBD->pRenderer = initDesc.pRenderer;
+    pBD->pCache = initDesc.pCache;
+    pBD->mMaxDynamicUIUpdatesPerBatch = initDesc.mMaxDynamicUIUpdatesPerBatch;
+    pBD->mMaxUIFonts = initDesc.mMaxUIFonts + 1; // +1 to account for a default fallback font
+    pBD->mFrameCount = initDesc.mFrameCount;
+    ASSERT(pBD->mFrameCount <= MAX_FRAMES);
 
     SamplerDesc samplerDesc = { FILTER_LINEAR,
                                 FILTER_LINEAR,
@@ -182,27 +176,27 @@ bool ImGui_TheForge_Init(ImGui_ImplTheForge_InitDesc const& initDesc)
                                 ADDRESS_MODE_CLAMP_TO_EDGE,
                                 ADDRESS_MODE_CLAMP_TO_EDGE,
                                 ADDRESS_MODE_CLAMP_TO_EDGE };
-    addSampler(bd->pRenderer, &samplerDesc, &bd->pDefaultSampler);
+    addSampler(pBD->pRenderer, &samplerDesc, &pBD->pDefaultSampler);
 
     uint64_t const VERTEX_BUFFER_SIZE = initDesc.mMaxVerts * sizeof(ImDrawVert);
     uint64_t const INDEX_BUFFER_SIZE = initDesc.mMaxInds * sizeof(ImDrawIdx);
-    bd->mMaxVerts = initDesc.mMaxVerts;
-    bd->mMaxInds = initDesc.mMaxInds;
+    pBD->mMaxVerts = initDesc.mMaxVerts;
+    pBD->mMaxInds = initDesc.mMaxInds;
 
     BufferLoadDesc vbDesc = {};
     vbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
     vbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-    vbDesc.mDesc.mSize = VERTEX_BUFFER_SIZE * bd->mFrameCount;
+    vbDesc.mDesc.mSize = VERTEX_BUFFER_SIZE * pBD->mFrameCount;
     vbDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
     vbDesc.mDesc.pName = "UI Vertex Buffer";
-    vbDesc.ppBuffer = &bd->pVertexBuffer;
+    vbDesc.ppBuffer = &pBD->pVertexBuffer;
     addResource(&vbDesc, nullptr);
 
     BufferLoadDesc ibDesc = vbDesc;
     ibDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDEX_BUFFER;
-    ibDesc.mDesc.mSize = INDEX_BUFFER_SIZE * bd->mFrameCount;
+    ibDesc.mDesc.mSize = INDEX_BUFFER_SIZE * pBD->mFrameCount;
     vbDesc.mDesc.pName = "UI Index Buffer";
-    ibDesc.ppBuffer = &bd->pIndexBuffer;
+    ibDesc.ppBuffer = &pBD->pIndexBuffer;
     addResource(&ibDesc, nullptr);
 
     BufferLoadDesc ubDesc = {};
@@ -211,13 +205,13 @@ bool ImGui_TheForge_Init(ImGui_ImplTheForge_InitDesc const& initDesc)
     ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
     ubDesc.mDesc.mSize = sizeof(float) * 16;
     vbDesc.mDesc.pName = "UI Uniform Buffer";
-    for (uint32_t i = 0; i < bd->mFrameCount; ++i)
+    for (uint32_t i = 0; i < pBD->mFrameCount; ++i)
     {
-        ubDesc.ppBuffer = &bd->pUniformBuffer[i];
+        ubDesc.ppBuffer = &pBD->pUniformBuffer[i];
         addResource(&ubDesc, nullptr);
     }
 
-    VertexLayout* vertexLayout = &bd->mVertexLayoutTextured;
+    VertexLayout* vertexLayout = &pBD->mVertexLayoutTextured;
     vertexLayout->mBindingCount = 1;
     vertexLayout->mAttribCount = 3;
     vertexLayout->mAttribs[0].mSemantic = SEMANTIC_POSITION;
@@ -229,18 +223,16 @@ bool ImGui_TheForge_Init(ImGui_ImplTheForge_InitDesc const& initDesc)
     vertexLayout->mAttribs[1].mFormat = TinyImageFormat_R32G32_SFLOAT;
     vertexLayout->mAttribs[1].mBinding = 0;
     vertexLayout->mAttribs[1].mLocation = 1;
-    vertexLayout->mAttribs[1].mOffset = TinyImageFormat_BitSizeOfBlock(bd->mVertexLayoutTextured.mAttribs[0].mFormat) / 8;
+    vertexLayout->mAttribs[1].mOffset = TinyImageFormat_BitSizeOfBlock(pBD->mVertexLayoutTextured.mAttribs[0].mFormat) / 8;
     vertexLayout->mAttribs[2].mSemantic = SEMANTIC_COLOR;
     vertexLayout->mAttribs[2].mFormat = TinyImageFormat_R8G8B8A8_UNORM;
     vertexLayout->mAttribs[2].mBinding = 0;
     vertexLayout->mAttribs[2].mLocation = 2;
     vertexLayout->mAttribs[2].mOffset =
-    vertexLayout->mAttribs[1].mOffset + TinyImageFormat_BitSizeOfBlock(bd->mVertexLayoutTextured.mAttribs[1].mFormat) / 8;
-
-
+    vertexLayout->mAttribs[1].mOffset + TinyImageFormat_BitSizeOfBlock(pBD->mVertexLayoutTextured.mAttribs[1].mFormat) / 8;
 
     // Cache default font
-    uint32_t fallbackFontTexId = ImGui_ImplTheForge_AddImguiFont(nullptr, 0, nullptr, UINT_MAX, 0.f, &bd->pDefaultFallbackFont);
+    uint32_t fallbackFontTexId = ImGui_ImplTheForge_AddImguiFont(pBD, nullptr, 0, nullptr, UINT_MAX, 0.f, &pBD->pDefaultFallbackFont);
     ASSERT(fallbackFontTexId == FALLBACK_FONT_TEXTURE_INDEX);
 
     return true;
