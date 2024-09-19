@@ -77,6 +77,9 @@ set(IMGUI_SRC
     # we use our own version of the vanilla SDL3 backend before of how often SDL3 still changes
     Source/Modules/Medium/Imgui/imgui_impl_sdl3.h
     Source/Modules/Medium/Imgui/imgui_impl_sdl3.cpp
+    # imgui rendering backend for The Forge RHI
+    Source/Modules/Medium/Imgui/imgui_impl_theforge.h
+    Source/Modules/Medium/Imgui/imgui_impl_theforge.cpp
     )
 
 # List all sources
