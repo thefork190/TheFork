@@ -65,9 +65,6 @@ namespace UI
 
                     ImGui::StyleColorsDark();
 
-                    // Load default font
-                    io.Fonts->AddFontDefault();
-
                     ImGui_ImplSDL3_InitForOther(sdlWin.pWindow);
                     ImGui_ImplTheForge_InitDesc initDesc = { pRHI->pRenderer };
                     ImGui_TheForge_Init(initDesc);
