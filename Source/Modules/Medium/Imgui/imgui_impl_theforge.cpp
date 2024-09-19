@@ -9,6 +9,7 @@
 #include "imgui_impl_theforge.h"
 
 #define MAX_FRAMES 3u
+#define FALLBACK_FONT_TEXTURE_INDEX 0u
 
 struct ImGui_ImplTheForge_Data
 {
@@ -236,7 +237,9 @@ bool ImGui_TheForge_Init(ImGui_ImplTheForge_InitDesc const& initDesc)
     vertexLayout->mAttribs[2].mOffset =
     vertexLayout->mAttribs[1].mOffset + TinyImageFormat_BitSizeOfBlock(bd->mVertexLayoutTextured.mAttribs[1].mFormat) / 8;
 
-
+    // Cache default font
+    uint32_t fallbackFontTexId = ImGui_ImplTheForge_AddImguiFont(nullptr, 0, nullptr, UINT_MAX, 0.f, &bd->pDefaultFallbackFont);
+    ASSERT(fallbackFontTexId == FALLBACK_FONT_TEXTURE_INDEX);
 
     return true;
 }
