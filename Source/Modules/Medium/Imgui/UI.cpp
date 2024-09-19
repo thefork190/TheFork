@@ -87,13 +87,20 @@ namespace UI
         {
             ImGui_ImplSDL3_Shutdown();
             ImGui::DestroyContext();
-
         }
         else
         {
             ASSERTMSG(0, "RHI is expected to be valid.");
         }
+    }
 
+    void ForwardEvent(flecs::world& ecs, const SDL_Event* sdlEvent)
+    {
+        Context const* pContext = ecs.has<Context>() ? ecs.get<Context>() : nullptr;
 
+        if (pContext && pContext->isInitialized)
+        {
+            ImGui_ImplSDL3_ProcessEvent(sdlEvent);
+        }
     }
 }

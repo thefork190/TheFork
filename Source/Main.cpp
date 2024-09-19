@@ -141,6 +141,8 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event* event)
         pApp->quitApp = true;
     }
 
+    UI::ForwardEvent(pApp->ecs, event);
+
     return SDL_APP_CONTINUE;
 }
 
