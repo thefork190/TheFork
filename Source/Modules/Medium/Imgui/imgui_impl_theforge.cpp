@@ -44,7 +44,7 @@ struct ImGui_ImplTheForge_Data
     /// Caching fonts and textures
     struct UIFontResource
     {
-        Texture*  pFontTex = NULL;
+        Texture*  pFontTex = nullptr;
         uint32_t  mFontId = 0;
         float     mFontSize = 0.f;
         uintptr_t pFont = 0;
