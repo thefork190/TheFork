@@ -5,7 +5,7 @@
 
 namespace UI
 {
-	struct UIUpdater
+	struct UI
 	{
 		// TODO: callback where we pass in ecs world
 	};
