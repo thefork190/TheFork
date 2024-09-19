@@ -237,6 +237,8 @@ bool ImGui_TheForge_Init(ImGui_ImplTheForge_InitDesc const& initDesc)
     vertexLayout->mAttribs[2].mOffset =
     vertexLayout->mAttribs[1].mOffset + TinyImageFormat_BitSizeOfBlock(bd->mVertexLayoutTextured.mAttribs[1].mFormat) / 8;
 
+
+
     // Cache default font
     uint32_t fallbackFontTexId = ImGui_ImplTheForge_AddImguiFont(nullptr, 0, nullptr, UINT_MAX, 0.f, &bd->pDefaultFallbackFont);
     ASSERT(fallbackFontTexId == FALLBACK_FONT_TEXTURE_INDEX);
@@ -262,6 +264,42 @@ void ImGui_TheForge_NewFrame()
     ASSERT(bd != nullptr && "Context or backend not initialized! Did you call ImGui_ImplTheForge_Init()?");
     bd->mDynamicTexturesCount = 0u;
 }
+
+static void cmdPrepareRenderingForUI(
+    ImGui_ImplTheForge_Data* pBD,
+    Cmd* pCmd, 
+    const float2& displayPos, const float2& displaySize, 
+    Pipeline* pPipeline,
+    const uint64_t vOffset, const uint64_t iOffset)
+{
+    const float                  L = displayPos.x;
+    const float                  R = displayPos.x + displaySize.x;
+    const float                  T = displayPos.y;
+    const float                  B = displayPos.y + displaySize.y;
+    alignas(alignof(mat4)) float mvp[4][4] = {
+        { 2.0f / (R - L), 0.0f, 0.0f, 0.0f },
+        { 0.0f, 2.0f / (T - B), 0.0f, 0.0f },
+        { 0.0f, 0.0f, 0.5f, 0.0f },
+        { (R + L) / (L - R), (T + B) / (B - T), 0.5f, 1.0f },
+    };
+
+    BufferUpdateDesc update = { pBD->pUniformBuffer[pBD->mFrameIdx] };
+    beginUpdateResource(&update);
+    memcpy(update.pMappedData, &mvp, sizeof(mvp));
+    endUpdateResource(&update);
+
+    const uint32_t vertexStride = sizeof(ImDrawVert);
+
+    cmdSetViewport(pCmd, 0.0f, 0.0f, displaySize.x, displaySize.y, 0.0f, 1.0f);
+    cmdSetScissor(pCmd, (uint32_t)displayPos.x, (uint32_t)displayPos.y, (uint32_t)displaySize.x, (uint32_t)displaySize.y);
+
+    cmdBindPipeline(pCmd, pPipeline);
+    cmdBindIndexBuffer(pCmd, pBD->pIndexBuffer, sizeof(ImDrawIdx) == sizeof(uint16_t) ? INDEX_TYPE_UINT16 : INDEX_TYPE_UINT32,
+        iOffset);
+    cmdBindVertexBuffer(pCmd, 1, &pBD->pVertexBuffer, &vertexStride, &vOffset);
+    cmdBindDescriptorSet(pCmd, pBD->mFrameIdx, pBD->pDescriptorSetUniforms);
+}
+
 
 void ImGui_TheForge_RenderDrawData(ImDrawData* draw_data)
 {
