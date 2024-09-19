@@ -69,6 +69,8 @@ namespace UI
                     // Load default font
                     io.Fonts->AddFontDefault();
 
+                    ImGui_ImplSDL3_InitForOther(sdlWin.pWindow);
+
                     pContext->isInitialized = true;
 
                     // Ensure we notify modifications for following systems in the same phase that'll use the context
@@ -83,7 +85,9 @@ namespace UI
 
         if (pRHI && pRHI->pRenderer)
         {
-            // TODO: shutdown imgui
+            ImGui_ImplSDL3_Shutdown();
+            ImGui::DestroyContext();
+
         }
         else
         {
