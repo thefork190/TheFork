@@ -31,12 +31,20 @@ bool ImGui_TheForge_Init()
 
 void ImGui_TheForge_Shutdown()
 {
+    ImGui_ImplTheForge_Data* bd = ImGui_ImplTheForge_GetBackendData();
+    IM_ASSERT(bd != nullptr && "No renderer backend to shutdown, or already shutdown?");
+    ImGuiIO& io = ImGui::GetIO();
 
+    io.BackendRendererName = nullptr;
+    io.BackendRendererUserData = nullptr;
+    io.BackendFlags &= ~ImGuiBackendFlags_RendererHasViewports;
+    IM_DELETE(bd);
 }
 
 void ImGui_TheForge_NewFrame()
 {
-
+    ImGui_ImplTheForge_Data* bd = ImGui_ImplTheForge_GetBackendData();
+    IM_ASSERT(bd != nullptr && "Context or backend not initialized! Did you call ImGui_ImplTheForge_Init()?");
 }
 
 void ImGui_TheForge_RenderDrawData(ImDrawData* draw_data)
