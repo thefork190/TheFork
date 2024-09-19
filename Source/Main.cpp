@@ -15,6 +15,7 @@
 #include "Modules/Low/Window.h"
 
 #include "Modules/Medium/FontRendering.h"
+#include "Modules/Medium/imgui/UI.h"
 
 #include "Modules/High/FlappyClone/FlappyClone.h"
 #include "Modules/High/HelloTriangle/HelloTriangle.h"
@@ -97,6 +98,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[])
     pApp->lowModules.push_back(pApp->ecs.import<Inputs::module>().get_mut<Inputs::module>());
 
     pApp->lowModules.push_back(pApp->ecs.import<FontRendering::module>().get_mut<FontRendering::module>());
+    pApp->lowModules.push_back(pApp->ecs.import<UI::module>().get_mut<UI::module>());
 
     
     // Create the RHI (this might not always be needed depending on the app type)

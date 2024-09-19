@@ -25,6 +25,7 @@ namespace FontRendering
     module::module(flecs::world& ecs)
     {
         ecs.import<Engine::module>();
+        ecs.import<RHI::module>();
         ecs.import<Window::module>();
         
         ecs.module<module>();

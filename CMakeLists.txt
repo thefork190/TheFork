@@ -79,13 +79,6 @@ set(IMGUI_SRC
     Source/Modules/Medium/Imgui/imgui_impl_sdl3.cpp
     )
 
-if (WIN32)
-set(IMGUI_RENDERING_IMPL
-    ThirdParty/imgui/backends/imgui_impl_vulkan.h
-    ThirdParty/imgui/backends//imgui_impl_vulkan.cpp
-    )
-endif (WIN32)
-
 # List all sources
 set(SOURCES
     ${IMGUI_SRC}
@@ -106,6 +99,8 @@ set(SOURCES
     # MEDIUM
     Source/Modules/Medium/FontRendering.h
     Source/Modules/Medium/FontRendering.cpp
+    Source/Modules/Medium/Imgui/UI.h
+    Source/Modules/Medium/Imgui/UI.cpp
     # High
     Source/Modules/High/FlappyClone/FlappyClone.h
     Source/Modules/High/FlappyClone/FlappyClone.cpp
@@ -174,7 +169,6 @@ target_include_directories(${PROJECT_NAME}
     PUBLIC ThirdParty/The-Forge/RHI/Public
     PRIVATE ThirdParty/CLI11/include/CLI                        # CLI11 header only 3rd party
     PRIVATE ThirdParty/imgui                                    # Required to compile imgui
-    PRIVATE ThirdParty/The-Forge/ThirdParty/VulkanSDK/include   # For imgui VK backend
 )
 if(APPLE)
 target_link_libraries(${EXECUTABLE_NAME} 
