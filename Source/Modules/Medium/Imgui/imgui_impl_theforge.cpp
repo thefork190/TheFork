@@ -309,6 +309,12 @@ bool ImGui_TheForge_Init(ImGui_ImplTheForge_InitDesc const& initDesc)
     // Cache default font
     uint32_t fallbackFontTexId = ImGui_ImplTheForge_AddImguiFont(pBD, nullptr, 0, nullptr, UINT_MAX, 0.f);
     ASSERT(fallbackFontTexId == FALLBACK_FONT_TEXTURE_INDEX);
+    ASSERT(pBD->mCachedFonts[fallbackFontTexId].pFontTex);
+
+    DescriptorData params[1] = {};
+    params[0].pName = "uTex";
+    params[0].ppTextures = &pBD->mCachedFonts[fallbackFontTexId].pFontTex;
+    updateDescriptorSet(pBD->pRenderer, fallbackFontTexId, pBD->pDescriptorSetTexture, 1, params);
 
     return true;
 }
@@ -573,9 +579,15 @@ ImFont* ImGui_TheForge_GetOrAddFont(uint32_t const fontId, float const size)
                 // Ensure we don't pass max amount of fonts
                 if (pBD->mCachedFonts.size() < pBD->mMaxUIFonts)
                 {
-                    uint32_t fallbackFontTexId =
+                    uint32_t newFontTexId =
                         ImGui_ImplTheForge_AddImguiFont(pBD, pFontBuffer, fontBufferSize, nullptr, fontId, size);
-                    ASSERT(fallbackFontTexId != FALLBACK_FONT_TEXTURE_INDEX);
+                    ASSERT(newFontTexId != FALLBACK_FONT_TEXTURE_INDEX);
+                    ASSERT(pBD->mCachedFonts[newFontTexId].pFontTex);
+
+                    DescriptorData params[1] = {};
+                    params[0].pName = "uTex";
+                    params[0].ppTextures = &pBD->mCachedFonts[newFontTexId].pFontTex;
+                    updateDescriptorSet(pBD->pRenderer, newFontTexId, pBD->pDescriptorSetTexture, 1, params);
                 }
                 else
                 {
