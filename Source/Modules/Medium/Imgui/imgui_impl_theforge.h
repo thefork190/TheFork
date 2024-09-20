@@ -28,7 +28,7 @@ struct ImGui_ImplTheForge_InitDesc
 IMGUI_IMPL_API bool     ImGui_TheForge_Init(ImGui_ImplTheForge_InitDesc const& initDesc);
 IMGUI_IMPL_API void     ImGui_TheForge_Shutdown();
 IMGUI_IMPL_API void     ImGui_TheForge_NewFrame();
-IMGUI_IMPL_API void     ImGui_TheForge_RenderDrawData(ImDrawData* drawData);
+IMGUI_IMPL_API void     ImGui_TheForge_RenderDrawData(ImDrawData* pImDrawData, Cmd* pCmd);
 
 
 IMGUI_IMPL_API ImFont*  ImGui_TheForge_GetOrAddFont(uint32_t const fontId, float const size);

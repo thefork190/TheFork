@@ -435,7 +435,7 @@ static void cmdDrawUICommand(ImGui_ImplTheForge_Data* pBD, Cmd* pCmd, const ImDr
     globalVtxOffsetInOut += indexCount * sizeof(ImDrawIdx);
 }
 
-void ImGui_TheForge_RenderDrawData(ImDrawData* draw_data)
+void ImGui_TheForge_RenderDrawData(ImDrawData* pImDrawData, Cmd* pCmd)
 {
 
 }

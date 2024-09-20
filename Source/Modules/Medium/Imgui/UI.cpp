@@ -35,7 +35,7 @@ namespace UI
         Context context = {};
         ecs.set<Context>(context);
         
-        auto uiInitializer = ecs.system<Engine::Canvas, Window::SDLWindow>("UI Initializer")
+        ecs.system<Engine::Canvas, Window::SDLWindow>("UI Initializer")
             .kind(flecs::OnLoad)
             .each([](flecs::iter& it, size_t i, Engine::Canvas& canvas, Window::SDLWindow& sdlWin)
                 {
@@ -66,7 +66,7 @@ namespace UI
                     ImGui::StyleColorsDark();
 
                     ImGui_ImplSDL3_InitForOther(sdlWin.pWindow);
-                    ImGui_ImplTheForge_InitDesc initDesc = { pRHI->pRenderer, sdlWin.pSwapChain->ppRenderTargets[0]->mFormat };
+                    ImGui_ImplTheForge_InitDesc initDesc = { pRHI->pRenderer, static_cast<uint32_t>(sdlWin.pSwapChain->ppRenderTargets[0]->mFormat) };
                     ImGui_TheForge_Init(initDesc);
 
                     pContext->isInitialized = true;
@@ -76,7 +76,7 @@ namespace UI
                 }
             );
 
-        auto uiFramePacer = ecs.system("UI Frame Pacer")
+        ecs.system("UI Frame Pacer")
             .kind(flecs::OnLoad)
             .run([](flecs::iter& it)
                 {
@@ -85,7 +85,7 @@ namespace UI
                 }
             );
 
-        auto uiUpdater = ecs.system<UI>("UI Updater")
+        ecs.system<UI>("UI Updater")
             .kind(flecs::PostUpdate) // Want to run UI updates after OnUpdate phase is done
             .each([](flecs::iter& it, size_t i, UI& ui)
                 {
