@@ -262,7 +262,7 @@ namespace HelloTriangle
 
                         BindRenderTargetsDesc bindRenderTargets = {};
                         bindRenderTargets.mRenderTargetCount = 1;
-                        bindRenderTargets.mRenderTargets[0] = { sdlWin.pCurRT, LOAD_ACTION_LOAD };
+                        bindRenderTargets.mRenderTargets[0] = { sdlWin.pCurRT, LOAD_ACTION_CLEAR };
                         cmdBindRenderTargets(pCmd, &bindRenderTargets);
                         cmdSetViewport(pCmd, 0.0f, 0.0f, (float)canvas.width, (float)canvas.height, 0.0f, 1.0f);
                         cmdSetScissor(pCmd, 0, 0, canvas.width, canvas.height);
