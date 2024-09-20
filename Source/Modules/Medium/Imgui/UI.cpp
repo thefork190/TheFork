@@ -80,6 +80,13 @@ namespace UI
             .kind(flecs::OnLoad)
             .run([](flecs::iter& it)
                 {
+                    if (!it.world().has<Context>())
+                        return;
+
+                    Context const* pContext = it.world().get<Context>();
+                    if (!pContext->isInitialized)
+                        return;
+
                     ImGui_ImplSDL3_NewFrame();
                     ImGui::NewFrame();
                 }
@@ -99,6 +106,39 @@ namespace UI
                     auto world = it.world();
                     ui.Update(world);
                 });
+
+        ecs.system<Engine::Canvas, Window::SDLWindow>("UI Draw")
+            .kind(flecs::OnStore)
+            .each([](flecs::iter& it, size_t i, Engine::Canvas& canvas, Window::SDLWindow& sdlWin)
+                {
+                    if (!it.world().has<Context>())
+                        return;
+
+                    Context const* pContext = it.world().get<Context>();
+                    if (!pContext->isInitialized)
+                        return;
+
+                    ASSERTMSG(i == 0, "Drawing to more than one window not implemented.");
+
+                    // TODO: we always call end frame and that might not be very performant
+                    //       The assumption is that the UI frame pacer system always calls ImGui::NewFrame, even if there's no UI
+                    ImGui::EndFrame();
+
+                    RHI::RHI const* pRHI = it.world().has<RHI::RHI>() ? it.world().get<RHI::RHI>() : nullptr;
+                    
+                    if (pRHI)
+                    {
+                        Cmd* pCmd = pRHI->curCmdRingElem.pCmds[0];
+                        ASSERT(pCmd);
+
+                        //cmdBeginDebugMarker(pCmd, 1, 0, 1, "ImGui Draw");
+
+                        //cmdBindRenderTargets(pCmd, nullptr);
+
+                        cmdEndDebugMarker(pCmd);
+                    }
+                }
+            );
     }
 
     void module::OnExit(flecs::world& ecs)
