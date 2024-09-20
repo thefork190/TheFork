@@ -74,7 +74,8 @@ static uint32_t ImGui_ImplTheForge_AddImguiFont(
     int32_t        width, height, bytesPerPixel;
     unsigned char* pixels = nullptr;
 
-    uintptr_t* pFont = nullptr;
+    uintptr_t font;
+    uintptr_t* pFont = &font;
 
     io.Fonts->ClearInputData();
     if (pFontBuffer == nullptr)
@@ -232,6 +233,79 @@ bool ImGui_TheForge_Init(ImGui_ImplTheForge_InitDesc const& initDesc)
     vertexLayout->mAttribs[2].mOffset =
     vertexLayout->mAttribs[1].mOffset + TinyImageFormat_BitSizeOfBlock(pBD->mVertexLayoutTextured.mAttribs[1].mFormat) / 8;
 
+    const char* imguiFrag[SAMPLE_COUNT_COUNT] = {
+                "imgui_SAMPLE_COUNT_1.frag", "imgui_SAMPLE_COUNT_2.frag",  "imgui_SAMPLE_COUNT_4.frag",
+                "imgui_SAMPLE_COUNT_8.frag", "imgui_SAMPLE_COUNT_16.frag",
+    };
+    ShaderLoadDesc texturedShaderDesc = {};
+    texturedShaderDesc.mStages[0] = { "imgui.vert" };
+    for (uint32_t s = 0; s < TF_ARRAY_COUNT(imguiFrag); ++s)
+    {
+        texturedShaderDesc.mStages[1] = { imguiFrag[s] };
+        addShader(pBD->pRenderer, &texturedShaderDesc, &pBD->pShaderTextured[s]);
+    }
+
+    const char* pStaticSamplerNames[] = { "uSampler" };
+    RootSignatureDesc textureRootDesc = { pBD->pShaderTextured, 1 };
+    textureRootDesc.mStaticSamplerCount = 1;
+    textureRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
+    textureRootDesc.ppStaticSamplers = &pBD->pDefaultSampler;
+    addRootSignature(pBD->pRenderer, &textureRootDesc, &pBD->pRootSignatureTextured);
+
+    DescriptorSetDesc setDesc = { pBD->pRootSignatureTextured, DESCRIPTOR_UPDATE_FREQ_PER_BATCH,
+                                          pBD->mMaxUIFonts +
+                                              (pBD->mMaxDynamicUIUpdatesPerBatch * pBD->mFrameCount) };
+    addDescriptorSet(pBD->pRenderer, &setDesc, &pBD->pDescriptorSetTexture);
+    setDesc = { pBD->pRootSignatureTextured, DESCRIPTOR_UPDATE_FREQ_NONE, pBD->mFrameCount };
+    addDescriptorSet(pBD->pRenderer, &setDesc, &pBD->pDescriptorSetUniforms);
+
+    for (uint32_t i = 0; i < pBD->mFrameCount; ++i)
+    {
+        DescriptorData params[1] = {};
+        params[0].pName = "uniformBlockVS";
+        params[0].ppBuffers = &pBD->pUniformBuffer[i];
+        updateDescriptorSet(pBD->pRenderer, i, pBD->pDescriptorSetUniforms, 1, params);
+    }
+
+    BlendStateDesc blendStateDesc = {};
+    blendStateDesc.mSrcFactors[0] = BC_SRC_ALPHA;
+    blendStateDesc.mDstFactors[0] = BC_ONE_MINUS_SRC_ALPHA;
+    blendStateDesc.mSrcAlphaFactors[0] = BC_SRC_ALPHA;
+    blendStateDesc.mDstAlphaFactors[0] = BC_ONE_MINUS_SRC_ALPHA;
+    blendStateDesc.mColorWriteMasks[0] = COLOR_MASK_ALL;
+    blendStateDesc.mRenderTargetMask = BLEND_STATE_TARGET_ALL;
+    blendStateDesc.mIndependentBlend = false;
+
+    DepthStateDesc depthStateDesc = {};
+    depthStateDesc.mDepthTest = false;
+    depthStateDesc.mDepthWrite = false;
+
+    RasterizerStateDesc rasterizerStateDesc = {};
+    rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
+    rasterizerStateDesc.mScissor = true;
+
+    PipelineDesc desc = {};
+    desc.pCache = pBD->pCache;
+    desc.mType = PIPELINE_TYPE_GRAPHICS;
+    GraphicsPipelineDesc& pipelineDesc = desc.mGraphicsDesc;
+    pipelineDesc.mDepthStencilFormat = TinyImageFormat_UNDEFINED;
+    pipelineDesc.mRenderTargetCount = 1;
+    pipelineDesc.mSampleCount = SAMPLE_COUNT_1;
+    pipelineDesc.pBlendState = &blendStateDesc;
+    pipelineDesc.mSampleQuality = 0;
+    pipelineDesc.pColorFormats = (TinyImageFormat*)&initDesc.mColorFormat;
+    pipelineDesc.pDepthState = &depthStateDesc;
+    pipelineDesc.pRasterizerState = &rasterizerStateDesc;
+    pipelineDesc.pRootSignature = pBD->pRootSignatureTextured;
+    pipelineDesc.pVertexLayout = &pBD->mVertexLayoutTextured;
+    pipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+    pipelineDesc.mVRFoveatedRendering = true;
+    for (uint32_t s = 0; s < TF_ARRAY_COUNT(pBD->pShaderTextured); ++s)
+    {
+        pipelineDesc.pShaderProgram = pBD->pShaderTextured[s];
+        addPipeline(pBD->pRenderer, &desc, &pBD->pPipelineTextured[s]);
+    }
+
     // Cache default font
     uint32_t fallbackFontTexId = ImGui_ImplTheForge_AddImguiFont(pBD, nullptr, 0, nullptr, UINT_MAX, 0.f);
     ASSERT(fallbackFontTexId == FALLBACK_FONT_TEXTURE_INDEX);
@@ -293,6 +367,73 @@ static void cmdPrepareRenderingForUI(
     cmdBindDescriptorSet(pCmd, pBD->mFrameIdx, pBD->pDescriptorSetUniforms);
 }
 
+static void cmdDrawUICommand(ImGui_ImplTheForge_Data* pBD, Cmd* pCmd, const ImDrawCmd* pImDrawCmd, const float2& displayPos, const float2& displaySize,
+    Pipeline** ppPipelineInOut, Pipeline** ppPrevPipelineInOut, uint32_t& globalVtxOffsetInOut,
+    uint32_t& globalIdxOffsetInOut, uint32_t& prevSetIndexInOut, const int32_t vertexCount, const int32_t indexCount)
+{
+    float2 clipMin = { clamp(pImDrawCmd->ClipRect.x - displayPos.x, 0.0f, displaySize.x),
+                       clamp(pImDrawCmd->ClipRect.y - displayPos.y, 0.0f, displaySize.y) };
+    float2 clipMax = { clamp(pImDrawCmd->ClipRect.z - displayPos.x, 0.0f, displaySize.x),
+                       clamp(pImDrawCmd->ClipRect.w - displayPos.y, 0.0f, displaySize.y) };
+    if (clipMax.x <= clipMin.x || clipMax.y <= clipMin.y)
+    {
+        return;
+    }
+    if (!pImDrawCmd->ElemCount)
+    {
+        return;
+    }
+
+    uint2 offset = { (uint32_t)clipMin.x, (uint32_t)clipMin.y };
+    uint2 ext = { (uint32_t)(clipMax.x - clipMin.x), (uint32_t)(clipMax.y - clipMin.y) };
+    cmdSetScissor(pCmd, offset.x, offset.y, ext.x, ext.y);
+
+    ptrdiff_t id = (ptrdiff_t)pImDrawCmd->TextureId;
+    uint32_t  setIndex = (uint32_t)id;
+    if (id >= pBD->mMaxUIFonts) // it's not a font, it's an external texture
+    {
+        if (pBD->mDynamicTexturesCount >= pBD->mMaxDynamicUIUpdatesPerBatch)
+        {
+            LOGF(eWARNING,
+                "Too many dynamic UIs.  Consider increasing 'mMaxDynamicUIUpdatesPerBatch' when initializing the user interface.");
+            return;
+        }
+
+        Texture* tex = (Texture*)pImDrawCmd->TextureId;
+        setIndex = pBD->mMaxUIFonts + ((ptrdiff_t)pBD->mFrameIdx * pBD->mMaxDynamicUIUpdatesPerBatch +
+            pBD->mDynamicTexturesCount++);
+
+
+        DescriptorData params[1] = {};
+        params[0].pName = "uTex";
+        params[0].ppTextures = &tex;
+        updateDescriptorSet(pBD->pRenderer, setIndex, pBD->pDescriptorSetTexture, 1, params);
+
+        uint32_t pipelineIndex = (uint32_t)log2(params[0].ppTextures[0]->mSampleCount);
+        *ppPipelineInOut = pBD->pPipelineTextured[pipelineIndex];
+    }
+    else
+    {
+        *ppPipelineInOut = pBD->pPipelineTextured[0];
+    }
+
+    if (*ppPrevPipelineInOut != *ppPipelineInOut)
+    {
+        cmdBindPipeline(pCmd, *ppPipelineInOut);
+        *ppPrevPipelineInOut = *ppPipelineInOut;
+    }
+
+    if (setIndex != prevSetIndexInOut)
+    {
+        cmdBindDescriptorSet(pCmd, setIndex, pBD->pDescriptorSetTexture);
+        prevSetIndexInOut = setIndex;
+    }
+
+    cmdDrawIndexed(pCmd, pImDrawCmd->ElemCount, pImDrawCmd->IdxOffset + globalIdxOffsetInOut,
+                   pImDrawCmd->VtxOffset + globalVtxOffsetInOut);
+    globalIdxOffsetInOut += vertexCount  * sizeof(ImDrawIdx);
+    globalVtxOffsetInOut += indexCount * sizeof(ImDrawIdx);
+}
 
 void ImGui_TheForge_RenderDrawData(ImDrawData* draw_data)
 {
