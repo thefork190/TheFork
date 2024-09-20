@@ -437,7 +437,101 @@ static void cmdDrawUICommand(ImGui_ImplTheForge_Data* pBD, Cmd* pCmd, const ImDr
 
 void ImGui_TheForge_RenderDrawData(ImDrawData* pImDrawData, Cmd* pCmd)
 {
+    ImGui_ImplTheForge_Data* pBD = ImGui_ImplTheForge_GetBackendData();
+    ASSERT(pBD != nullptr && "Context or backend not initialized! Did you call ImGui_ImplTheForge_Init()?");
 
+    float2 displayPos(pImDrawData->DisplayPos.x, pImDrawData->DisplayPos.y);
+    float2 displaySize(pImDrawData->DisplaySize.x, pImDrawData->DisplaySize.y);
+
+    uint64_t vSize = pImDrawData->TotalVtxCount * sizeof(ImDrawVert);
+    uint64_t iSize = pImDrawData->TotalIdxCount * sizeof(ImDrawIdx);
+
+    const uint64_t vertexBufferSize = pBD->mMaxVerts * sizeof(ImDrawVert);
+    const uint64_t indexBufferSize = pBD->mMaxInds * sizeof(ImDrawIdx);
+
+    vSize = min<uint64_t>(vSize, vertexBufferSize);
+    iSize = min<uint64_t>(iSize, indexBufferSize);
+
+    uint64_t vOffset = pBD->mFrameIdx * vertexBufferSize;
+    uint64_t iOffset = pBD->mFrameIdx * indexBufferSize;
+
+    if (pImDrawData->TotalVtxCount > pBD->mMaxVerts || pImDrawData->TotalIdxCount > pBD->mMaxInds)
+    {
+        LOGF(eWARNING, "UI exceeds amount of verts/inds.  Consider updating mMaxVerts/mMaxInds when calling ImGui_ImplTheForge_Init().");
+        LOGF(eWARNING, "Num verts: %d (max %d) | Num inds: %d (max %d)", pImDrawData->TotalVtxCount, pBD->mMaxVerts,
+            pImDrawData->TotalIdxCount, pBD->mMaxInds);
+        pImDrawData->TotalVtxCount =
+            pImDrawData->TotalVtxCount > pImDrawData->TotalVtxCount ? pImDrawData->TotalVtxCount : pImDrawData->TotalVtxCount;
+        pImDrawData->TotalIdxCount = pImDrawData->TotalIdxCount > pBD->mMaxInds ? pBD->mMaxInds : pImDrawData->TotalIdxCount;
+    }
+
+    uint64_t vtxDst = vOffset;
+    uint64_t idxDst = iOffset;
+
+    for (int32_t i = 0; i < pImDrawData->CmdListsCount; i++)
+    {
+        const ImDrawList* pCmdList = pImDrawData->CmdLists[i];
+        const uint64_t    vtxSize = pCmdList->VtxBuffer.size() * sizeof(ImDrawVert);
+        const uint64_t idxSize = pCmdList->IdxBuffer.size() * sizeof(ImDrawIdx);
+        BufferUpdateDesc update = { pBD->pVertexBuffer, vtxDst, vtxSize };
+        beginUpdateResource(&update);
+        memcpy(update.pMappedData, pCmdList->VtxBuffer.Data, pCmdList->VtxBuffer.size() * sizeof(ImDrawVert));
+        endUpdateResource(&update);
+
+        update = { pBD->pIndexBuffer, idxDst, idxSize };
+        beginUpdateResource(&update);
+        memcpy(update.pMappedData, pCmdList->IdxBuffer.Data, pCmdList->IdxBuffer.size() * sizeof(ImDrawIdx));
+        endUpdateResource(&update);
+
+        // Round up in case the buffer alignment is not a multiple of vertex/index size
+        vtxDst += round_up_64(vtxSize, sizeof(ImDrawVert));
+        idxDst += round_up_64(idxSize, sizeof(ImDrawIdx));
+    }
+
+    Pipeline* pPipeline = pBD->pPipelineTextured[0];
+    Pipeline* pPreviousPipeline = pPipeline;
+    uint32_t  prevSetIndex = UINT32_MAX;
+
+    cmdPrepareRenderingForUI(pBD, pCmd, displayPos, displaySize, pPipeline, vOffset, iOffset);
+
+    // Render command lists
+    uint32_t globalVtxOffset = 0;
+    uint32_t globalIdxOffset = 0;
+
+    {
+        for (int n = 0; n < pImDrawData->CmdListsCount; n++)
+        {
+            const ImDrawList* pCmdList = pImDrawData->CmdLists[n];
+
+            for (int c = 0; c < pCmdList->CmdBuffer.size(); c++)
+            {
+                const ImDrawCmd* pImDrawCmd = &pCmdList->CmdBuffer[c];
+
+                if (pImDrawCmd->UserCallback)
+                {
+                    // User callback (registered via ImDrawList::AddCallback)
+                    pImDrawCmd->UserCallback(pCmdList, pImDrawCmd);
+                    continue;
+                }
+
+                int32_t vertexCount, indexCount;
+                if (c == pCmdList->CmdBuffer.size() - 1)
+                {
+                    vertexCount = pCmdList->VtxBuffer.size();
+                    indexCount = pCmdList->IdxBuffer.size();
+                }
+                else
+                {
+                    vertexCount = 0;
+                    indexCount = 0;
+                }
+                cmdDrawUICommand(pBD, pCmd, pImDrawCmd, displayPos, displaySize, &pPipeline, &pPreviousPipeline, globalVtxOffset,
+                                 globalIdxOffset, prevSetIndex, vertexCount, indexCount);
+            }
+        }
+    }
+
+    pBD->mFrameIdx = (pBD->mFrameIdx + 1) % pBD->mFrameCount;
 }
 
 ImFont* ImGui_TheForge_GetOrAddFont(uint32_t const fontId, float const size)

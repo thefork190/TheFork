@@ -88,6 +88,7 @@ namespace UI
                         return;
 
                     ImGui_ImplSDL3_NewFrame();
+                    ImGui_TheForge_NewFrame();
                     ImGui::NewFrame();
                 }
             );
@@ -108,7 +109,7 @@ namespace UI
                 });
 
         ecs.system<Engine::Canvas, Window::SDLWindow>("UI Draw")
-            .kind(flecs::OnStore)
+            .kind(Engine::GetCustomPhaseEntity(ecs, Engine::UI_RENDER))
             .each([](flecs::iter& it, size_t i, Engine::Canvas& canvas, Window::SDLWindow& sdlWin)
                 {
                     if (!it.world().has<Context>())
@@ -128,14 +129,27 @@ namespace UI
                     
                     if (pRHI)
                     {
-                        Cmd* pCmd = pRHI->curCmdRingElem.pCmds[0];
-                        ASSERT(pCmd);
+                        ImGui::Render();
+                        ImDrawData* pDrawData = ImGui::GetDrawData();
 
-                        //cmdBeginDebugMarker(pCmd, 1, 0, 1, "ImGui Draw");
+                        if (pDrawData && pDrawData->Valid && pDrawData->TotalIdxCount > 0 && pDrawData->TotalVtxCount > 0)
+                        {
+                            Cmd* pCmd = pRHI->curCmdRingElem.pCmds[0];
+                            ASSERT(pCmd);
 
-                        //cmdBindRenderTargets(pCmd, nullptr);
+                            cmdBeginDebugMarker(pCmd, 1, 0, 1, "ImGui Draw");
 
-                        cmdEndDebugMarker(pCmd);
+                            BindRenderTargetsDesc bindRenderTargets = {};
+                            bindRenderTargets.mRenderTargetCount = 1;
+                            bindRenderTargets.mRenderTargets[0] = { sdlWin.pCurRT, LOAD_ACTION_LOAD };
+                            cmdBindRenderTargets(pCmd, &bindRenderTargets);
+
+                            ImGui_TheForge_RenderDrawData(pDrawData, pCmd);
+
+                            cmdBindRenderTargets(pCmd, nullptr);
+
+                            cmdEndDebugMarker(pCmd);
+                        }
                     }
                 }
             );
