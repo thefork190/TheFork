@@ -20,7 +20,7 @@ struct PipelineCache;
 struct ImGui_ImplTheForge_InitDesc
 {
 	Renderer* pRenderer = nullptr;
-	uint32_t mColorFormat; // enum TinyImageFormat
+	uint32_t mColorFormat = {}; // enum TinyImageFormat
 
 	PipelineCache* pCache = nullptr;
 
