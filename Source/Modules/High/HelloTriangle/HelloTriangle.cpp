@@ -213,10 +213,12 @@ namespace HelloTriangle
             .kind(flecs::OnUpdate)
             .run([](flecs::iter& it)
                 {
-                    RHI::RHI const* pRHI = it.world().has<RHI::RHI>() ? it.world().get<RHI::RHI>() : nullptr;
-                    RenderPassData const* pRPD = it.world().has<RenderPassData>() ? it.world().get<RenderPassData>() : nullptr;
-                    Inputs::RawKeboardStates const* pKeyboard = it.world().has<Inputs::RawKeboardStates>() ? it.world().get<Inputs::RawKeboardStates>() : nullptr;
-                    Engine::Context* pEngineContext = it.world().has<Engine::Context>() ? it.world().get_mut<Engine::Context>() : nullptr;
+                    auto ecs = it.world();
+
+                    RHI::RHI const* pRHI = ecs.has<RHI::RHI>() ? ecs.get<RHI::RHI>() : nullptr;
+                    RenderPassData const* pRPD = ecs.has<RenderPassData>() ? ecs.get<RenderPassData>() : nullptr;
+                    Inputs::RawKeboardStates const* pKeyboard = ecs.has<Inputs::RawKeboardStates>() ? ecs.get<Inputs::RawKeboardStates>() : nullptr;
+                    Engine::Context* pEngineContext = ecs.has<Engine::Context>() ? ecs.get_mut<Engine::Context>() : nullptr;
 
                     // Rendering update
                     if (pRHI && pRPD)
@@ -235,10 +237,13 @@ namespace HelloTriangle
                     // Exit if ESC is pressed
                     if (pKeyboard && pEngineContext)
                     {
-                        if (pKeyboard->WasPressed(SDLK_ESCAPE))
+                        if (!UI::WantsCaptureInputs(ecs))
                         {
-                            LOGF(eDEBUG, "ESC pressed, requesting to exit the app.");
-                            pEngineContext->RequestExit();
+                            if (pKeyboard->WasPressed(SDLK_ESCAPE))
+                            {
+                                LOGF(eDEBUG, "ESC pressed, requesting to exit the app.");
+                                pEngineContext->RequestExit();
+                            }
                         }
                     }
                 }

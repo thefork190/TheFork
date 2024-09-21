@@ -180,4 +180,17 @@ namespace UI
             ImGui_ImplSDL3_ProcessEvent(sdlEvent);
         }
     }
+
+    bool WantsCaptureInputs(flecs::world& ecs)
+    {
+        Context const* pContext = ecs.has<Context>() ? ecs.get<Context>() : nullptr;
+
+        if (pContext && pContext->isInitialized)
+        {
+            ImGuiIO& io = ImGui::GetIO();
+            return io.WantCaptureMouse || io.WantCaptureKeyboard || io.NavVisible;
+        }
+
+        return false;
+    }
 }

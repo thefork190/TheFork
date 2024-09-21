@@ -18,5 +18,9 @@ namespace UI
 		virtual void OnExit(flecs::world& ecs) override;
 	};
 
+	// Forwards SDL events
 	void ForwardEvent(flecs::world& ecs, const SDL_Event* sdlEvent);
+	
+	// Checks if UI is currently capturing inputs (in which case the app probably shouldn't handle inputs)
+	bool WantsCaptureInputs(flecs::world& ecs);
 }
