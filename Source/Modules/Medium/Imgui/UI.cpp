@@ -161,6 +161,7 @@ namespace UI
 
         if (pRHI && pRHI->pRenderer)
         {
+            ImGui_TheForge_Shutdown();
             ImGui_ImplSDL3_Shutdown();
             ImGui::DestroyContext();
         }

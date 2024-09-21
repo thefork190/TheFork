@@ -321,14 +321,44 @@ bool ImGui_TheForge_Init(ImGui_ImplTheForge_InitDesc const& initDesc)
 
 void ImGui_TheForge_Shutdown()
 {
-    ImGui_ImplTheForge_Data* bd = ImGui_ImplTheForge_GetBackendData();
-    ASSERT(bd != nullptr && "No renderer backend to shutdown, or already shutdown?");
+    ImGui_ImplTheForge_Data* pBD = ImGui_ImplTheForge_GetBackendData();
+    ASSERT(pBD != nullptr && "No renderer backend to shutdown, or already shutdown?");
     ImGuiIO& io = ImGui::GetIO();
 
     io.BackendRendererName = nullptr;
     io.BackendRendererUserData = nullptr;
     io.BackendFlags &= ~ImGuiBackendFlags_RendererHasViewports;
-    IM_DELETE(bd);
+
+    for (uint32_t s = 0; s < TF_ARRAY_COUNT(pBD->pShaderTextured); ++s)
+    {
+        removePipeline(pBD->pRenderer, pBD->pPipelineTextured[s]);
+    }
+
+    for (uint32_t s = 0; s < TF_ARRAY_COUNT(pBD->pShaderTextured); ++s)
+    {
+        removeShader(pBD->pRenderer, pBD->pShaderTextured[s]);
+    }
+    removeDescriptorSet(pBD->pRenderer, pBD->pDescriptorSetTexture);
+    removeDescriptorSet(pBD->pRenderer, pBD->pDescriptorSetUniforms);
+    removeRootSignature(pBD->pRenderer, pBD->pRootSignatureTextured);
+    
+    removeSampler(pBD->pRenderer, pBD->pDefaultSampler);
+
+    removeResource(pBD->pVertexBuffer);
+    removeResource(pBD->pIndexBuffer);
+    for (uint32_t i = 0; i < pBD->mFrameCount; ++i)
+    {
+        if (pBD->pUniformBuffer[i])
+        {
+            removeResource(pBD->pUniformBuffer[i]);
+            pBD->pUniformBuffer[i] = NULL;
+        }
+    }
+
+    for (ptrdiff_t i = 0; i < pBD->mCachedFonts.size(); ++i)
+        removeResource(pBD->mCachedFonts[i].pFontTex);
+
+    IM_DELETE(pBD);
 }
 
 void ImGui_TheForge_NewFrame()
