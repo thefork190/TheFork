@@ -119,7 +119,7 @@ namespace UI
                     if (!it.world().has<Context>())
                         return;
 
-                    Context const* pContext = it.world().get<Context>();
+                    Context* pContext = it.world().get_mut<Context>();
                     if (!pContext->isInitialized)
                         return;
 
@@ -155,6 +155,14 @@ namespace UI
                             cmdEndDebugMarker(pCmd);
                         }
                     }
+
+                    // Load fonts
+                    for (auto const& fontDesc : pContext->fontsToLoad)
+                    {
+                        ImFont* pNewLoadedFont = ImGui_TheForge_GetOrAddFont(fontDesc.first, fontDesc.second);
+                        ASSERTMSG(pNewLoadedFont != 0, "Failed to load UI font.");
+                    }
+                    pContext->fontsToLoad.clear();
                 }
             );
     }

@@ -13,8 +13,7 @@
 
 struct ImGui_ImplTheForge_Data
 {
-    uint32_t mMaxDynamicUIUpdatesPerBatch = 20u;
-    uint32_t mMaxUIFonts = 10u;
+    uint32_t mMaxDynamicUIUpdatesPerBatch = 32u;
     uint32_t mFrameCount = 2u;
 
     uint32_t mMaxVerts = 64u * 1024u;
@@ -94,7 +93,8 @@ static uint32_t ImGui_ImplTheForge_AddImguiFont(
         }
         else
         {
-            *pFont = (uintptr_t)io.Fonts->AddFontDefault();
+            ImFontConfig cfg = ImFontConfig();
+            *pFont = (uintptr_t)io.Fonts->AddFontDefault(&cfg);
         }
     }
 
@@ -168,7 +168,6 @@ bool ImGui_TheForge_Init(ImGui_ImplTheForge_InitDesc const& initDesc)
     pBD->pRenderer = initDesc.pRenderer;
     pBD->pCache = initDesc.pCache;
     pBD->mMaxDynamicUIUpdatesPerBatch = initDesc.mMaxDynamicUIUpdatesPerBatch;
-    pBD->mMaxUIFonts = initDesc.mMaxUIFonts + 1; // +1 to account for a default fallback font
     pBD->mFrameCount = initDesc.mFrameCount;
     ASSERT(pBD->mFrameCount <= MAX_FRAMES);
 
@@ -253,8 +252,7 @@ bool ImGui_TheForge_Init(ImGui_ImplTheForge_InitDesc const& initDesc)
     addRootSignature(pBD->pRenderer, &textureRootDesc, &pBD->pRootSignatureTextured);
 
     DescriptorSetDesc setDesc = { pBD->pRootSignatureTextured, DESCRIPTOR_UPDATE_FREQ_PER_BATCH,
-                                          pBD->mMaxUIFonts +
-                                              (pBD->mMaxDynamicUIUpdatesPerBatch * pBD->mFrameCount) };
+                                          1 + (pBD->mMaxDynamicUIUpdatesPerBatch * pBD->mFrameCount) };
     addDescriptorSet(pBD->pRenderer, &setDesc, &pBD->pDescriptorSetTexture);
     setDesc = { pBD->pRootSignatureTextured, DESCRIPTOR_UPDATE_FREQ_NONE, pBD->mFrameCount };
     addDescriptorSet(pBD->pRenderer, &setDesc, &pBD->pDescriptorSetUniforms);
@@ -426,7 +424,7 @@ static void cmdDrawUICommand(ImGui_ImplTheForge_Data* pBD, Cmd* pCmd, const ImDr
 
     ptrdiff_t id = (ptrdiff_t)pImDrawCmd->TextureId;
     uint32_t  setIndex = (uint32_t)id;
-    if (id >= pBD->mMaxUIFonts) // it's not a font, it's an external texture
+    if (id > 0) // it's not a font, it's an external texture
     {
         if (pBD->mDynamicTexturesCount >= pBD->mMaxDynamicUIUpdatesPerBatch)
         {
@@ -436,7 +434,7 @@ static void cmdDrawUICommand(ImGui_ImplTheForge_Data* pBD, Cmd* pCmd, const ImDr
         }
 
         Texture* tex = (Texture*)pImDrawCmd->TextureId;
-        setIndex = pBD->mMaxUIFonts + ((ptrdiff_t)pBD->mFrameIdx * pBD->mMaxDynamicUIUpdatesPerBatch +
+        setIndex = 1 + ((ptrdiff_t)pBD->mFrameIdx * pBD->mMaxDynamicUIUpdatesPerBatch +
             pBD->mDynamicTexturesCount++);
 
 
@@ -606,35 +604,22 @@ ImFont* ImGui_TheForge_GetOrAddFont(uint32_t const fontId, float const size)
 
             if (cachedFontIndex == -1) // didn't find that font in the cache
             {
-                // Ensure we don't pass max amount of fonts
-                if (pBD->mCachedFonts.size() < pBD->mMaxUIFonts)
-                {
-                    uint32_t newFontTexId =
-                        ImGui_ImplTheForge_AddImguiFont(pBD, pFontBuffer, fontBufferSize, nullptr, fontId, size);
-                    ASSERT(newFontTexId != FALLBACK_FONT_TEXTURE_INDEX);
-                    ASSERT(pBD->mCachedFonts[newFontTexId].pFontTex);
+                uint32_t newFontTexId =
+                    ImGui_ImplTheForge_AddImguiFont(pBD, pFontBuffer, fontBufferSize, nullptr, fontId, size);
+                ASSERT(newFontTexId != FALLBACK_FONT_TEXTURE_INDEX);
+                ASSERT(pBD->mCachedFonts[newFontTexId].pFontTex);
 
-                    DescriptorData params[1] = {};
-                    params[0].pName = "uTex";
-                    params[0].ppTextures = &pBD->mCachedFonts[newFontTexId].pFontTex;
-                    updateDescriptorSet(pBD->pRenderer, newFontTexId, pBD->pDescriptorSetTexture, 1, params);
-                }
-                else
-                {
-                    LOGF(eWARNING, "ImGui_TheForge_GetOrAddFont() has reached fonts capacity.  Consider increasing 'mMaxUIFonts' when initializing the "
-                        "user interface.");
-                    useDefaultFallbackFont = true;
-                }
+                DescriptorData params[1] = {};
+                params[0].pName = "uTex";
+                params[0].ppTextures = &pBD->mCachedFonts[newFontTexId].pFontTex;
+                updateDescriptorSet(pBD->pRenderer, newFontTexId, pBD->pDescriptorSetTexture, 1, params);
+
+                ret = newFontTexId;
             }
         }
         else
         {
             LOGF(eWARNING, "ImGui_TheForge_GetOrAddFont() was provided an unknown font id (%u).  Will fallback to default UI font.", fontId);
-            useDefaultFallbackFont = true;
-        }
-
-        if (useDefaultFallbackFont)
-        {
             ret = pBD->pDefaultFallbackFont;
         }
     }
