@@ -17,7 +17,6 @@ struct ImGui_ImplTheForge_InitDesc
 	PipelineCache* pCache = nullptr;
 
 	uint32_t mMaxDynamicUIUpdatesPerBatch = 32u;
-	uint32_t mMaxUIFonts = 32u;
 	uint32_t mFrameCount = 2u;
 
 	uint32_t mMaxVerts = 64u * 1024u;
