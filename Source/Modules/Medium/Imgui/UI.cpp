@@ -1,5 +1,7 @@
+#include <set>
+#include <utility> // For std::pair
+
 #include <imgui.h>
-//#include <backends/imgui_impl_tf.h>
 
 #include <ILog.h>
 #include <Graphics/GraphicsConfig.h>
@@ -18,6 +20,8 @@ namespace UI
     struct Context
     {
         bool isInitialized = false;
+
+        std::set<std::pair<unsigned int, float>> fontsToLoad;
     };
 
     module::module(flecs::world& ecs)
@@ -66,7 +70,7 @@ namespace UI
                     ImGui::StyleColorsDark();
 
                     ImGui_ImplSDL3_InitForOther(sdlWin.pWindow);
-                    ImGui_ImplTheForge_InitDesc initDesc = { pRHI->pRenderer, static_cast<uint32_t>(sdlWin.pSwapChain->ppRenderTargets[0]->mFormat) };
+                    ImGui_ImplTheForge_InitDesc initDesc = { pRHI->pRenderer, static_cast<unsigned int>(sdlWin.pSwapChain->ppRenderTargets[0]->mFormat) };
                     ImGui_TheForge_Init(initDesc);
 
                     pContext->isInitialized = true;
@@ -192,5 +196,31 @@ namespace UI
         }
 
         return false;
+    }
+
+    ImFont* GetOrAddFont(flecs::world& ecs, FontRendering::eAvailableFonts const font, float const size)
+    {
+        ASSERT(font < FontRendering::NUM_AVAILABLE_FONTS);
+
+        Context* pContext = ecs.has<Context>() ? ecs.get_mut<Context>() : nullptr;
+
+        if (pContext && pContext->isInitialized)
+        {
+            unsigned int const fontId = FontRendering::InternalId(ecs, font);
+            if (ImGui_TheForge_FontIsLoaded(fontId, size))
+                return ImGui_TheForge_GetOrAddFont(fontId, size);
+            else
+            {
+                std::pair<unsigned int, float> const toAdd = { fontId, size };
+                pContext->fontsToLoad.insert(toAdd);
+
+                // Note: no need to modify changes, we'll get them after the following sync point.
+                //       we don't really care since we're deferring font loading after ImGui::EndFrame()
+
+                return ImGui_TheForge_GetFallbackFont();
+            }
+        }
+        
+        return nullptr;
     }
 }

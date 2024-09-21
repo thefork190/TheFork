@@ -3,6 +3,9 @@
 #include <functional>
 #include <flecs.h>
 #include "LifeCycledModule.h"
+#include "Medium/FontRendering.h"
+
+struct ImFont;
 
 namespace UI
 {
@@ -23,4 +26,9 @@ namespace UI
 	
 	// Checks if UI is currently capturing inputs (in which case the app probably shouldn't handle inputs)
 	bool WantsCaptureInputs(flecs::world& ecs);
+
+	// This function will always return a valid ImFont* if the UI is currently initialized.
+	// A nullptr represents the fallback font (which should always be valid for usage).
+	// If the specified font was not yet loaded, it will be loaded at a deferred time and the default fallback font will be returned.
+	ImFont* GetOrAddFont(flecs::world& ecs, FontRendering::eAvailableFonts const font, float const size);
 }

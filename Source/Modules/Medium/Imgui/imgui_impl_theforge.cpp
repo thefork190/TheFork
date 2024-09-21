@@ -641,3 +641,34 @@ ImFont* ImGui_TheForge_GetOrAddFont(uint32_t const fontId, float const size)
 
     return (ImFont*)ret;
 }
+
+bool ImGui_TheForge_FontIsLoaded(uint32_t const fontId, float const size)
+{
+    ImGui_ImplTheForge_Data* pBD = ImGui_ImplTheForge_GetBackendData();
+
+    if (!pBD)
+        return false;
+
+    size_t cachedFontIndex = -1;
+    for (size_t i = 0; i < pBD->mCachedFonts.size(); ++i)
+    {
+        if (pBD->mCachedFonts[i].mFontId == fontId &&
+            pBD->mCachedFonts[i].mFontSize == size)
+        {
+            cachedFontIndex = i;
+            break;
+        }
+    }
+
+    return cachedFontIndex != -1;
+}
+
+ImFont* ImGui_TheForge_GetFallbackFont()
+{
+    ImGui_ImplTheForge_Data* pBD = ImGui_ImplTheForge_GetBackendData();
+
+    if (!pBD)
+        return nullptr;
+
+    return (ImFont*)pBD->pDefaultFallbackFont;
+}

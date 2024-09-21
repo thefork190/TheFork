@@ -205,7 +205,23 @@ namespace HelloTriangle
 
         // Create a UI entity
         UI::UI ui = {};
-        ui.Update = [](flecs::world&) { bool show = true; ImGui::ShowDemoWindow(&show); };
+        ui.Update = [](flecs::world& ecs) 
+            {
+                // Imgui demo (has useful tools and examples)
+                static bool showDemo = false;
+                ImGui::Checkbox("Imgui Demo", &showDemo);
+                if (showDemo)
+                    ImGui::ShowDemoWindow(&showDemo);
+
+                // Test different imgui fonts
+                {
+                    ImFont* pFnt = UI::GetOrAddFont(ecs, FontRendering::CRIMSON_ROMAN, 10);
+                    
+                    ImGui::PushFont(pFnt);
+                    ImGui::Text("UI::GetOrAddFont(ecs, FontRendering::CRIMSON_ROMAN, 10)");
+                    ImGui::PopFont();
+                }
+            };
         ecs.entity("HelloTriangle::UI").set<UI::UI>(ui);
 
         // Main update logic (in practice this would be distributed across multiple systems)

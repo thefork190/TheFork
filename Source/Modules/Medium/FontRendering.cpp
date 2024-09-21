@@ -264,4 +264,19 @@ namespace FontRendering
         xOut = sizes.x;
         yOut = sizes.y;
     }
+
+    uint32_t InternalId(flecs::world& ecs, eAvailableFonts const font)
+    {
+        if (!ecs.has<Context>())
+            return 0;
+
+        Context const* pContext = ecs.get<Context>();
+        if (!pContext->isInitialized)
+            return 0;
+
+        // All available fonts should be loaded at init time
+        ASSERT(pContext->fontNameToIdMap.find(font) != pContext->fontNameToIdMap.end());
+
+        return pContext->fontNameToIdMap.at(font);
+    }
 }

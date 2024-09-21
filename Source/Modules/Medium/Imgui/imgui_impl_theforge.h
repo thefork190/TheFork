@@ -39,3 +39,5 @@ IMGUI_IMPL_API void     ImGui_TheForge_RenderDrawData(ImDrawData* pImDrawData, C
 
 
 IMGUI_IMPL_API ImFont*  ImGui_TheForge_GetOrAddFont(uint32_t const fontId, float const size);
+IMGUI_IMPL_API bool		ImGui_TheForge_FontIsLoaded(uint32_t const fontId, float const size);
+IMGUI_IMPL_API ImFont* ImGui_TheForge_GetFallbackFont();
