@@ -5,6 +5,13 @@
 #include "LifeCycledModule.h"
 #include "Medium/FontRendering.h"
 
+// Remaining Todos:
+// - [ ] Using different fonts (and sizes)
+// - [ ] Being able to use external textures
+// - [ ] Address non 1x DPI scale (including fonts)
+// - [ ] Address DPI changes (per monitor)
+// - [ ] Multi-viewport
+
 struct ImFont;
 
 namespace UI

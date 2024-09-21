@@ -4,14 +4,6 @@
 // The vanilla TF integration of "IUI.h" was used as reference
 // The layout of the code here pretty much follow the imgui backends
 
-// Remaining Todos:
-// - [ ] Using different fonts (and sizes)
-// - [ ] Being able to use external textures
-// - [ ] Address non 1x DPI scale (including fonts)
-// - [ ] Address DPI changes (per monitor)
-// - [ ] Multi-viewport
-
-
 #include "imgui.h"      // IMGUI_IMPL_API
 
 struct Renderer;
