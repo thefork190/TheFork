@@ -61,8 +61,33 @@ set(IOSASSETS
     Source/Sample.appxManifest
 )
 
+# Imgui sources
+set(IMGUI_SRC 
+    Source/Modules/Medium/Imgui/imconfig.h
+    ThirdParty/imgui/imgui.cpp
+    ThirdParty/imgui/imgui.h
+    ThirdParty/imgui/imgui_demo.cpp
+    ThirdParty/imgui/imgui_draw.cpp
+    ThirdParty/imgui/imgui_internal.h
+    ThirdParty/imgui/imgui_tables.cpp
+    ThirdParty/imgui/imgui_widgets.cpp
+    ThirdParty/imgui/imstb_rectpack.h
+    ThirdParty/imgui/imstb_textedit.h
+    ThirdParty/imgui/imstb_truetype.h
+    # we use our own version of the vanilla SDL3 backend before of how often SDL3 still changes
+    Source/Modules/Medium/Imgui/imgui_impl_sdl3.h
+    Source/Modules/Medium/Imgui/imgui_impl_sdl3.cpp
+    # imgui rendering backend for The Forge RHI
+    Source/Modules/Medium/Imgui/imgui_impl_theforge.h
+    Source/Modules/Medium/Imgui/imgui_impl_theforge.cpp
+    )
+
 # List all sources
 set(SOURCES
+    ${IMGUI_SRC}
+    ${IMGUI_RENDERING_IMPL}
+
+    # Engine
     Source/Main.cpp
     Source/Modules/LifeCycledModule.h
     # LOW
@@ -77,6 +102,8 @@ set(SOURCES
     # MEDIUM
     Source/Modules/Medium/FontRendering.h
     Source/Modules/Medium/FontRendering.cpp
+    Source/Modules/Medium/Imgui/UI.h
+    Source/Modules/Medium/Imgui/UI.cpp
     # High
     Source/Modules/High/FlappyClone/FlappyClone.h
     Source/Modules/High/FlappyClone/FlappyClone.cpp
@@ -140,10 +167,11 @@ add_subdirectory(ThirdParty/glm EXCLUDE_FROM_ALL)
 
 target_include_directories(${PROJECT_NAME}
     PRIVATE "Source/Modules"
-    PRIVATE ThirdParty/The-Forge/RHI/Private # Hack for TF
-    PRIVATE ThirdParty/The-Forge/ThirdParty # Hack for TF
+    PRIVATE ThirdParty/The-Forge/RHI/Private    # Hack for TF
+    PRIVATE ThirdParty/The-Forge/ThirdParty     # Hack for TF
     PUBLIC ThirdParty/The-Forge/RHI/Public
-    PRIVATE ThirdParty/CLI11/include/CLI  # CLI11 header only 3rd party
+    PRIVATE ThirdParty/CLI11/include/CLI                        # CLI11 header only 3rd party
+    PRIVATE ThirdParty/imgui                                    # Required to compile imgui
 )
 if(APPLE)
 target_link_libraries(${EXECUTABLE_NAME} 
@@ -170,7 +198,10 @@ target_link_libraries(${EXECUTABLE_NAME}
         SDL3::SDL3
 )
 endif()
-target_compile_definitions(${EXECUTABLE_NAME} PUBLIC SDL_MAIN_USE_CALLBACKS)
+target_compile_definitions(${EXECUTABLE_NAME} 
+    PUBLIC SDL_MAIN_USE_CALLBACKS
+    PUBLIC IMGUI_USER_CONFIG="Medium/Imgui/imconfig.h"
+    )
 
 set_target_properties(${EXECUTABLE_NAME} PROPERTIES 
     MACOSX_BUNDLE TRUE

@@ -25,6 +25,7 @@ namespace FontRendering
     module::module(flecs::world& ecs)
     {
         ecs.import<Engine::module>();
+        ecs.import<RHI::module>();
         ecs.import<Window::module>();
         
         ecs.module<module>();
@@ -58,13 +59,17 @@ namespace FontRendering
                     if (!sdlWin.pSwapChain)
                         return;
 
+                    float contentScale = 1.f;
+
                     SDL_DisplayID const dispId = SDL_GetDisplayForWindow(sdlWin.pWindow);
                     if (dispId == 0)
                     {
                         LOGF(eERROR, "SDL_GetDisplayForWindow() failed.");
                     }
-
-                    float const contentScale = SDL_GetDisplayContentScale(dispId);
+                    else
+                    {
+                        contentScale = SDL_GetDisplayContentScale(dispId);
+                    }
 
                     FontSystemDesc fontSystemDesc = {};
                     fontSystemDesc.mColorFormat = sdlWin.pSwapChain->ppRenderTargets[0]->mFormat;
@@ -262,5 +267,20 @@ namespace FontRendering
 
         xOut = sizes.x;
         yOut = sizes.y;
+    }
+
+    uint32_t InternalId(flecs::world& ecs, eAvailableFonts const font)
+    {
+        if (!ecs.has<Context>())
+            return 0;
+
+        Context const* pContext = ecs.get<Context>();
+        if (!pContext->isInitialized)
+            return 0;
+
+        // All available fonts should be loaded at init time
+        ASSERT(pContext->fontNameToIdMap.find(font) != pContext->fontNameToIdMap.end());
+
+        return pContext->fontNameToIdMap.at(font);
     }
 }

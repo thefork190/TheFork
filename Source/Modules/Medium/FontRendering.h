@@ -4,6 +4,11 @@
 #include <flecs.h>
 #include "LifeCycledModule.h"
 
+// Implemented features:
+// - [X] Using different fonts (and sizes)
+// - [X] Address non 1x DPI scale at init time (including fonts)
+// - [ ] Address DPI changes at runtime (OS settings change and per monitor)
+
 namespace FontRendering
 {
 	// List of available fonts (by name)
@@ -59,4 +64,5 @@ namespace FontRendering
 
 	// Utilities
 	void MeasureText(flecs::world const& ecs, FontText const& fontText, float& xOut, float& yOut);
+	unsigned int InternalId(flecs::world& ecs, eAvailableFonts const font);
 }

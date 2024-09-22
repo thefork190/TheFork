@@ -15,7 +15,7 @@ namespace Inputs
 	struct RawKeboardStates
 	{
 		std::vector<Uint8> last;  // managed by this struct
-		const Uint8* pCur = nullptr;   // managed by SDL
+		const bool* pCur = nullptr;   // managed by SDL
 		int numStates;  // length of arrays above
 
 		RawKeboardStates();

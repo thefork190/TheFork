@@ -1,0 +1,31 @@
+#pragma once
+
+// Imgui integration using The Forge RHI
+// The vanilla TF integration of "IUI.h" was used as reference
+// The layout of the code here pretty much follow the imgui backends
+
+#include "imgui.h"      // IMGUI_IMPL_API
+
+struct Renderer;
+struct PipelineCache;
+
+struct ImGui_ImplTheForge_InitDesc
+{
+	Renderer* pRenderer = nullptr;
+	uint32_t mColorFormat = {}; // enum TinyImageFormat
+
+	PipelineCache* pCache = nullptr;
+
+	uint32_t mMaxDynamicUIUpdatesPerBatch = 32u;
+	uint32_t mFrameCount = 2u;
+
+	uint32_t mMaxVerts = 64u * 1024u;
+	uint32_t mMaxInds = 128u * 1024u;
+};
+
+IMGUI_IMPL_API bool     ImGui_TheForge_Init(ImGui_ImplTheForge_InitDesc const& initDesc);
+IMGUI_IMPL_API void     ImGui_TheForge_Shutdown();
+IMGUI_IMPL_API void     ImGui_TheForge_NewFrame();
+IMGUI_IMPL_API void     ImGui_TheForge_RenderDrawData(ImDrawData* pImDrawData, Cmd* pCmd);
+
+IMGUI_IMPL_API void     ImGui_TheForge_BuildFontAtlas(Queue* pGfxQueue);
