@@ -35,7 +35,7 @@ namespace UI
 	bool WantsCaptureInputs(flecs::world& ecs);
 
 	// This function will always return a valid ImFont* if the UI is currently initialized.
-	// A nullptr represents the fallback font (which should always be valid for usage).
+	// A nullptr can be returned if UI is not initialized or if the default font failed to load for some reason.  In that case, don't call on ImGui::Push/PopFont()
 	// If the specified font was not yet loaded, it will be loaded at a deferred time and the default fallback font will be returned.
 	ImFont* GetOrAddFont(flecs::world& ecs, FontRendering::eAvailableFonts const font, float const size);
 }
