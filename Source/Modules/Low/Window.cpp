@@ -201,7 +201,7 @@ namespace Window
 
         auto present = ecs.system<Window::SDLWindow>("Present")
             .kind(Engine::GetCustomPhaseEntity(ecs, Engine::PRESENT))
-            .each([](flecs::iter& it, size_t i, Window::SDLWindow& sdlWin)
+            .each([](flecs::iter& it, size_t i, Window::SDLWindow const& sdlWin)
                 {
                     ASSERTMSG(i == 0, "More than one window not implemented.");
 
