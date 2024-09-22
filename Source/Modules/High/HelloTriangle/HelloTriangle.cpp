@@ -287,7 +287,7 @@ namespace HelloTriangle
 
         ecs.system<Engine::Canvas, Window::SDLWindow>("HelloTriangle::Draw")
             .kind(flecs::OnStore)
-            .each([](flecs::iter& it, size_t i, Engine::Canvas& canvas, Window::SDLWindow& sdlWin)
+            .each([](flecs::iter& it, size_t i, Engine::Canvas const& canvas, Window::SDLWindow const& sdlWin)
                 {
                     ASSERTMSG(i == 0, "Drawing to more than one window not implemented.");
 
