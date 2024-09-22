@@ -6,9 +6,9 @@
 #include "Medium/FontRendering.h"
 
 // Remaining Todos:
-// - [ ] Using different fonts (and sizes)
+// - [X] Using different fonts (and sizes)
 // - [ ] Being able to use external textures
-// - [ ] Address non 1x DPI scale (including fonts)
+// - [X] Address non 1x DPI scale at init time (including fonts)
 // - [ ] Address DPI changes (per monitor)
 // - [ ] Multi-viewport
 
