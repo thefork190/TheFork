@@ -472,7 +472,7 @@ namespace FlappyClone
         ecs.system<Position, Scale, Color>("FlappyClone::UpdateObstacles")
             .kind(flecs::OnUpdate)
             .with<Obstacle>().up(flecs::ChildOf)
-            .each([](flecs::iter& it, size_t i, Position& position, Scale& scale, Color const& color)
+            .each([](flecs::iter& it, size_t i, Position& position, Scale const& scale, Color const& color)
                 {
                     GameContext const* pGameCtx = it.world().has<GameContext>() ? it.world().get<GameContext>() : nullptr;
 
@@ -533,7 +533,7 @@ namespace FlappyClone
         // - Handles player inputs 
         ecs.system<Player, Position, Scale, Color, Velocity, FontRendering::FontText>("FlappyClone::UpdatePlayer")
             .kind(flecs::OnUpdate)
-            .each([](flecs::iter& it, size_t i, Player& player, Position& position, Scale& scale, Color const& color, Velocity& vel, FontRendering::FontText& fontText)
+            .each([](flecs::iter& it, size_t i, Player& player, Position const& position, Scale const& scale, Color const& color, Velocity& vel, FontRendering::FontText& fontText)
                 {
                     ASSERTMSG(i == 0, "More than 1 player not supported.");
                     
@@ -692,7 +692,7 @@ namespace FlappyClone
         // - Records GPU cmds
         ecs.system<Engine::Canvas, Window::SDLWindow>("FlappyClone::Draw")
             .kind(flecs::OnStore)
-            .each([](flecs::iter& it, size_t i, Engine::Canvas& canvas, Window::SDLWindow& sdlWin)
+            .each([](flecs::iter& it, size_t i, Engine::Canvas const& canvas, Window::SDLWindow const& sdlWin)
                 {
                     ASSERTMSG(i == 0, "Drawing to more than one window not implemented.");
 

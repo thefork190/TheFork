@@ -47,7 +47,7 @@ namespace UI
         
         ecs.system<Engine::Canvas, Window::SDLWindow>("UI Initializer")
             .kind(flecs::OnLoad)
-            .each([](flecs::iter& it, size_t i, Engine::Canvas& canvas, Window::SDLWindow& sdlWin)
+            .each([](flecs::iter& it, size_t i, Engine::Canvas const& canvas, Window::SDLWindow const& sdlWin)
                 {
                     ASSERTMSG(i == 0, "Only 1 window is supported.");
 
@@ -102,6 +102,9 @@ namespace UI
                     // Build the atlas texture
                     ImGui_TheForge_BuildFontAtlas(pRHI->pGfxQueue);
 
+                    // Ensure style is setup for content scale
+                    ImGui::GetStyle().ScaleAllSizes(pContext->contentScale);
+
                     pContext->isInitialized = true;
 
                     // Ensure we notify modifications for following systems in the same phase that'll use the context
@@ -128,7 +131,7 @@ namespace UI
 
         ecs.system<UI>("UI Updater")
             .kind(flecs::PostUpdate) // Want to run UI updates after OnUpdate phase is done
-            .each([](flecs::iter& it, size_t i, UI& ui)
+            .each([](flecs::iter& it, size_t i, UI const& ui)
                 {
                     if (!it.world().has<Context>())
                         return;
@@ -143,7 +146,7 @@ namespace UI
 
         ecs.system<Engine::Canvas, Window::SDLWindow>("UI Draw")
             .kind(Engine::GetCustomPhaseEntity(ecs, Engine::UI_RENDER))
-            .each([](flecs::iter& it, size_t i, Engine::Canvas& canvas, Window::SDLWindow& sdlWin)
+            .each([](flecs::iter& it, size_t i, Engine::Canvas const& canvas, Window::SDLWindow const& sdlWin)
                 {
                     if (!it.world().has<Context>())
                         return;
@@ -238,6 +241,27 @@ namespace UI
 
                         // All loaded, we can clear the fontsToLoad set
                         pContext->fontsToLoad.clear();
+                    }
+
+                    // Handle content scale changes
+                    float contentScale = 1.f;
+
+                    SDL_DisplayID const dispId = SDL_GetDisplayForWindow(sdlWin.pWindow);
+                    if (dispId == 0)
+                    {
+                        LOGF(eERROR, "SDL_GetDisplayForWindow() failed.");
+                    }
+                    else
+                    {
+                        contentScale = SDL_GetDisplayContentScale(dispId);
+                    }
+
+                    if (pContext->contentScale != contentScale)
+                    {
+                        // Update imgui style scales
+                        ImGui::GetStyle().ScaleAllSizes(contentScale / pContext->contentScale);
+
+                        pContext->contentScale = contentScale;
                     }
                 }
             );

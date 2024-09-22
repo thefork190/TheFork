@@ -7,7 +7,7 @@
 // Implemented features:
 // - [X] Using different fonts (and sizes)
 // - [X] Address non 1x DPI scale at init time (including fonts)
-// - [ ] Address DPI changes at runtime (OS settings change and per monitor)
+// - [X] Address DPI changes at runtime (OS settings change and per monitor)
 
 namespace FontRendering
 {
