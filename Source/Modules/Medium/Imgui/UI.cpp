@@ -242,6 +242,27 @@ namespace UI
                         // All loaded, we can clear the fontsToLoad set
                         pContext->fontsToLoad.clear();
                     }
+
+                    // Handle content scale changes
+                    float contentScale = 1.f;
+
+                    SDL_DisplayID const dispId = SDL_GetDisplayForWindow(sdlWin.pWindow);
+                    if (dispId == 0)
+                    {
+                        LOGF(eERROR, "SDL_GetDisplayForWindow() failed.");
+                    }
+                    else
+                    {
+                        contentScale = SDL_GetDisplayContentScale(dispId);
+                    }
+
+                    if (pContext->contentScale != contentScale)
+                    {
+                        // Update imgui style scales
+                        ImGui::GetStyle().ScaleAllSizes(contentScale / pContext->contentScale);
+
+                        pContext->contentScale = contentScale;
+                    }
                 }
             );
     }
