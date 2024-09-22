@@ -47,7 +47,7 @@ namespace UI
         
         ecs.system<Engine::Canvas, Window::SDLWindow>("UI Initializer")
             .kind(flecs::OnLoad)
-            .each([](flecs::iter& it, size_t i, Engine::Canvas& canvas, Window::SDLWindow& sdlWin)
+            .each([](flecs::iter& it, size_t i, Engine::Canvas& canvas, Window::SDLWindow const& sdlWin)
                 {
                     ASSERTMSG(i == 0, "Only 1 window is supported.");
 
@@ -128,7 +128,7 @@ namespace UI
 
         ecs.system<UI>("UI Updater")
             .kind(flecs::PostUpdate) // Want to run UI updates after OnUpdate phase is done
-            .each([](flecs::iter& it, size_t i, UI& ui)
+            .each([](flecs::iter& it, size_t i, UI const& ui)
                 {
                     if (!it.world().has<Context>())
                         return;

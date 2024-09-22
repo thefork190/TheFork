@@ -18,6 +18,7 @@ namespace FontRendering
         bool isInitialized = false;
         unsigned int width = 0;
         unsigned int height = 0;
+        float contentScale = 1.f;
         std::unordered_map<eAvailableFonts, unsigned int> fontNameToIdMap;
         flecs::query<FontText const> fontTextQuery;
     };
@@ -59,7 +60,7 @@ namespace FontRendering
                     if (!sdlWin.pSwapChain)
                         return;
 
-                    float contentScale = 1.f;
+                    pContext->contentScale = 1.f;
 
                     SDL_DisplayID const dispId = SDL_GetDisplayForWindow(sdlWin.pWindow);
                     if (dispId == 0)
@@ -68,15 +69,14 @@ namespace FontRendering
                     }
                     else
                     {
-                        contentScale = SDL_GetDisplayContentScale(dispId);
+                        pContext->contentScale = SDL_GetDisplayContentScale(dispId);
                     }
 
                     FontSystemDesc fontSystemDesc = {};
                     fontSystemDesc.mColorFormat = sdlWin.pSwapChain->ppRenderTargets[0]->mFormat;
                     fontSystemDesc.mWidth = canvas.width;
                     fontSystemDesc.mHeight = canvas.height;
-                    fontSystemDesc.mDpiDesc[0] = contentScale;
-                    fontSystemDesc.mDpiDesc[1] = contentScale;
+                    fontSystemDesc.mContentScale = pContext->contentScale;
                     fontSystemDesc.pRenderer = pRHI->pRenderer;
                     if (!initFontSystem(&fontSystemDesc))
                     {
@@ -84,7 +84,7 @@ namespace FontRendering
                         return;
                     }
 
-                    resizeFontSystem(canvas.width, canvas.height);
+                    resizeFontSystem(canvas.width, canvas.height, pContext->contentScale);
 
                     // Define available font names to asset files and create context singleton
                     std::unordered_map<eAvailableFonts, std::string> availableFontToAssetName;
@@ -129,9 +129,9 @@ namespace FontRendering
                 }
             );
        
-        auto fontSysResizer = ecs.system<Engine::Canvas>("Font System Resizer")
+        auto fontSysResizer = ecs.system<Engine::Canvas, Window::SDLWindow>("Font System Resizer")
             .kind(flecs::OnLoad)
-            .each([](flecs::iter& it, size_t i, Engine::Canvas& canvas)
+            .each([](flecs::iter& it, size_t i, Engine::Canvas& canvas, Window::SDLWindow const& sdlWin)
                 {
                     ASSERTMSG(i == 0, "Only 1 window is supported.");
 
@@ -142,12 +142,36 @@ namespace FontRendering
                     if (!pContext->isInitialized)
                         return;
 
+                    bool needsResize = false;
+
                     if (!(pContext->width == canvas.width && pContext->height == canvas.height))
                     {
-                        resizeFontSystem(canvas.width, canvas.height);
                         pContext->width = canvas.width;
                         pContext->height = canvas.height;
+                        needsResize = true;
                     }
+
+                    // Did content scale change?
+                    float contentScale = 1.f;
+
+                    SDL_DisplayID const dispId = SDL_GetDisplayForWindow(sdlWin.pWindow);
+                    if (dispId == 0)
+                    {
+                        LOGF(eERROR, "SDL_GetDisplayForWindow() failed.");
+                    }
+                    else
+                    {
+                        contentScale = SDL_GetDisplayContentScale(dispId);
+                    }
+
+                    if (pContext->contentScale != contentScale)
+                    {
+                        pContext->contentScale = contentScale;
+                        needsResize = true;
+                    }
+
+                    if (needsResize)
+                        resizeFontSystem(pContext->width, pContext->height, pContext->contentScale);
                 }
             );
 
