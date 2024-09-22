@@ -35,20 +35,10 @@ struct ImGui_ImplTheForge_Data
     Buffer* pVertexBuffer = nullptr;
     Buffer* pIndexBuffer = nullptr;
     Buffer* pUniformBuffer[MAX_FRAMES] = { nullptr };
-    /// Default states
+    
     Sampler* pDefaultSampler = nullptr;
     VertexLayout mVertexLayoutTextured = {};
-
-    /// Caching fonts and textures
-    struct UIFontResource
-    {
-        Texture*  pFontTex = nullptr;
-        uint32_t  mFontId = 0;
-        float     mFontSize = 0.f;
-        uintptr_t pFont = 0;
-    };
-    std::vector<UIFontResource> mCachedFonts;
-
+       
     Texture* pFontTex = nullptr;
 };
 
@@ -58,88 +48,6 @@ struct ImGui_ImplTheForge_Data
 static ImGui_ImplTheForge_Data* ImGui_ImplTheForge_GetBackendData()
 {
     return ImGui::GetCurrentContext() ? (ImGui_ImplTheForge_Data*)ImGui::GetIO().BackendRendererUserData : nullptr;
-}
-
-static uint32_t ImGui_ImplTheForge_AddImguiFont(
-    ImGui_ImplTheForge_Data* pBD,
-    void* pFontBuffer, 
-    uint32_t fontBufferSize, 
-    void* pFontGlyphRanges, 
-    uint32_t fontID, 
-    float fontSize)
-{
-    ImGuiIO& io = ImGui::GetIO();
-
-    // Build and load the texture atlas into a texture
-    int32_t        width, height, bytesPerPixel;
-    unsigned char* pixels = nullptr;
-
-    uintptr_t font;
-    uintptr_t* pFont = &font;
-
-    io.Fonts->ClearInputData();
-    if (pFontBuffer == nullptr)
-    {
-        *pFont = (uintptr_t)io.Fonts->AddFontDefault();
-    }
-    else
-    {
-        ImFontConfig config = {};
-        config.FontDataOwnedByAtlas = false;
-        ImFont* font = io.Fonts->AddFontFromMemoryTTF(pFontBuffer, fontBufferSize, fontSize, &config, (const ImWchar*)pFontGlyphRanges);
-        if (font != nullptr)
-        {
-            io.FontDefault = font;
-            *pFont = (uintptr_t)font;
-        }
-        else
-        {
-            ImFontConfig cfg = ImFontConfig();
-            *pFont = (uintptr_t)io.Fonts->AddFontDefault(&cfg);
-        }
-    }
-
-    io.Fonts->Build();
-    io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height, &bytesPerPixel);
-
-    // At this point you've got the texture data and you need to upload that your your graphic system:
-    // After we have created the texture, store its pointer/identifier (_in whichever format your engine uses_) in 'io.Fonts->TexID'.
-    // This will be passed back to your via the renderer. Basically ImTextureID == void*. Read FAQ below for details about ImTextureID.
-    Texture* pTexture = NULL;
-    SyncToken       token = {};
-    TextureLoadDesc loadDesc = {};
-    TextureDesc     textureDesc = {};
-    textureDesc.mArraySize = 1;
-    textureDesc.mDepth = 1;
-    textureDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
-    textureDesc.mFormat = TinyImageFormat_R8G8B8A8_UNORM;
-    textureDesc.mHeight = height;
-    textureDesc.mMipLevels = 1;
-    textureDesc.mSampleCount = SAMPLE_COUNT_1;
-    textureDesc.mStartState = RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-    textureDesc.mWidth = width;
-    textureDesc.pName = "ImGui Font Texture";
-    loadDesc.pDesc = &textureDesc;
-    loadDesc.ppTexture = &pTexture;
-    addResource(&loadDesc, &token);
-    waitForToken(&token);
-
-    TextureUpdateDesc updateDesc = { pTexture, 0, 1, 0, 1, RESOURCE_STATE_PIXEL_SHADER_RESOURCE };
-    beginUpdateResource(&updateDesc);
-    TextureSubresourceUpdate subresource = updateDesc.getSubresourceUpdateDesc(0, 0);
-    for (uint32_t r = 0; r < subresource.mRowCount; ++r)
-    {
-        memcpy(subresource.pMappedData + r * subresource.mDstRowStride, pixels + r * subresource.mSrcRowStride, subresource.mSrcRowStride);
-    }
-    endUpdateResource(&updateDesc);
-
-    ImGui_ImplTheForge_Data::UIFontResource newCachedFont = { pTexture, fontID, fontSize, *pFont };
-    pBD->mCachedFonts.push_back(newCachedFont);
-
-    size_t fontTextureIndex = pBD->mCachedFonts.size() - 1;
-    io.Fonts->TexID = (ImTextureID)fontTextureIndex;
-
-    return (uint32_t)fontTextureIndex;
 }
 
 bool ImGui_TheForge_Init(ImGui_ImplTheForge_InitDesc const& initDesc)
@@ -343,9 +251,6 @@ void ImGui_TheForge_Shutdown()
             pBD->pUniformBuffer[i] = NULL;
         }
     }
-
-    for (ptrdiff_t i = 0; i < pBD->mCachedFonts.size(); ++i)
-        removeResource(pBD->mCachedFonts[i].pFontTex);
 
     if (pBD->pFontTex)
         removeResource(pBD->pFontTex);
@@ -560,96 +465,6 @@ void ImGui_TheForge_RenderDrawData(ImDrawData* pImDrawData, Cmd* pCmd)
     }
 
     pBD->mFrameIdx = (pBD->mFrameIdx + 1) % pBD->mFrameCount;
-}
-
-ImFont* ImGui_TheForge_GetOrAddFont(uint32_t const fontId, float const size)
-{
-    ImGui_ImplTheForge_Data* pBD = ImGui_ImplTheForge_GetBackendData();
-
-    uintptr_t ret = 0;
-
-    //if (pBD)
-    //{
-    //    // Functions not accessible via normal interface header
-    //    extern void* fntGetRawFontData(uint32_t fontID);
-    //    extern uint32_t fntGetRawFontDataSize(uint32_t fontID);
-
-    //    bool useDefaultFallbackFont = false;
-
-    //    // Use Requested Forge Font
-    //    void* pFontBuffer = fntGetRawFontData(fontId);
-    //    uint32_t fontBufferSize = fntGetRawFontDataSize(fontId);
-    //    if (pFontBuffer)
-    //    {
-    //        // See if that specific font id and size is already in use, if so just reuse it
-    //        size_t cachedFontIndex = -1;
-    //        for (size_t i = 0; i < pBD->mCachedFonts.size(); ++i)
-    //        {
-    //            if (pBD->mCachedFonts[i].mFontId == fontId &&
-    //                pBD->mCachedFonts[i].mFontSize == size)
-    //            {
-    //                cachedFontIndex = i;
-
-    //                ret = pBD->mCachedFonts[i].pFont;
-
-    //                break;
-    //            }
-    //        }
-
-    //        if (cachedFontIndex == -1) // didn't find that font in the cache
-    //        {
-    //            uint32_t newFontTexId =
-    //                ImGui_ImplTheForge_AddImguiFont(pBD, pFontBuffer, fontBufferSize, nullptr, fontId, size);
-    //            ASSERT(newFontTexId != FALLBACK_FONT_TEXTURE_INDEX);
-    //            ASSERT(pBD->mCachedFonts[newFontTexId].pFontTex);
-
-    //            DescriptorData params[1] = {};
-    //            params[0].pName = "uTex";
-    //            params[0].ppTextures = &pBD->mCachedFonts[newFontTexId].pFontTex;
-    //            updateDescriptorSet(pBD->pRenderer, newFontTexId, pBD->pDescriptorSetTexture, 1, params);
-
-    //            ret = newFontTexId;
-    //        }
-    //    }
-    //    else
-    //    {
-    //        LOGF(eWARNING, "ImGui_TheForge_GetOrAddFont() was provided an unknown font id (%u).  Will fallback to default UI font.", fontId);
-    //        ret = pBD->pDefaultFallbackFont;
-    //    }
-    //}
-
-    return (ImFont*)ret;
-}
-
-bool ImGui_TheForge_FontIsLoaded(uint32_t const fontId, float const size)
-{
-    ImGui_ImplTheForge_Data* pBD = ImGui_ImplTheForge_GetBackendData();
-
-    if (!pBD)
-        return false;
-
-    size_t cachedFontIndex = -1;
-    for (size_t i = 0; i < pBD->mCachedFonts.size(); ++i)
-    {
-        if (pBD->mCachedFonts[i].mFontId == fontId &&
-            pBD->mCachedFonts[i].mFontSize == size)
-        {
-            cachedFontIndex = i;
-            break;
-        }
-    }
-
-    return cachedFontIndex != -1;
-}
-
-ImFont* ImGui_TheForge_GetFallbackFont()
-{
-    ImGui_ImplTheForge_Data* pBD = ImGui_ImplTheForge_GetBackendData();
-
-    if (!pBD)
-        return nullptr;
-
-    return (ImFont*)pBD->pDefaultFallbackFont;
 }
 
 void ImGui_TheForge_BuildFontAtlas(Queue* pGfxQueue)
