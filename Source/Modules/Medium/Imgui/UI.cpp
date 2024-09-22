@@ -93,7 +93,8 @@ namespace UI
                     // Load default font
                     unsigned int actualFontSize = DEFAULT_IMGUI_FONT_SIZE * pContext->contentScale; // ImGui guidelines recommends getting the floor
                     ImFontConfig fontConfig = ImFontConfig();
-                    ImFont* pDefaultFont = io.Fonts->AddFontDefault();
+                    fontConfig.SizePixels = static_cast<float>(actualFontSize);
+                    ImFont* pDefaultFont = io.Fonts->AddFontDefault(&fontConfig);
                     ASSERT(pDefaultFont);
 
                     pContext->loadedFonts[{DEFAULT_IMGUI_FONT_ID, actualFontSize}] = pDefaultFont;
@@ -187,8 +188,8 @@ namespace UI
                     // Load fonts
                     for (auto const& fontDesc : pContext->fontsToLoad)
                     {
-                        ImFont* pNewLoadedFont = ImGui_TheForge_GetOrAddFont(fontDesc.first, fontDesc.second);
-                        ASSERTMSG(pNewLoadedFont != 0, "Failed to load UI font.");
+                        //ImFont* pNewLoadedFont = ImGui_TheForge_GetOrAddFont(fontDesc.first, fontDesc.second);
+                       // ASSERTMSG(pNewLoadedFont != 0, "Failed to load UI font.");
                     }
                     pContext->fontsToLoad.clear();
                 }

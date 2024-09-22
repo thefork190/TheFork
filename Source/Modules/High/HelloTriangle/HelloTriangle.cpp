@@ -215,11 +215,13 @@ namespace HelloTriangle
 
                 // Test different imgui fonts
                 {
-                    //ImFont* pFnt = UI::GetOrAddFont(ecs, FontRendering::CRIMSON_ROMAN, 15);
-                    
-                    //ImGui::PushFont(pFnt);
-                    ImGui::Text("UI::GetOrAddFont(ecs, FontRendering::CRIMSON_ROMAN, 15)");
-                    //ImGui::PopFont();
+                    ImFont* pFnt = UI::GetOrAddFont(ecs, FontRendering::CRIMSON_ROMAN, 15);
+                    if (pFnt)
+                    {
+                        ImGui::PushFont(pFnt);
+                        ImGui::Text("UI::GetOrAddFont(ecs, FontRendering::CRIMSON_ROMAN, 15)");
+                        ImGui::PopFont();
+                    }
                 }
             };
         ecs.entity("HelloTriangle::UI").set<UI::UI>(ui);
