@@ -159,7 +159,7 @@ namespace UI
                     ImGui::EndFrame();
 
                     RHI::RHI const* pRHI = it.world().has<RHI::RHI>() ? it.world().get<RHI::RHI>() : nullptr;
-                    
+
                     if (pRHI)
                     {
                         ImGui::Render();
@@ -185,13 +185,60 @@ namespace UI
                         }
                     }
 
-                    // Load fonts
-                    for (auto const& fontDesc : pContext->fontsToLoad)
+                    // Load new fonts if needed and rebuild the atlas
+                    if (!pContext->fontsToLoad.empty())
                     {
-                        //ImFont* pNewLoadedFont = ImGui_TheForge_GetOrAddFont(fontDesc.first, fontDesc.second);
-                       // ASSERTMSG(pNewLoadedFont != 0, "Failed to load UI font.");
+                        // Functions not accessible via normal interface header
+                        extern void* fntGetRawFontData(uint32_t fontID);
+                        extern uint32_t fntGetRawFontDataSize(uint32_t fontID);
+
+                        // Clear the imgui font atlas (this will invalidate all the ImFont pointers we cached)
+                        ImGuiIO& io = ImGui::GetIO();
+                        io.Fonts->Clear();
+
+                        // Start by readding all the already loaded fonts
+                        for (auto& loadedFontDesc : pContext->loadedFonts)
+                        {
+                            if (DEFAULT_IMGUI_FONT_ID == loadedFontDesc.first.first) // it was a default font
+                            {
+                                ImFontConfig fontConfig = ImFontConfig();
+                                fontConfig.SizePixels = static_cast<float>(loadedFontDesc.first.second);
+                                loadedFontDesc.second = io.Fonts->AddFontDefault(&fontConfig);
+                                ASSERT(loadedFontDesc.second);
+                            }
+                            else
+                            {
+                                void* pFontBuffer = fntGetRawFontData(loadedFontDesc.first.first);
+                                ASSERT(pFontBuffer);
+                                uint32_t fontBufferSize = fntGetRawFontDataSize(loadedFontDesc.first.first);
+                                
+                                ImFontConfig config = {};
+                                config.FontDataOwnedByAtlas = false;
+                                loadedFontDesc.second = io.Fonts->AddFontFromMemoryTTF(pFontBuffer, fontBufferSize, loadedFontDesc.first.second, &config, nullptr);
+                                ASSERT(loadedFontDesc.second);
+                            }
+                        }
+
+                        // Now handle the new ones to load
+                        for (auto const& newFontDesc : pContext->fontsToLoad)
+                        {
+                            void* pFontBuffer = fntGetRawFontData(newFontDesc.first);
+                            ASSERT(pFontBuffer);
+                            uint32_t fontBufferSize = fntGetRawFontDataSize(newFontDesc.first);
+
+                            ImFontConfig config = {};
+                            config.FontDataOwnedByAtlas = false;
+                            ImFont* pFont = io.Fonts->AddFontFromMemoryTTF(pFontBuffer, fontBufferSize, newFontDesc.second, &config, nullptr);
+                            ASSERT(pFont);
+                            pContext->loadedFonts[{newFontDesc.first, newFontDesc.second}] = pFont;
+                        }
+
+                        // Rebuild the atlas
+                        ImGui_TheForge_BuildFontAtlas(pRHI->pGfxQueue);
+
+                        // All loaded, we can clear the fontsToLoad set
+                        pContext->fontsToLoad.clear();
                     }
-                    pContext->fontsToLoad.clear();
                 }
             );
     }

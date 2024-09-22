@@ -215,11 +215,29 @@ namespace HelloTriangle
 
                 // Test different imgui fonts
                 {
-                    ImFont* pFnt = UI::GetOrAddFont(ecs, FontRendering::CRIMSON_ROMAN, 15);
+                    ImFont* pFnt = UI::GetOrAddFont(ecs, FontRendering::CRIMSON_ROMAN, 20);
                     if (pFnt)
                     {
                         ImGui::PushFont(pFnt);
-                        ImGui::Text("UI::GetOrAddFont(ecs, FontRendering::CRIMSON_ROMAN, 15)");
+                        ImGui::Text("UI::GetOrAddFont(ecs, FontRendering::CRIMSON_ROMAN, 20)");
+                        ImGui::PopFont();
+                    }
+                }
+                {
+                    ImFont* pFnt = UI::GetOrAddFont(ecs, FontRendering::INCONSOLATA_LGC_BOLD_ITALIC, 25);
+                    if (pFnt)
+                    {
+                        ImGui::PushFont(pFnt);
+                        ImGui::Text("UI::GetOrAddFont(ecs, FontRendering::INCONSOLATA_LGC_BOLD_ITALIC, 25)");
+                        ImGui::PopFont();
+                    }
+                }
+                {
+                    ImFont* pFnt = UI::GetOrAddFont(ecs, FontRendering::COMIC_RELIEF, 30);
+                    if (pFnt)
+                    {
+                        ImGui::PushFont(pFnt);
+                        ImGui::Text("UI::GetOrAddFont(ecs, FontRendering::COMIC_RELIEF, 30)");
                         ImGui::PopFont();
                     }
                 }
