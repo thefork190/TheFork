@@ -47,7 +47,7 @@ namespace UI
         
         ecs.system<Engine::Canvas, Window::SDLWindow>("UI Initializer")
             .kind(flecs::OnLoad)
-            .each([](flecs::iter& it, size_t i, Engine::Canvas& canvas, Window::SDLWindow const& sdlWin)
+            .each([](flecs::iter& it, size_t i, Engine::Canvas const& canvas, Window::SDLWindow const& sdlWin)
                 {
                     ASSERTMSG(i == 0, "Only 1 window is supported.");
 
@@ -143,7 +143,7 @@ namespace UI
 
         ecs.system<Engine::Canvas, Window::SDLWindow>("UI Draw")
             .kind(Engine::GetCustomPhaseEntity(ecs, Engine::UI_RENDER))
-            .each([](flecs::iter& it, size_t i, Engine::Canvas& canvas, Window::SDLWindow& sdlWin)
+            .each([](flecs::iter& it, size_t i, Engine::Canvas const& canvas, Window::SDLWindow const& sdlWin)
                 {
                     if (!it.world().has<Context>())
                         return;
