@@ -99,6 +99,9 @@ namespace UI
 
                     pContext->loadedFonts[{DEFAULT_IMGUI_FONT_ID, actualFontSize}] = pDefaultFont;
 
+                    // Make it the imgui default
+                    io.FontDefault = pDefaultFont;
+
                     // Build the atlas texture
                     ImGui_TheForge_BuildFontAtlas(pRHI->pGfxQueue);
 
@@ -188,6 +191,35 @@ namespace UI
                         }
                     }
 
+                    // Handle content scale changes
+                    bool contentScaleChanged = false;
+                    float contentScale = 1.f;
+
+                    SDL_DisplayID const dispId = SDL_GetDisplayForWindow(sdlWin.pWindow);
+                    if (dispId == 0)
+                    {
+                        LOGF(eERROR, "SDL_GetDisplayForWindow() failed.");
+                    }
+                    else
+                    {
+                        contentScale = SDL_GetDisplayContentScale(dispId);
+                    }
+
+                    if (pContext->contentScale != contentScale)
+                    {
+                        contentScaleChanged = true; 
+
+                        // Update imgui style scales
+                        ImGui::GetStyle().ScaleAllSizes(contentScale / pContext->contentScale);
+
+                        pContext->contentScale = contentScale;
+
+                        // Lets ensure we load up the default font for the new content scale
+                        unsigned int actualFontSize = DEFAULT_IMGUI_FONT_SIZE * pContext->contentScale;
+                        if (pContext->loadedFonts.find({ DEFAULT_IMGUI_FONT_ID , actualFontSize }) == pContext->loadedFonts.end())
+                            pContext->fontsToLoad.insert({ DEFAULT_IMGUI_FONT_ID , actualFontSize });
+                    }
+
                     // Load new fonts if needed and rebuild the atlas
                     if (!pContext->fontsToLoad.empty())
                     {
@@ -197,6 +229,7 @@ namespace UI
 
                         // Clear the imgui font atlas (this will invalidate all the ImFont pointers we cached)
                         ImGuiIO& io = ImGui::GetIO();
+                        io.FontDefault = nullptr; // This will get invalidated once we clear
                         io.Fonts->Clear();
 
                         // Start by readding all the already loaded fonts
@@ -214,7 +247,7 @@ namespace UI
                                 void* pFontBuffer = fntGetRawFontData(loadedFontDesc.first.first);
                                 ASSERT(pFontBuffer);
                                 uint32_t fontBufferSize = fntGetRawFontDataSize(loadedFontDesc.first.first);
-                                
+
                                 ImFontConfig config = {};
                                 config.FontDataOwnedByAtlas = false;
                                 loadedFontDesc.second = io.Fonts->AddFontFromMemoryTTF(pFontBuffer, fontBufferSize, loadedFontDesc.first.second, &config, nullptr);
@@ -225,13 +258,24 @@ namespace UI
                         // Now handle the new ones to load
                         for (auto const& newFontDesc : pContext->fontsToLoad)
                         {
-                            void* pFontBuffer = fntGetRawFontData(newFontDesc.first);
-                            ASSERT(pFontBuffer);
-                            uint32_t fontBufferSize = fntGetRawFontDataSize(newFontDesc.first);
+                            ImFont* pFont = nullptr;
 
-                            ImFontConfig config = {};
-                            config.FontDataOwnedByAtlas = false;
-                            ImFont* pFont = io.Fonts->AddFontFromMemoryTTF(pFontBuffer, fontBufferSize, newFontDesc.second, &config, nullptr);
+                            if (DEFAULT_IMGUI_FONT_ID == newFontDesc.first) // it was a default font
+                            {
+                                ImFontConfig fontConfig = ImFontConfig();
+                                fontConfig.SizePixels = static_cast<float>(newFontDesc.second);
+                                pFont = io.Fonts->AddFontDefault(&fontConfig);
+                            }
+                            else
+                            {
+                                void* pFontBuffer = fntGetRawFontData(newFontDesc.first);
+                                ASSERT(pFontBuffer);
+                                uint32_t fontBufferSize = fntGetRawFontDataSize(newFontDesc.first);
+
+                                ImFontConfig config = {};
+                                config.FontDataOwnedByAtlas = false;
+                                pFont = io.Fonts->AddFontFromMemoryTTF(pFontBuffer, fontBufferSize, newFontDesc.second, &config, nullptr);
+                            }
                             ASSERT(pFont);
                             pContext->loadedFonts[{newFontDesc.first, newFontDesc.second}] = pFont;
                         }
@@ -243,25 +287,19 @@ namespace UI
                         pContext->fontsToLoad.clear();
                     }
 
-                    // Handle content scale changes
-                    float contentScale = 1.f;
-
-                    SDL_DisplayID const dispId = SDL_GetDisplayForWindow(sdlWin.pWindow);
-                    if (dispId == 0)
+                    // If content scale changed, we need to reset the default font for the target content scale
+                    if (contentScaleChanged)
                     {
-                        LOGF(eERROR, "SDL_GetDisplayForWindow() failed.");
-                    }
-                    else
-                    {
-                        contentScale = SDL_GetDisplayContentScale(dispId);
-                    }
-
-                    if (pContext->contentScale != contentScale)
-                    {
-                        // Update imgui style scales
-                        ImGui::GetStyle().ScaleAllSizes(contentScale / pContext->contentScale);
-
-                        pContext->contentScale = contentScale;
+                        unsigned int actualFontSize = DEFAULT_IMGUI_FONT_SIZE * pContext->contentScale;
+                        if (pContext->loadedFonts.find({ DEFAULT_IMGUI_FONT_ID , actualFontSize }) != pContext->loadedFonts.end())
+                        {
+                            ImGui::GetIO().FontDefault = pContext->loadedFonts.at({DEFAULT_IMGUI_FONT_ID , actualFontSize});
+                        }
+                        else
+                        {
+                            ASSERTMSG(false, "Default ImGui font for target content scale was not loaded.  Defaulting to first loaded font.");
+                            ImGui::GetIO().FontDefault = nullptr;
+                        }
                     }
                 }
             );
