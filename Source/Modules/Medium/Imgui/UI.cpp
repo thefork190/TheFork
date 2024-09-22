@@ -91,7 +91,7 @@ namespace UI
                     }
 
                     // Load default font
-                    unsigned int actualFontSize = DEFAULT_IMGUI_FONT_SIZE * pContext->contentScale; // ImGui guidelines recommends getting the floor
+                    unsigned int const actualFontSize = DEFAULT_IMGUI_FONT_SIZE * pContext->contentScale; // ImGui guidelines recommends getting the floor
                     ImFontConfig fontConfig = ImFontConfig();
                     fontConfig.SizePixels = static_cast<float>(actualFontSize);
                     ImFont* pDefaultFont = io.Fonts->AddFontDefault(&fontConfig);
@@ -215,7 +215,7 @@ namespace UI
                         pContext->contentScale = contentScale;
 
                         // Lets ensure we load up the default font for the new content scale
-                        unsigned int actualFontSize = DEFAULT_IMGUI_FONT_SIZE * pContext->contentScale;
+                        unsigned int const actualFontSize = DEFAULT_IMGUI_FONT_SIZE * pContext->contentScale;
                         if (pContext->loadedFonts.find({ DEFAULT_IMGUI_FONT_ID , actualFontSize }) == pContext->loadedFonts.end())
                             pContext->fontsToLoad.insert({ DEFAULT_IMGUI_FONT_ID , actualFontSize });
                     }
@@ -290,7 +290,7 @@ namespace UI
                     // If content scale changed, we need to reset the default font for the target content scale
                     if (contentScaleChanged)
                     {
-                        unsigned int actualFontSize = DEFAULT_IMGUI_FONT_SIZE * pContext->contentScale;
+                        unsigned int const actualFontSize = DEFAULT_IMGUI_FONT_SIZE * pContext->contentScale;
                         if (pContext->loadedFonts.find({ DEFAULT_IMGUI_FONT_ID , actualFontSize }) != pContext->loadedFonts.end())
                         {
                             ImGui::GetIO().FontDefault = pContext->loadedFonts.at({DEFAULT_IMGUI_FONT_ID , actualFontSize});
