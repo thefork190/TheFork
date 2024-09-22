@@ -41,7 +41,7 @@ namespace FontRendering
         
         auto fontSysInitializer = ecs.system<Engine::Canvas, Window::SDLWindow>("Init Font System")
             .kind(flecs::OnLoad)
-            .each([](flecs::iter& it, size_t i, Engine::Canvas& canvas, Window::SDLWindow& sdlWin)
+            .each([](flecs::iter& it, size_t i, Engine::Canvas const& canvas, Window::SDLWindow const& sdlWin)
                 {
                     ASSERTMSG(i == 0, "Only 1 window is supported.");
 
@@ -131,7 +131,7 @@ namespace FontRendering
        
         auto fontSysResizer = ecs.system<Engine::Canvas, Window::SDLWindow>("Font System Resizer")
             .kind(flecs::OnLoad)
-            .each([](flecs::iter& it, size_t i, Engine::Canvas& canvas, Window::SDLWindow const& sdlWin)
+            .each([](flecs::iter& it, size_t i, Engine::Canvas const& canvas, Window::SDLWindow const& sdlWin)
                 {
                     ASSERTMSG(i == 0, "Only 1 window is supported.");
 
@@ -177,7 +177,7 @@ namespace FontRendering
 
         auto fontRenderer = ecs.system<Engine::Canvas, Window::SDLWindow>("Font Renderer")
             .kind(Engine::GetCustomPhaseEntity(ecs, Engine::FONTS_RENDER))
-            .each([](flecs::iter& it, size_t i, Engine::Canvas& canvas, Window::SDLWindow& sdlWin)
+            .each([](flecs::iter& it, size_t i, Engine::Canvas const& canvas, Window::SDLWindow const& sdlWin)
                 {
                     ASSERTMSG(i == 0, "Drawing to more than one window not implemented.");
 
