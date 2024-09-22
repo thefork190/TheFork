@@ -9,7 +9,7 @@
 // - [X] Using different fonts (and sizes)
 // - [X] Being able to use external textures
 // - [X] Address non 1x DPI scale at init time (including fonts)
-// - [ ] Address DPI changes at runtime (OS settings change and per monitor)
+// - [X] Address DPI changes at runtime (OS settings change and per monitor)
 // - [ ] Multi-viewport
 
 struct ImFont;
