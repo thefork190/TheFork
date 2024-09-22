@@ -102,6 +102,9 @@ namespace UI
                     // Build the atlas texture
                     ImGui_TheForge_BuildFontAtlas(pRHI->pGfxQueue);
 
+                    // Ensure style is setup for content scale
+                    ImGui::GetStyle().ScaleAllSizes(pContext->contentScale);
+
                     pContext->isInitialized = true;
 
                     // Ensure we notify modifications for following systems in the same phase that'll use the context
