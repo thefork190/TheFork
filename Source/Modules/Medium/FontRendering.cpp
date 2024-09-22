@@ -59,13 +59,17 @@ namespace FontRendering
                     if (!sdlWin.pSwapChain)
                         return;
 
+                    float contentScale = 1.f;
+
                     SDL_DisplayID const dispId = SDL_GetDisplayForWindow(sdlWin.pWindow);
                     if (dispId == 0)
                     {
                         LOGF(eERROR, "SDL_GetDisplayForWindow() failed.");
                     }
-
-                    float const contentScale = SDL_GetDisplayContentScale(dispId);
+                    else
+                    {
+                        contentScale = SDL_GetDisplayContentScale(dispId);
+                    }
 
                     FontSystemDesc fontSystemDesc = {};
                     fontSystemDesc.mColorFormat = sdlWin.pSwapChain->ppRenderTargets[0]->mFormat;

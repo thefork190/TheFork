@@ -1,4 +1,5 @@
 #include <set>
+#include <map>
 #include <utility> // For std::pair
 
 #include <imgui.h>
@@ -15,13 +16,17 @@
 
 #include "UI.h"
 
+#define DEFAULT_IMGUI_FONT_ID UINT_MAX
+
 namespace UI
 {
     struct Context
     {
         bool isInitialized = false;
+        float contentScale = 1.f;
 
-        std::set<std::pair<unsigned int, float>> fontsToLoad;
+        std::map<std::pair<unsigned int, unsigned int>, ImFont*> loadedFonts; // <fontId, size> -> ImFont*
+        std::set<std::pair<unsigned int, unsigned int>> fontsToLoad; // <fontId, size>
     };
 
     module::module(flecs::world& ecs)
@@ -72,6 +77,29 @@ namespace UI
                     ImGui_ImplSDL3_InitForOther(sdlWin.pWindow);
                     ImGui_ImplTheForge_InitDesc initDesc = { pRHI->pRenderer, static_cast<unsigned int>(sdlWin.pSwapChain->ppRenderTargets[0]->mFormat) };
                     ImGui_TheForge_Init(initDesc);
+                    
+                    // Cache content scale so we can handle it if it changes
+                    SDL_DisplayID const dispId = SDL_GetDisplayForWindow(sdlWin.pWindow);
+                    if (dispId == 0)
+                    {
+                        LOGF(eERROR, "SDL_GetDisplayForWindow() failed.");
+                    }
+                    else
+                    {
+                        pContext->contentScale = SDL_GetDisplayContentScale(dispId);
+                    }
+
+                    // Load default font
+                    float const defaultFontSize = 13.f;
+                    unsigned int actualFontSize = defaultFontSize * pContext->contentScale; // ImGui guidelines recommends getting the floor
+                    ImFontConfig fontConfig = ImFontConfig();
+                    ImFont* pDefaultFont = io.Fonts->AddFontDefault();
+                    ASSERT(pDefaultFont);
+
+                    pContext->loadedFonts[{DEFAULT_IMGUI_FONT_ID, actualFontSize}] = pDefaultFont;
+
+                    // Build the atlas texture
+                    ImGui_TheForge_BuildFontAtlas(pRHI->pGfxQueue);
 
                     pContext->isInitialized = true;
 
@@ -208,26 +236,26 @@ namespace UI
 
     ImFont* GetOrAddFont(flecs::world& ecs, FontRendering::eAvailableFonts const font, float const size)
     {
-        ASSERT(font < FontRendering::NUM_AVAILABLE_FONTS);
+        //ASSERT(font < FontRendering::NUM_AVAILABLE_FONTS);
 
-        Context* pContext = ecs.has<Context>() ? ecs.get_mut<Context>() : nullptr;
+        //Context* pContext = ecs.has<Context>() ? ecs.get_mut<Context>() : nullptr;
 
-        if (pContext && pContext->isInitialized)
-        {
-            unsigned int const fontId = FontRendering::InternalId(ecs, font);
-            if (ImGui_TheForge_FontIsLoaded(fontId, size))
-                return ImGui_TheForge_GetOrAddFont(fontId, size);
-            else
-            {
-                std::pair<unsigned int, float> const toAdd = { fontId, size };
-                pContext->fontsToLoad.insert(toAdd);
+        //if (pContext && pContext->isInitialized)
+        //{
+        //    unsigned int const fontId = FontRendering::InternalId(ecs, font);
+        //    if (ImGui_TheForge_FontIsLoaded(fontId, size))
+        //        return ImGui_TheForge_GetOrAddFont(fontId, size);
+        //    else
+        //    {
+        //        std::pair<unsigned int, float> const toAdd = { fontId, size };
+        //        pContext->fontsToLoad.insert(toAdd);
 
-                // Note: no need to modify changes, we'll get them after the following sync point.
-                //       we don't really care since we're deferring font loading after ImGui::EndFrame()
+        //        // Note: no need to modify changes, we'll get them after the following sync point.
+        //        //       we don't really care since we're deferring font loading after ImGui::EndFrame()
 
-                return ImGui_TheForge_GetFallbackFont();
-            }
-        }
+        //        return ImGui_TheForge_GetFallbackFont();
+        //    }
+        //}
         
         return nullptr;
     }
