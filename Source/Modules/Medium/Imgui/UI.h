@@ -7,7 +7,7 @@
 
 // Implemented features:
 // - [X] Using different fonts (and sizes)
-// - [ ] Being able to use external textures
+// - [X] Being able to use external textures
 // - [X] Address non 1x DPI scale at init time (including fonts)
 // - [ ] Address DPI changes at runtime (OS settings change and per monitor)
 // - [ ] Multi-viewport
