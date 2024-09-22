@@ -347,6 +347,9 @@ void ImGui_TheForge_Shutdown()
     for (ptrdiff_t i = 0; i < pBD->mCachedFonts.size(); ++i)
         removeResource(pBD->mCachedFonts[i].pFontTex);
 
+    if (pBD->pFontTex)
+        removeResource(pBD->pFontTex);
+
     IM_DELETE(pBD);
 }
 
