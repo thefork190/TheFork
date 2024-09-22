@@ -17,6 +17,7 @@
 #include "UI.h"
 
 #define DEFAULT_IMGUI_FONT_ID UINT_MAX
+#define DEFAULT_IMGUI_FONT_SIZE 13.f
 
 namespace UI
 {
@@ -90,8 +91,7 @@ namespace UI
                     }
 
                     // Load default font
-                    float const defaultFontSize = 13.f;
-                    unsigned int actualFontSize = defaultFontSize * pContext->contentScale; // ImGui guidelines recommends getting the floor
+                    unsigned int actualFontSize = DEFAULT_IMGUI_FONT_SIZE * pContext->contentScale; // ImGui guidelines recommends getting the floor
                     ImFontConfig fontConfig = ImFontConfig();
                     ImFont* pDefaultFont = io.Fonts->AddFontDefault();
                     ASSERT(pDefaultFont);
@@ -236,26 +236,43 @@ namespace UI
 
     ImFont* GetOrAddFont(flecs::world& ecs, FontRendering::eAvailableFonts const font, float const size)
     {
-        //ASSERT(font < FontRendering::NUM_AVAILABLE_FONTS);
+        ASSERT(font < FontRendering::NUM_AVAILABLE_FONTS);
 
-        //Context* pContext = ecs.has<Context>() ? ecs.get_mut<Context>() : nullptr;
+        Context* pContext = ecs.has<Context>() ? ecs.get_mut<Context>() : nullptr;
 
-        //if (pContext && pContext->isInitialized)
-        //{
-        //    unsigned int const fontId = FontRendering::InternalId(ecs, font);
-        //    if (ImGui_TheForge_FontIsLoaded(fontId, size))
-        //        return ImGui_TheForge_GetOrAddFont(fontId, size);
-        //    else
-        //    {
-        //        std::pair<unsigned int, float> const toAdd = { fontId, size };
-        //        pContext->fontsToLoad.insert(toAdd);
+        if (pContext && pContext->isInitialized)
+        {
+            // First check if a default font is there to fallback on for the current content scale
+            ImFont* pDefaultFont = nullptr;
 
-        //        // Note: no need to modify changes, we'll get them after the following sync point.
-        //        //       we don't really care since we're deferring font loading after ImGui::EndFrame()
+            std::pair<unsigned int, unsigned int> const defaultFontForCurContentScale = { DEFAULT_IMGUI_FONT_ID, static_cast<unsigned int>(DEFAULT_IMGUI_FONT_SIZE * pContext->contentScale) };
+            std::pair<unsigned int, unsigned int> const defaultFont = { DEFAULT_IMGUI_FONT_ID, static_cast<unsigned int>(DEFAULT_IMGUI_FONT_SIZE) };
 
-        //        return ImGui_TheForge_GetFallbackFont();
-        //    }
-        //}
+            if (pContext->loadedFonts.find(defaultFontForCurContentScale) != pContext->loadedFonts.end())
+                pDefaultFont = pContext->loadedFonts.at(defaultFontForCurContentScale);
+            else if (pContext->loadedFonts.find(defaultFont) != pContext->loadedFonts.end())
+                pDefaultFont = pContext->loadedFonts.at(defaultFont);
+
+            ASSERTMSG(pDefaultFont, "Default font was not loaded or cached!");
+            if (!pDefaultFont)
+                return nullptr;
+
+            // Now see if the requested font is available
+            unsigned int const fontId = FontRendering::InternalId(ecs, font);
+            unsigned int const actualSize = size * pContext->contentScale;
+
+            if (pContext->loadedFonts.find({ fontId, actualSize }) != pContext->loadedFonts.end())
+            {
+                // it is so return it
+                return pContext->loadedFonts.at({ fontId, actualSize });
+            }
+            else
+            {
+                // need to load it.  Deffer it and return fallback
+                pContext->fontsToLoad.insert({ fontId, actualSize });
+                return pDefaultFont;
+            }
+        }
         
         return nullptr;
     }
