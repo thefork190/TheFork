@@ -393,8 +393,7 @@ void ImGui_TheForge_RenderDrawData(ImDrawData* pImDrawData, Cmd* pCmd)
         LOGF(eWARNING, "UI exceeds amount of verts/inds.  Consider updating mMaxVerts/mMaxInds when calling ImGui_ImplTheForge_Init().");
         LOGF(eWARNING, "Num verts: %d (max %d) | Num inds: %d (max %d)", pImDrawData->TotalVtxCount, pBD->mMaxVerts,
             pImDrawData->TotalIdxCount, pBD->mMaxInds);
-        pImDrawData->TotalVtxCount =
-            pImDrawData->TotalVtxCount > pImDrawData->TotalVtxCount ? pImDrawData->TotalVtxCount : pImDrawData->TotalVtxCount;
+        pImDrawData->TotalVtxCount = pImDrawData->TotalVtxCount > pBD->mMaxVerts ? pBD->mMaxVerts : pImDrawData->TotalVtxCount;
         pImDrawData->TotalIdxCount = pImDrawData->TotalIdxCount > pBD->mMaxInds ? pBD->mMaxInds : pImDrawData->TotalIdxCount;
     }
 

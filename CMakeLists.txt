@@ -165,7 +165,7 @@ add_subdirectory(ThirdParty/The-Forge/RHI EXCLUDE_FROM_ALL)
 add_subdirectory(ThirdParty/flecs EXCLUDE_FROM_ALL)
 add_subdirectory(ThirdParty/glm EXCLUDE_FROM_ALL)
 
-target_include_directories(${PROJECT_NAME}
+target_include_directories(${EXECUTABLE_NAME}
     PRIVATE "Source/Modules"
     PRIVATE ThirdParty/The-Forge/RHI/Private    # Hack for TF
     PRIVATE ThirdParty/The-Forge/ThirdParty     # Hack for TF
@@ -227,12 +227,12 @@ endif()
 install(TARGETS ${EXECUTABLE_NAME} BUNDLE DESTINATION ./install)
 
 if (WIN32)
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    add_custom_command(TARGET ${EXECUTABLE_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
         ${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/The-Forge/ThirdParty/winpixeventruntime/bin/WinPixEventRuntime.dll
         ${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/The-Forge/ThirdParty/DirectXShaderCompiler/bin/x64/dxcompiler.dll
         ${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/The-Forge/ThirdParty/ags/ags_lib/lib/amd_ags_x64.dll
-        $<TARGET_FILE_DIR:${PROJECT_NAME}>
+        $<TARGET_FILE_DIR:${EXECUTABLE_NAME}>
     )
 endif (WIN32)
 
