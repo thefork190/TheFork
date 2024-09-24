@@ -185,7 +185,16 @@ target_link_libraries(${EXECUTABLE_NAME}
     PUBLIC 
         SDL3::SDL3
 )
-else()
+elseif (ANDROID)
+target_link_libraries(${EXECUTABLE_NAME} 
+    PRIVATE
+        RHI
+        flecs_static
+        glm::glm
+    PUBLIC 
+        SDL3::SDL3
+)
+else ()
 target_link_libraries(${EXECUTABLE_NAME} 
     PRIVATE
         RHI
