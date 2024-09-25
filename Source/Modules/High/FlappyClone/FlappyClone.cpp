@@ -699,12 +699,13 @@ namespace FlappyClone
                     RHI::RHI const* pRHI = it.world().has<RHI::RHI>() ? it.world().get<RHI::RHI>() : nullptr;
                     RenderPassData* pRPD = it.world().has<RenderPassData>() ? it.world().get_mut<RenderPassData>() : nullptr;
 
-                    // Updated latest res so that it can be used if needed during next frame's update
-                    pRPD->resX = sdlWin.pSwapChain->ppRenderTargets[0]->mWidth;
-                    pRPD->resY = sdlWin.pSwapChain->ppRenderTargets[0]->mHeight;
 
                     if (pRHI && pRPD && sdlWin.pCurRT)
                     {
+                        // Updated latest res so that it can be used if needed during next frame's update
+                        pRPD->resX = sdlWin.pSwapChain->ppRenderTargets[0]->mWidth;
+                        pRPD->resY = sdlWin.pSwapChain->ppRenderTargets[0]->mHeight;
+
                         Cmd* pCmd = pRHI->curCmdRingElem.pCmds[0];
                         ASSERT(pCmd);
 
