@@ -170,7 +170,7 @@ namespace UI
 
                     RHI::RHI const* pRHI = it.world().has<RHI::RHI>() ? it.world().get<RHI::RHI>() : nullptr;
 
-                    if (pRHI)
+                    if (pRHI && sdlWin.pCurRT)
                     {
                         ImGui::Render();
                         ImDrawData* pDrawData = ImGui::GetDrawData();
