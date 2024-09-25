@@ -202,11 +202,15 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event* event)
         case SDL_EVENT_WILL_ENTER_BACKGROUND:
         case SDL_EVENT_DID_ENTER_BACKGROUND:
         case SDL_EVENT_WILL_ENTER_FOREGROUND:
+        case SDL_EVENT_WINDOW_MINIMIZED:
+        case SDL_EVENT_WINDOW_HIDDEN:
         {
             pApp->pauseApp = true;
             break;
         }
         case SDL_EVENT_DID_ENTER_FOREGROUND:
+        case SDL_EVENT_WINDOW_RESTORED:
+        case SDL_EVENT_WINDOW_SHOWN:
         {
             pApp->pauseApp = false;
             break;

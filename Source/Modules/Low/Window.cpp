@@ -297,7 +297,6 @@ namespace Window
                 flecs::query<Window::SDLWindow> windowQuery = ecs.query_builder<Window::SDLWindow>().build();
                 windowQuery.each([pRHI](flecs::iter& it, size_t i, Window::SDLWindow& sdlWin)
                     {
-                        ASSERT(!sdlWin.pSwapChain);
                         if (!sdlWin.pSwapChain)
                         {
                             waitQueueIdle(pRHI->pGfxQueue);
