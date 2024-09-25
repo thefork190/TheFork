@@ -321,7 +321,7 @@ namespace UI
         }
     }
 
-    void ForwardEvent(flecs::world& ecs, const SDL_Event* sdlEvent)
+    void module::ProcessEvent(flecs::world& ecs, const SDL_Event* sdlEvent)
     {
         Context const* pContext = ecs.has<Context>() ? ecs.get<Context>() : nullptr;
 

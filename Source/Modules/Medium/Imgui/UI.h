@@ -26,11 +26,9 @@ namespace UI
 	public:
 		module(flecs::world& ecs); // Ctor that loads the module
 		virtual void OnExit(flecs::world& ecs) override;
+        virtual void ProcessEvent(flecs::world& ecs, const SDL_Event* sdlEvent) override;
 	};
 
-	// Forwards SDL events
-	void ForwardEvent(flecs::world& ecs, const SDL_Event* sdlEvent);
-	
 	// Checks if UI is currently capturing inputs (in which case the app probably shouldn't handle inputs)
 	bool WantsCaptureInputs(flecs::world& ecs);
 

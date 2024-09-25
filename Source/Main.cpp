@@ -217,7 +217,13 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event* event)
     }
 
     // Forward events to specific modules that process SDL events
-    UI::ForwardEvent(pApp->ecs, event);
+    for (auto& pModule : pApp->lowModules)
+        pModule->ProcessEvent(pApp->ecs, event);
+    for (auto& pModule : pApp->mediumModules)
+        pModule->ProcessEvent(pApp->ecs, event);
+    for (auto& pModule : pApp->highModules)
+        pModule->ProcessEvent(pApp->ecs, event);
+
 
     return pApp->quitApp ? SDL_APP_SUCCESS : SDL_APP_CONTINUE;
 }
