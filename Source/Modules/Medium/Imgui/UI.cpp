@@ -19,6 +19,11 @@
 #define DEFAULT_IMGUI_FONT_ID UINT_MAX
 #define DEFAULT_IMGUI_FONT_SIZE 13.f
 
+// Functions not accessible via normal interface header
+// forward declare before namespace
+extern void* fntGetRawFontData(uint32_t fontID);
+extern uint32_t fntGetRawFontDataSize(uint32_t fontID);
+
 namespace UI
 {
     struct Context
@@ -223,9 +228,6 @@ namespace UI
                     // Load new fonts if needed and rebuild the atlas
                     if (!pContext->fontsToLoad.empty())
                     {
-                        // Functions not accessible via normal interface header
-                        extern void* fntGetRawFontData(uint32_t fontID);
-                        extern uint32_t fntGetRawFontDataSize(uint32_t fontID);
 
                         // Clear the imgui font atlas (this will invalidate all the ImFont pointers we cached)
                         ImGuiIO& io = ImGui::GetIO();
