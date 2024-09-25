@@ -170,28 +170,31 @@ namespace UI
 
                     RHI::RHI const* pRHI = it.world().has<RHI::RHI>() ? it.world().get<RHI::RHI>() : nullptr;
 
-                    if (pRHI && sdlWin.pCurRT)
+                    if (pRHI)
                     {
                         ImGui::Render();
                         ImDrawData* pDrawData = ImGui::GetDrawData();
 
                         if (pDrawData && pDrawData->Valid && pDrawData->TotalIdxCount > 0 && pDrawData->TotalVtxCount > 0)
                         {
-                            Cmd* pCmd = pRHI->curCmdRingElem.pCmds[0];
-                            ASSERT(pCmd);
+                            if (sdlWin.pCurRT)
+                            {
+                                Cmd* pCmd = pRHI->curCmdRingElem.pCmds[0];
+                                ASSERT(pCmd);
 
-                            cmdBeginDebugMarker(pCmd, 1, 0, 1, "ImGui Draw");
+                                cmdBeginDebugMarker(pCmd, 1, 0, 1, "ImGui Draw");
 
-                            BindRenderTargetsDesc bindRenderTargets = {};
-                            bindRenderTargets.mRenderTargetCount = 1;
-                            bindRenderTargets.mRenderTargets[0] = { sdlWin.pCurRT, LOAD_ACTION_LOAD };
-                            cmdBindRenderTargets(pCmd, &bindRenderTargets);
+                                BindRenderTargetsDesc bindRenderTargets = {};
+                                bindRenderTargets.mRenderTargetCount = 1;
+                                bindRenderTargets.mRenderTargets[0] = { sdlWin.pCurRT, LOAD_ACTION_LOAD };
+                                cmdBindRenderTargets(pCmd, &bindRenderTargets);
 
-                            ImGui_TheForge_RenderDrawData(pDrawData, pCmd);
+                                ImGui_TheForge_RenderDrawData(pDrawData, pCmd);
 
-                            cmdBindRenderTargets(pCmd, nullptr);
+                                cmdBindRenderTargets(pCmd, nullptr);
 
-                            cmdEndDebugMarker(pCmd);
+                                cmdEndDebugMarker(pCmd);
+                            }
                         }
                     }
 

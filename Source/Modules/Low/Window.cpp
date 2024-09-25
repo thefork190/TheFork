@@ -212,6 +212,8 @@ namespace Window
                             cmdResourceBarrier(pCmd, 0, nullptr, 0, nullptr, 1, barriers);
                         }
 #endif
+
+
                     }
                 }
             );
@@ -271,6 +273,8 @@ namespace Window
         switch (sdlEvent->type)
         {
             case SDL_EVENT_WILL_ENTER_BACKGROUND:
+            case SDL_EVENT_WINDOW_HIDDEN:
+            case SDL_EVENT_WINDOW_MINIMIZED:
             {
                 // Need to remove all swapchains
                 flecs::query<Window::SDLWindow> windowQuery = ecs.query_builder<Window::SDLWindow>().build();
@@ -278,6 +282,7 @@ namespace Window
                     {
                         if (sdlWin.pSwapChain)
                         {
+                            waitQueueIdle(pRHI->pGfxQueue);
                             removeSwapChain(pRHI->pRenderer, sdlWin.pSwapChain);
                             sdlWin.pSwapChain = nullptr;
                             sdlWin.pCurRT = nullptr;
@@ -286,6 +291,7 @@ namespace Window
                 break;
             }
             case SDL_EVENT_DID_ENTER_FOREGROUND:
+            case SDL_EVENT_WINDOW_RESTORED:
             {
                 // Need to recreate all swapchains
                 flecs::query<Window::SDLWindow> windowQuery = ecs.query_builder<Window::SDLWindow>().build();
@@ -294,6 +300,7 @@ namespace Window
                         ASSERT(!sdlWin.pSwapChain);
                         if (!sdlWin.pSwapChain)
                         {
+                            waitQueueIdle(pRHI->pGfxQueue);
                             int bbwidth, bbheight;
                             SDL_GetWindowSizeInPixels(sdlWin.pWindow, &bbwidth, &bbheight);
                             CreateWindowSwapchain(pRHI, sdlWin, bbwidth, bbheight);
