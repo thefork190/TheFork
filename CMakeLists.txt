@@ -268,6 +268,9 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -E copy_directory "${ASSETS_DIR}" "${ASSETS_DESTINATION}"
     COMMENT "Copying assets to .app bundle..."
 )
+elseif(ANDROID)
+    # For Android, assets should be placed in the 'assets' folder and are bundled in the APK
+    message(STATUS "Android detected. Make sure assets are in the 'assets' directory in the Android project.")
 else()
 # Define the path to the Resources folder inside the .app bundle
 set(ASSETS_DESTINATION "${CMAKE_BINARY_DIR}/$<CONFIG>/Assets")
