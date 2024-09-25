@@ -191,6 +191,14 @@ target_link_libraries(${EXECUTABLE_NAME}
         RHI
         flecs_static
         glm::glm
+		$<$<CONFIG:Debug>:${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/The-Forge/ThirdParty/agdk/libs/arm64-v8a_cpp_static_Release/libswappy_static.a>
+        $<$<CONFIG:Release>:${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/The-Forge/ThirdParty/agdk/libs/arm64-v8a_cpp_static_Release/libswappy_static.a>
+        $<$<CONFIG:RelWithDebInfo>:${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/The-Forge/ThirdParty/agdk/libs/arm64-v8a_cpp_static_Release/libswappy_static.a>
+		$<$<CONFIG:Debug>:${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/The-Forge/ThirdParty/agdk/libs/arm64-v8a_cpp_static_Release/libmemory_advice_static.a>
+        $<$<CONFIG:Release>:${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/The-Forge/ThirdParty/agdk/libs/arm64-v8a_cpp_static_Release/libmemory_advice_static.a>
+        $<$<CONFIG:RelWithDebInfo>:${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/The-Forge/ThirdParty/agdk/libs/arm64-v8a_cpp_static_Release/libmemory_advice_static.a>
+		log
+		android
     PUBLIC 
         SDL3::SDL3
 )

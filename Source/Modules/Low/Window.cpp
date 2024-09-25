@@ -25,7 +25,7 @@ namespace Window
     void CreateWindowSwapchain(RHI::RHI* pRHI, SDLWindow& sdlWin, int const w, int const h)
     {
         // TODO this is platform specific
-        HWND pWinHandle = (__bridge HWND)SDL_GetPointerProperty(SDL_GetWindowProperties(sdlWin.pWindow), WINDOW_PROP, NULL);
+        HWND pWinHandle = (__bridge HWND)SDL_GetPointerProperty(SDL_GetWindowProperties(sdlWin.pWindow), WINDOW_PROP, nullptr);
         ASSERT(pWinHandle);
 
         SwapChainDesc swapChainDesc = {};

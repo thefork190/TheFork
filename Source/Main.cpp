@@ -15,7 +15,7 @@
 #include "Modules/Low/Window.h"
 
 #include "Modules/Medium/FontRendering.h"
-#include "Modules/Medium/imgui/UI.h"
+#include "Modules/Medium/Imgui/UI.h"
 
 #include "Modules/High/FlappyClone/FlappyClone.h"
 #include "Modules/High/HelloTriangle/HelloTriangle.h"
@@ -31,6 +31,13 @@ static bool InitTheForge()
 {
     FileSystemInitDesc fsDesc = {};
     fsDesc.pAppName = APP_NAME;
+
+#ifdef __ANDROID__
+    ASSERT(0 != SDL_GetAndroidExternalStorageState());
+    fsDesc.pResourceMounts[RM_DEBUG] = SDL_GetAndroidExternalStoragePath();
+    ASSERT(fsDesc.pResourceMounts[RM_DEBUG]);
+#endif
+
     if (!initFileSystem(&fsDesc))
         return false;
 
@@ -69,16 +76,16 @@ SDL_AppResult SDL_Fail()
 
 SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[])
 {
-    // Use TF for rendering (it still needs to init its internal OS related subsystems)
-    if (!InitTheForge())
-    {
-        return SDL_APP_FAILURE;
-    }
-    
     // Init SDL.  Many systems will rely on SDL being initialized.
     if (!SDL_Init(SDL_INIT_VIDEO))
     {
         return SDL_Fail();
+    }
+
+    // Use TF for rendering (it still needs to init its internal OS related subsystems)
+    if (!InitTheForge())
+    {
+        return SDL_APP_FAILURE;
     }
 
     *appstate = tf_new(AppState);
