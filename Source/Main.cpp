@@ -1,6 +1,13 @@
 #include <vector>
 #include <string>
 
+#ifdef __ANDROID__
+#include <jni.h>
+#include <android/asset_manager.h>
+#include <android/asset_manager_jni.h>
+#include <SDL3/SDL_system.h>
+#endif
+
 #include <SDL3/SDL_main.h>
 #include <flecs.h>
 
@@ -27,6 +34,35 @@
 #include <IMemory.h> // Make sure this is last
 //
 
+#ifdef __ANDROID__
+AAssetManager* GetAssetManager()
+{
+    // Get the JNI environment
+    JNIEnv* env = (JNIEnv*)SDL_GetAndroidJNIEnv();
+
+    // Get the Android activity
+    jobject activity = (jobject)SDL_GetAndroidActivity();
+
+    // Find the class for the Android activity
+    jclass activityClass = env->GetObjectClass(activity);
+
+    // Get the method ID for "getAssets", which returns the AAssetManager
+    jmethodID getAssetsMethod = env->GetMethodID(activityClass, "getAssets", "()Landroid/content/res/AssetManager;");
+
+    // Call the getAssets method on the activity to get the AssetManager
+    jobject assetManager = env->CallObjectMethod(activity, getAssetsMethod);
+
+    // Convert the jobject to an AAssetManager
+    AAssetManager* aAssetManager = AAssetManager_fromJava(env, assetManager);
+
+    // Clean up local references
+    env->DeleteLocalRef(activityClass);
+    env->DeleteLocalRef(assetManager);
+
+    return aAssetManager;
+}
+#endif
+
 static bool InitTheForge()
 {
     FileSystemInitDesc fsDesc = {};
@@ -36,6 +72,8 @@ static bool InitTheForge()
     ASSERT(0 != SDL_GetAndroidExternalStorageState());
     fsDesc.pResourceMounts[RM_DEBUG] = SDL_GetAndroidExternalStoragePath();
     ASSERT(fsDesc.pResourceMounts[RM_DEBUG]);
+
+    fsDesc.pPlatformData = reinterpret_cast<void*>(GetAssetManager());
 #endif
 
     if (!initFileSystem(&fsDesc))
