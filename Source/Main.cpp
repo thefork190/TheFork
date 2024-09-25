@@ -100,6 +100,7 @@ static void ExitTheForge()
 struct AppState 
 {
     bool quitApp = false;
+    bool pauseApp = false;
     flecs::world ecs;
     std::vector<LifeCycledModule*> lowModules;
     std::vector<LifeCycledModule*> mediumModules;
@@ -181,14 +182,44 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event* event)
 {
     AppState* pApp = (AppState*)appstate;
     
-    if (event->type == SDL_EVENT_QUIT) 
+    switch (event->type)
     {
-        pApp->quitApp = true;
+        case SDL_EVENT_QUIT:
+        {
+            pApp->quitApp = true;
+            break;
+        }
+        case SDL_EVENT_TERMINATING:
+        {
+            pApp->quitApp = true;
+            break;
+        }
+        case SDL_EVENT_LOW_MEMORY:
+        {
+            LOGF(eINFO, "[HANDLE ME!]: low memory!");
+            break;
+        }
+        case SDL_EVENT_WILL_ENTER_BACKGROUND:
+        case SDL_EVENT_DID_ENTER_BACKGROUND:
+        case SDL_EVENT_WILL_ENTER_FOREGROUND:
+        {
+            pApp->pauseApp = true;
+            break;
+        }
+        case SDL_EVENT_DID_ENTER_FOREGROUND:
+        {
+            pApp->pauseApp = false;
+            break;
+        }
+
+        default:
+            ;
     }
 
+    // Forward events to specific modules that process SDL events
     UI::ForwardEvent(pApp->ecs, event);
 
-    return SDL_APP_CONTINUE;
+    return pApp->quitApp ? SDL_APP_SUCCESS : SDL_APP_CONTINUE;
 }
 
 SDL_AppResult SDL_AppIterate(void *appstate)
@@ -203,7 +234,8 @@ SDL_AppResult SDL_AppIterate(void *appstate)
             pApp->quitApp = true;
     }
 
-    pApp->ecs.progress();
+    if (!pApp->pauseApp)
+        pApp->ecs.progress();
     
     return pApp->quitApp ? SDL_APP_SUCCESS : SDL_APP_CONTINUE;
 }
