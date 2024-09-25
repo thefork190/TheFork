@@ -1,3 +1,7 @@
+#ifdef __ANDROID__
+#include <SDL3/SDL_system.h>
+#endif
+
 #include <ILog.h>
 
 #include "Engine.h"
@@ -36,7 +40,15 @@ namespace Window
 #else
         tfWindowHandle.window = pWinHandle;
 #endif
+
+        // Need to pass extra things for Android
+#ifdef __ANDROID__
+        tfWindowHandle.activity = reinterpret_cast<jobject>(SDL_GetAndroidActivity());
+        tfWindowHandle.jniEnv = reinterpret_cast<JNIEnv*>(SDL_GetAndroidJNIEnv());
+        tfWindowHandle.type = WINDOW_HANDLE_TYPE_ANDROID;
+#else
         tfWindowHandle.type = WINDOW_HANDLE_TYPE_WIN32;
+#endif
 
         swapChainDesc.mWindowHandle = tfWindowHandle;
         swapChainDesc.mPresentQueueCount = 1;
