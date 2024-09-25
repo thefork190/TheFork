@@ -183,7 +183,7 @@ namespace Window
                     ASSERTMSG(i == 0, "More than one window not implemented.");
 
                     auto pRHI = it.world().get_mut<RHI::RHI>();
-                    if (pRHI)
+                    if (pRHI && sdlWin.pSwapChain)
                     {
                         acquireNextImage(pRHI->pRenderer, sdlWin.pSwapChain, sdlWin.pImgAcqSemaphore, nullptr, &sdlWin.imageIndex);
 
@@ -259,5 +259,48 @@ namespace Window
                     }
                 }
             );
+    }
+
+    void module::ProcessEvent(flecs::world& ecs, const SDL_Event* sdlEvent)
+    {
+        // Can't do anything without the RHI
+        auto pRHI = ecs.has<RHI::RHI>() ? ecs.get_mut<RHI::RHI>() : nullptr;
+        if (!pRHI)
+            return;
+
+        switch (sdlEvent->type)
+        {
+            case SDL_EVENT_WILL_ENTER_BACKGROUND:
+            {
+                // Need to remove all swapchains
+                flecs::query<Window::SDLWindow> windowQuery = ecs.query_builder<Window::SDLWindow>().build();
+                windowQuery.each([pRHI](flecs::iter& it, size_t i, Window::SDLWindow& sdlWin)
+                    {
+                        if (sdlWin.pSwapChain)
+                        {
+                            removeSwapChain(pRHI->pRenderer, sdlWin.pSwapChain);
+                            sdlWin.pSwapChain = nullptr;
+                            sdlWin.pCurRT = nullptr;
+                        }
+                    });
+                break;
+            }
+            case SDL_EVENT_DID_ENTER_FOREGROUND:
+            {
+                // Need to recreate all swapchains
+                flecs::query<Window::SDLWindow> windowQuery = ecs.query_builder<Window::SDLWindow>().build();
+                windowQuery.each([pRHI](flecs::iter& it, size_t i, Window::SDLWindow& sdlWin)
+                    {
+                        ASSERT(!sdlWin.pSwapChain);
+                        if (!sdlWin.pSwapChain)
+                        {
+                            int bbwidth, bbheight;
+                            SDL_GetWindowSizeInPixels(sdlWin.pWindow, &bbwidth, &bbheight);
+                            CreateWindowSwapchain(pRHI, sdlWin, bbwidth, bbheight);
+                        }
+                    });
+                break;
+            }
+        }
     }
 }
