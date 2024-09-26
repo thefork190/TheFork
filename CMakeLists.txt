@@ -136,14 +136,7 @@ target_sources(${EXECUTABLE_NAME}
 )
 
 # Add additional platform-specific settings
-if (WINDOWS_STORE)
-    target_sources("${EXECUTABLE_NAME}" PRIVATE 
-        Source/logo44.png 
-        Source/logo150.png 
-        Source/logo50.png 
-        Source/logo620x300.png
-    )
-elseif(APPLE)
+if(APPLE)
     target_sources("${EXECUTABLE_NAME}" PRIVATE Source/logo.png)
     set(CMAKE_EXE_LINKER_FLAGS "-framework Cocoa -framework AppKit -framework CoreData -framework Foundation -framework Metal -framework MetalPerformanceShaders -framework CoreVideo -framework IOKit")
 endif()
@@ -153,10 +146,6 @@ target_compile_features(${EXECUTABLE_NAME} PUBLIC cxx_std_20)
 
 if(CMAKE_SYSTEM_NAME MATCHES Emscripten)
     set(CMAKE_EXECUTABLE_SUFFIX ".html" CACHE INTERNAL "")
-endif()
-
-if(WINDOWS_STORE)
-    target_compile_options(${EXECUTABLE_NAME} PUBLIC "/EHsc")
 endif()
 
 # 3rd Parties
