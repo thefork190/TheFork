@@ -727,11 +727,6 @@ namespace FlappyClone
                         cmdSetViewport(pCmd, 0.0f, 0.0f, static_cast<float>(sdlWin.pCurRT->mWidth), static_cast<float>(sdlWin.pCurRT->mHeight), 0.0f, 1.0f);
                         cmdSetScissor(pCmd, 0, 0, sdlWin.pCurRT->mWidth, sdlWin.pCurRT->mHeight);
 
-                        cmdBindRenderTargets(pCmd, nullptr);
-
-                        barriers[0] = { sdlWin.pCurRT, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };
-                        cmdResourceBarrier(pCmd, 0, nullptr, 0, nullptr, 1, barriers);
-
                         cmdEndDebugMarker(pCmd);
 
                         cmdBeginDebugMarker(pCmd, 1, 0, 1, "FlappyClone::DrawObstacles");
