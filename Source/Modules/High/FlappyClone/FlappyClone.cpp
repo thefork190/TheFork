@@ -387,8 +387,10 @@ namespace FlappyClone
                 .run([](flecs::iter& it)
                 {
                     Inputs::RawKeboardStates const* pKeyboard = it.world().has<Inputs::RawKeboardStates>() ? it.world().get<Inputs::RawKeboardStates>() : nullptr;
+                    Inputs::RawMouseStates const* pMouse = it.world().has<Inputs::RawMouseStates>() ? it.world().get<Inputs::RawMouseStates>() : nullptr;
                     Engine::Context* pEngineContext = it.world().has<Engine::Context>() ? it.world().get_mut<Engine::Context>() : nullptr;
-                    if (pKeyboard && pEngineContext)
+                   
+                    if (pKeyboard && pMouse && pEngineContext)
                     {
                         // Exit if ESC is pressed
                         if (pKeyboard->WasPressed(SDLK_ESCAPE))
@@ -401,7 +403,7 @@ namespace FlappyClone
                         GameContext* pGameCtx = it.world().has<GameContext>() ? it.world().get_mut<GameContext>() : nullptr;
                         if (pGameCtx)
                         {
-                            if (pKeyboard->WasPressed(SDLK_SPACE))
+                            if (pKeyboard->WasPressed(SDLK_SPACE) || pMouse->WasPressed(SDL_BUTTON_LMASK))
                             {
                                 if (GameContext::START == pGameCtx->state)
                                     pGameCtx->state = GameContext::IN_PLAY;
@@ -551,13 +553,15 @@ namespace FlappyClone
                         updatedData.color[UNIFORMS_PLAYER_INDEX] = glm::vec4(color.r, color.g, color.b, color.a);
                     }
 
-                    // Exit if ESC is pressed
+                    // Impulse force
                     Inputs::RawKeboardStates const* pKeyboard = it.world().has<Inputs::RawKeboardStates>() ? it.world().get<Inputs::RawKeboardStates>() : nullptr;                   
+                    Inputs::RawMouseStates const* pMouse = it.world().has<Inputs::RawMouseStates>() ? it.world().get<Inputs::RawMouseStates>() : nullptr;
                     GameContext const* pGameCtx = it.world().has<GameContext>() ? it.world().get<GameContext>() : nullptr;
-                    if (pKeyboard)
+
+                    if (pKeyboard && pMouse)
                     {
                         if (pGameCtx &&
-                            pKeyboard->WasPressed(SDLK_SPACE))
+                            pKeyboard->WasPressed(SDLK_SPACE) || pMouse->WasPressed(SDL_BUTTON_LMASK))
                         {                            
                             if (GameContext::IN_PLAY == pGameCtx->state)
                                 vel.y = IMPULSE_FORCE;
