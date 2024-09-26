@@ -1,3 +1,5 @@
+![](./Android/app/src/main/res/mipmap-hdpi/ic_launcher.png)
+
 # The Fork (in the road)
 What is this repo about?
 
