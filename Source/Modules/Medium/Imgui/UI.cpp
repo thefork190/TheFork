@@ -20,6 +20,7 @@
 #define DEFAULT_IMGUI_FONT_SIZE 13.f
 
 // Functions not accessible via normal interface header
+// Forward declare before namespace
 extern void* fntGetRawFontData(uint32_t fontID);
 extern uint32_t fntGetRawFontDataSize(uint32_t fontID);
 
@@ -236,6 +237,10 @@ namespace UI
                     // Load new fonts if needed and rebuild the atlas
                     if (!pContext->fontsToLoad.empty())
                     {
+<<<<<<< HEAD
+=======
+
+>>>>>>> 79beb3d1ade5a7d59632c582628a5118f22c71ca
                         // Clear the imgui font atlas (this will invalidate all the ImFont pointers we cached)
                         ImGuiIO& io = ImGui::GetIO();
                         io.FontDefault = nullptr; // This will get invalidated once we clear
