@@ -1,1 +1,0 @@
-Self contained example for drawing a triangle.
