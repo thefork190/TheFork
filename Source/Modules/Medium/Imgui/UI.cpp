@@ -79,6 +79,12 @@ namespace UI
 
                     ImGui::StyleColorsDark();
 
+                    // Set our own path for where to same .ini (on MacOS for ex. we want this to go in MyApp.app/Contents/Resources/)
+                    // https://wiki.libsdl.org/SDL3/SDL_GetBasePath
+                    // "If the application is in a '.app' bundle, this function returns the Resource directory (e.g. MyApp.app/Contents/Resources/)"
+                    io.IniFilename = SDL_GetBasePath();
+
+                    // Init OS and rendering imgui backends
                     ImGui_ImplSDL3_InitForOther(sdlWin.pWindow);
                     ImGui_ImplTheForge_InitDesc initDesc = { pRHI->pRenderer, static_cast<unsigned int>(sdlWin.pSwapChain->ppRenderTargets[0]->mFormat) };
                     ImGui_TheForge_Init(initDesc);
