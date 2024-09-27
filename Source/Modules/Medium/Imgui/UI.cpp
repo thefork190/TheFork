@@ -237,10 +237,6 @@ namespace UI
                     // Load new fonts if needed and rebuild the atlas
                     if (!pContext->fontsToLoad.empty())
                     {
-<<<<<<< HEAD
-=======
-
->>>>>>> 79beb3d1ade5a7d59632c582628a5118f22c71ca
                         // Clear the imgui font atlas (this will invalidate all the ImFont pointers we cached)
                         ImGuiIO& io = ImGui::GetIO();
                         io.FontDefault = nullptr; // This will get invalidated once we clear
