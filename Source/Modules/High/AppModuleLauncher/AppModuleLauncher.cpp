@@ -94,7 +94,7 @@ namespace AppModuleLauncher
                 }
 
                 bool open = true;
-                ImGui::SetNextWindowSize(ImVec2(512, 256));
+                ImGui::SetNextWindowSize(ImVec2(900, 350));
                 ImGui::Begin("App Launcher", &open, ImGuiWindowFlags_NoDecoration);
 
                 static int selectedAppIndex = 0;
