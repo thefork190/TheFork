@@ -113,7 +113,7 @@ namespace AppModuleLauncher
                     ImGui::EndCombo();
                 }
 
-                ImGui::TextWrapped(appInfos[selectedAppIndex]);
+                ImGui::TextWrapped("%s", appInfos[selectedAppIndex]);
 
                 if (ImGui::Button("LAUNCH"))
                 {
