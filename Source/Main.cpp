@@ -238,6 +238,13 @@ SDL_AppResult SDL_AppIterate(void *appstate)
             pApp->quitApp = true;
     }
 
+    // PreProgress()
+    for (auto& pModule : pApp->lowModules)
+        pModule->PreProgress(pApp->ecs);
+    for (auto& pModule : pApp->mediumModules)
+        pModule->PreProgress(pApp->ecs);
+    pApp->pAppLauncherModule->PreProgress(pApp->ecs);
+
     if (!pApp->pauseApp)
         pApp->ecs.progress();
     

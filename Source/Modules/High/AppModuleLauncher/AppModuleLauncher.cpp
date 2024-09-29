@@ -1,6 +1,8 @@
 #include <vector>
 #include <functional>
 
+#include "ILog.h"
+
 #include "LifeCycledModule.h"
 
 #include "Low/Engine.h"
@@ -25,7 +27,11 @@ namespace AppModuleLauncher
         std::function<void(flecs::world&)> Start;
     };
 
+    // The module that was launched
     LifeCycledModule* pLaunchedAppModule = nullptr;
+
+    // The index into gAvailableAppModules for the app we need to launch
+    int gAppIndexToLaunch = -1;
 
     // Fill out apps here
     std::vector<AppModule> const gAvailableAppModules =
@@ -51,21 +57,30 @@ namespace AppModuleLauncher
 
         ecs.module<module>();
 
-        for (auto const& appModule : gAvailableAppModules)
+        for (size_t i = 0; i < gAvailableAppModules.size(); ++i)
         {
-            if (AppModuleToStart() == appModule.name)
+            if (AppModuleToStart() == gAvailableAppModules[i].name)
             {
-                appModule.Start(ecs);
+                gAppIndexToLaunch = i;
                 break;
             }
         }
 
-        // If mode wasn't found or one wasn't specified, bring up UI launcher.
+        // If we launched a specified app, there's nothing else to do.
+        if (pLaunchedAppModule)
+            return;
+
+        // If app module wasn't found or one wasn't specified, bring up UI launcher.
         UI::UI ui = {};
+        static flecs::entity uiEntity;
         ui.Update = [](flecs::world& ecs)
             {
-                // Uncomment for Imgui demo (has useful tools when building UI)
-                //ImGui::ShowDemoWindow(nullptr);
+                // If something was launched, then delete myself
+                if (pLaunchedAppModule)
+                {
+                    uiEntity.destruct();
+                    return;
+                }
 
                 std::vector<const char*> appNames;
                 appNames.reserve(gAvailableAppModules.size());
@@ -102,12 +117,13 @@ namespace AppModuleLauncher
 
                 if (ImGui::Button("LAUNCH"))
                 {
-
+                    uiEntity.destruct();
+                    gAppIndexToLaunch = selectedAppIndex;
                 }
 
                 ImGui::End();
             };
-        ecs.entity("AppModuleLauncher::UI").set<UI::UI>(ui);
+        uiEntity = ecs.entity("AppModuleLauncher::UI").set<UI::UI>(ui);
 
         // Clear screen
         ecs.system<Engine::Canvas, Window::SDLWindow>("AppModuleLauncher::Draw")
@@ -117,7 +133,7 @@ namespace AppModuleLauncher
                     ASSERTMSG(i == 0, "Drawing to more than one window not implemented.");
 
                     RHI::RHI const* pRHI = it.world().has<RHI::RHI>() ? it.world().get<RHI::RHI>() : nullptr;
-                    
+
                     if (pRHI && sdlWin.pCurRT)
                     {
                         Cmd* pCmd = pRHI->curCmdRingElem.pCmds[0];
@@ -134,6 +150,19 @@ namespace AppModuleLauncher
                     }
                 }
             );
+    }
+
+    void module::PreProgress(flecs::world& ecs)
+    {
+        if (pLaunchedAppModule)
+            pLaunchedAppModule->PreProgress(ecs);
+
+        if (gAppIndexToLaunch >= 0)
+        {
+            ASSERT(!pLaunchedAppModule);
+            gAvailableAppModules[gAppIndexToLaunch].Start(ecs);
+            gAppIndexToLaunch = -1;
+        }
     }
 
     void module::OnExit(flecs::world& ecs)

@@ -13,6 +13,7 @@ namespace AppModuleLauncher
 		module(flecs::world& ecs);
 		virtual void OnExit(flecs::world& ecs) override;
 		virtual void ProcessEvent(flecs::world& ecs, const SDL_Event* sdlEvent) override;
+		virtual void PreProgress(flecs::world& ecs) override;
 
 		static void SetAppModuleToStart(std::string const& name)
 		{

@@ -14,4 +14,7 @@ public:
 
     // Called when SDL events get broadcast
     virtual void ProcessEvent(flecs::world& ecs, const SDL_Event* sdlEvent) {};
+
+	// Called prior world progress
+	virtual void PreProgress(flecs::world& ecs) {};
 };
