@@ -3,7 +3,6 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <IResourceLoader.h>
-#include <imgui.h>
 #include "ILog.h"
 #include "Low/Engine.h"
 #include "Low/Inputs.h"
