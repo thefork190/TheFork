@@ -24,8 +24,7 @@
 #include "Modules/Medium/FontRendering.h"
 #include "Modules/Medium/Imgui/UI.h"
 
-#include "Modules/High/FlappyClone/FlappyClone.h"
-#include "Modules/High/HelloTriangle/HelloTriangle.h"
+#include "Modules/High/AppModuleLauncher/Launcher.h"
 
 // TF 
 #include <ILog.h>
@@ -104,7 +103,7 @@ struct AppState
     flecs::world ecs;
     std::vector<LifeCycledModule*> lowModules;
     std::vector<LifeCycledModule*> mediumModules;
-    std::vector<LifeCycledModule*> highModules;
+    LifeCycledModule* pAppLauncherModule = nullptr;
 };
 
 SDL_AppResult SDL_Fail()
@@ -157,22 +156,18 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[])
     CLI::App cli{ "The Fork Engine" };
     argv = cli.ensure_utf8(argv);
 
-    std::string moduleName = "Hello Triangle";
+    std::string moduleName = "";
     cli.add_option("-a,--appmodule", moduleName, "The app (high level) module to use.");
 
     cli.parse(argc, argv);
 
     // Kickstart the engine to activate the first systems
-    Engine::KickstartEngine(pApp->ecs, &moduleName);
+    Engine::KickstartEngine(pApp->ecs);
 
-    // Now load high level modules
-    // TODO:    High modules need to be data driven so we can know which to use/load (high modules represent "apps")
-    //          Need to find a better way to the following.
-    if ("Hello Triangle" == moduleName)
-        pApp->highModules.push_back(pApp->ecs.import<HelloTriangle::module>().get_mut<HelloTriangle::module>());
-    else if("Flappy Clone" == moduleName)
-        pApp->highModules.push_back(pApp->ecs.import<FlappyClone::module>().get_mut<FlappyClone::module>());
-    
+    // Setup the app launcher module that will handle launching the proper app
+    AppModuleLauncher::module::SetAppModuleToStart(moduleName);
+    pApp->pAppLauncherModule = pApp->ecs.import<AppModuleLauncher::module>().get_mut<AppModuleLauncher::module>();
+
     LOGF(eINFO, "SDL_AppInit returns success.");
 
     return SDL_APP_CONTINUE;
@@ -225,8 +220,7 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event* event)
         pModule->ProcessEvent(pApp->ecs, event);
     for (auto& pModule : pApp->mediumModules)
         pModule->ProcessEvent(pApp->ecs, event);
-    for (auto& pModule : pApp->highModules)
-        pModule->ProcessEvent(pApp->ecs, event);
+    pApp->pAppLauncherModule->ProcessEvent(pApp->ecs, event);
 
 
     return pApp->quitApp ? SDL_APP_SUCCESS : SDL_APP_CONTINUE;
@@ -244,6 +238,13 @@ SDL_AppResult SDL_AppIterate(void *appstate)
             pApp->quitApp = true;
     }
 
+    // PreProgress()
+    for (auto& pModule : pApp->lowModules)
+        pModule->PreProgress(pApp->ecs);
+    for (auto& pModule : pApp->mediumModules)
+        pModule->PreProgress(pApp->ecs);
+    pApp->pAppLauncherModule->PreProgress(pApp->ecs);
+
     if (!pApp->pauseApp)
         pApp->ecs.progress();
     
@@ -257,8 +258,7 @@ void SDL_AppQuit(void* appstate)
     if (pApp)
     {
         // Call OnExit on all modules (starting from high level modules)
-        for (auto& pModule : pApp->highModules)
-            pModule->OnExit(pApp->ecs);
+        pApp->pAppLauncherModule->OnExit(pApp->ecs);
 
         for (auto& pModule : pApp->mediumModules)
             pModule->OnExit(pApp->ecs);

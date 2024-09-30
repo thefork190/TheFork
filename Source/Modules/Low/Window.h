@@ -27,4 +27,8 @@ namespace Window
 		module(flecs::world& ecs); // Ctor that loads the module
         virtual void ProcessEvent(flecs::world& ecs, const SDL_Event* sdlEvent) override;
 	};
+
+	// Gets the main window component
+	// Returns false if main window couldn't be found
+	bool MainWindow(flecs::world& ecs, SDLWindow const** pMainWindowOut);
 }

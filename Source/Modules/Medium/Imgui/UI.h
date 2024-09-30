@@ -2,6 +2,7 @@
 
 #include <functional>
 #include <flecs.h>
+#include <imgui.h>
 #include "LifeCycledModule.h"
 #include "Medium/FontRendering.h"
 
