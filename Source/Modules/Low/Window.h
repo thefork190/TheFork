@@ -25,5 +25,6 @@ namespace Window
 	{
 	public:
 		module(flecs::world& ecs); // Ctor that loads the module
+        virtual void ProcessEvent(flecs::world& ecs, const SDL_Event* sdlEvent) override;
 	};
 }

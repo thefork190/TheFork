@@ -20,7 +20,7 @@
 #define DEFAULT_IMGUI_FONT_SIZE 13.f
 
 // Functions not accessible via normal interface header
-// forward declare before namespace
+// Forward declare before namespace
 extern void* fntGetRawFontData(uint32_t fontID);
 extern uint32_t fntGetRawFontDataSize(uint32_t fontID);
 
@@ -80,6 +80,12 @@ namespace UI
 
                     ImGui::StyleColorsDark();
 
+                    // Set our own path for where to same .ini (on MacOS for ex. we want this to go in MyApp.app/Contents/Resources/)
+                    // https://wiki.libsdl.org/SDL3/SDL_GetBasePath
+                    // "If the application is in a '.app' bundle, this function returns the Resource directory (e.g. MyApp.app/Contents/Resources/)"
+                    io.IniFilename = SDL_GetBasePath();
+
+                    // Init OS and rendering imgui backends
                     ImGui_ImplSDL3_InitForOther(sdlWin.pWindow);
                     ImGui_ImplTheForge_InitDesc initDesc = { pRHI->pRenderer, static_cast<unsigned int>(sdlWin.pSwapChain->ppRenderTargets[0]->mFormat) };
                     ImGui_TheForge_Init(initDesc);
@@ -178,21 +184,24 @@ namespace UI
 
                         if (pDrawData && pDrawData->Valid && pDrawData->TotalIdxCount > 0 && pDrawData->TotalVtxCount > 0)
                         {
-                            Cmd* pCmd = pRHI->curCmdRingElem.pCmds[0];
-                            ASSERT(pCmd);
+                            if (sdlWin.pCurRT)
+                            {
+                                Cmd* pCmd = pRHI->curCmdRingElem.pCmds[0];
+                                ASSERT(pCmd);
 
-                            cmdBeginDebugMarker(pCmd, 1, 0, 1, "ImGui Draw");
+                                cmdBeginDebugMarker(pCmd, 1, 0, 1, "ImGui Draw");
 
-                            BindRenderTargetsDesc bindRenderTargets = {};
-                            bindRenderTargets.mRenderTargetCount = 1;
-                            bindRenderTargets.mRenderTargets[0] = { sdlWin.pCurRT, LOAD_ACTION_LOAD };
-                            cmdBindRenderTargets(pCmd, &bindRenderTargets);
+                                BindRenderTargetsDesc bindRenderTargets = {};
+                                bindRenderTargets.mRenderTargetCount = 1;
+                                bindRenderTargets.mRenderTargets[0] = { sdlWin.pCurRT, LOAD_ACTION_LOAD };
+                                cmdBindRenderTargets(pCmd, &bindRenderTargets);
 
-                            ImGui_TheForge_RenderDrawData(pDrawData, pCmd);
+                                ImGui_TheForge_RenderDrawData(pDrawData, pCmd);
 
-                            cmdBindRenderTargets(pCmd, nullptr);
+                                cmdBindRenderTargets(pCmd, nullptr);
 
-                            cmdEndDebugMarker(pCmd);
+                                cmdEndDebugMarker(pCmd);
+                            }
                         }
                     }
 
@@ -228,7 +237,6 @@ namespace UI
                     // Load new fonts if needed and rebuild the atlas
                     if (!pContext->fontsToLoad.empty())
                     {
-
                         // Clear the imgui font atlas (this will invalidate all the ImFont pointers we cached)
                         ImGuiIO& io = ImGui::GetIO();
                         io.FontDefault = nullptr; // This will get invalidated once we clear
@@ -323,7 +331,7 @@ namespace UI
         }
     }
 
-    void ForwardEvent(flecs::world& ecs, const SDL_Event* sdlEvent)
+    void module::ProcessEvent(flecs::world& ecs, const SDL_Event* sdlEvent)
     {
         Context const* pContext = ecs.has<Context>() ? ecs.get<Context>() : nullptr;
 

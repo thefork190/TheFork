@@ -136,14 +136,7 @@ target_sources(${EXECUTABLE_NAME}
 )
 
 # Add additional platform-specific settings
-if (WINDOWS_STORE)
-    target_sources("${EXECUTABLE_NAME}" PRIVATE 
-        Source/logo44.png 
-        Source/logo150.png 
-        Source/logo50.png 
-        Source/logo620x300.png
-    )
-elseif(APPLE)
+if(APPLE)
     target_sources("${EXECUTABLE_NAME}" PRIVATE Source/logo.png)
     set(CMAKE_EXE_LINKER_FLAGS "-framework Cocoa -framework AppKit -framework CoreData -framework Foundation -framework Metal -framework MetalPerformanceShaders -framework CoreVideo -framework IOKit")
 endif()
@@ -155,17 +148,13 @@ if(CMAKE_SYSTEM_NAME MATCHES Emscripten)
     set(CMAKE_EXECUTABLE_SUFFIX ".html" CACHE INTERNAL "")
 endif()
 
-if(WINDOWS_STORE)
-    target_compile_options(${EXECUTABLE_NAME} PUBLIC "/EHsc")
-endif()
-
 # 3rd Parties
 add_subdirectory(ThirdParty/SDL EXCLUDE_FROM_ALL)
 add_subdirectory(ThirdParty/The-Forge/RHI EXCLUDE_FROM_ALL)
 add_subdirectory(ThirdParty/flecs EXCLUDE_FROM_ALL)
 add_subdirectory(ThirdParty/glm EXCLUDE_FROM_ALL)
 
-target_include_directories(${PROJECT_NAME}
+target_include_directories(${EXECUTABLE_NAME}
     PRIVATE "Source/Modules"
     PRIVATE ThirdParty/The-Forge/RHI/Private    # Hack for TF
     PRIVATE ThirdParty/The-Forge/ThirdParty     # Hack for TF
@@ -185,7 +174,24 @@ target_link_libraries(${EXECUTABLE_NAME}
     PUBLIC 
         SDL3::SDL3
 )
-else()
+elseif (ANDROID)
+target_link_libraries(${EXECUTABLE_NAME} 
+    PRIVATE
+        RHI
+        flecs_static
+        glm::glm
+		$<$<CONFIG:Debug>:${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/The-Forge/ThirdParty/agdk/libs/arm64-v8a_cpp_static_Release/libswappy_static.a>
+        $<$<CONFIG:Release>:${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/The-Forge/ThirdParty/agdk/libs/arm64-v8a_cpp_static_Release/libswappy_static.a>
+        $<$<CONFIG:RelWithDebInfo>:${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/The-Forge/ThirdParty/agdk/libs/arm64-v8a_cpp_static_Release/libswappy_static.a>
+		$<$<CONFIG:Debug>:${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/The-Forge/ThirdParty/agdk/libs/arm64-v8a_cpp_static_Release/libmemory_advice_static.a>
+        $<$<CONFIG:Release>:${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/The-Forge/ThirdParty/agdk/libs/arm64-v8a_cpp_static_Release/libmemory_advice_static.a>
+        $<$<CONFIG:RelWithDebInfo>:${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/The-Forge/ThirdParty/agdk/libs/arm64-v8a_cpp_static_Release/libmemory_advice_static.a>
+		log
+		android
+    PUBLIC 
+        SDL3::SDL3
+)
+else ()
 target_link_libraries(${EXECUTABLE_NAME} 
     PRIVATE
         RHI
@@ -227,12 +233,12 @@ endif()
 install(TARGETS ${EXECUTABLE_NAME} BUNDLE DESTINATION ./install)
 
 if (WIN32)
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    add_custom_command(TARGET ${EXECUTABLE_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
         ${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/The-Forge/ThirdParty/winpixeventruntime/bin/WinPixEventRuntime.dll
         ${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/The-Forge/ThirdParty/DirectXShaderCompiler/bin/x64/dxcompiler.dll
         ${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/The-Forge/ThirdParty/ags/ags_lib/lib/amd_ags_x64.dll
-        $<TARGET_FILE_DIR:${PROJECT_NAME}>
+        $<TARGET_FILE_DIR:${EXECUTABLE_NAME}>
     )
 endif (WIN32)
 
@@ -251,6 +257,9 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -E copy_directory "${ASSETS_DIR}" "${ASSETS_DESTINATION}"
     COMMENT "Copying assets to .app bundle..."
 )
+elseif(ANDROID)
+    # For Android, assets should be placed in the 'assets' folder and are bundled in the APK
+    message(STATUS "Android detected. Make sure assets are in the 'assets' directory in the Android project.")
 else()
 # Define the path to the Resources folder inside the .app bundle
 set(ASSETS_DESTINATION "${CMAKE_BINARY_DIR}/$<CONFIG>/Assets")

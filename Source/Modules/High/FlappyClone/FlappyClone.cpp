@@ -387,8 +387,10 @@ namespace FlappyClone
                 .run([](flecs::iter& it)
                 {
                     Inputs::RawKeboardStates const* pKeyboard = it.world().has<Inputs::RawKeboardStates>() ? it.world().get<Inputs::RawKeboardStates>() : nullptr;
+                    Inputs::RawMouseStates const* pMouse = it.world().has<Inputs::RawMouseStates>() ? it.world().get<Inputs::RawMouseStates>() : nullptr;
                     Engine::Context* pEngineContext = it.world().has<Engine::Context>() ? it.world().get_mut<Engine::Context>() : nullptr;
-                    if (pKeyboard && pEngineContext)
+                   
+                    if (pKeyboard && pMouse && pEngineContext)
                     {
                         // Exit if ESC is pressed
                         if (pKeyboard->WasPressed(SDLK_ESCAPE))
@@ -401,7 +403,7 @@ namespace FlappyClone
                         GameContext* pGameCtx = it.world().has<GameContext>() ? it.world().get_mut<GameContext>() : nullptr;
                         if (pGameCtx)
                         {
-                            if (pKeyboard->WasPressed(SDLK_SPACE))
+                            if (pKeyboard->WasPressed(SDLK_SPACE) || pMouse->WasPressed(SDL_BUTTON_LMASK))
                             {
                                 if (GameContext::START == pGameCtx->state)
                                     pGameCtx->state = GameContext::IN_PLAY;
@@ -551,13 +553,15 @@ namespace FlappyClone
                         updatedData.color[UNIFORMS_PLAYER_INDEX] = glm::vec4(color.r, color.g, color.b, color.a);
                     }
 
-                    // Exit if ESC is pressed
+                    // Impulse force
                     Inputs::RawKeboardStates const* pKeyboard = it.world().has<Inputs::RawKeboardStates>() ? it.world().get<Inputs::RawKeboardStates>() : nullptr;                   
+                    Inputs::RawMouseStates const* pMouse = it.world().has<Inputs::RawMouseStates>() ? it.world().get<Inputs::RawMouseStates>() : nullptr;
                     GameContext const* pGameCtx = it.world().has<GameContext>() ? it.world().get<GameContext>() : nullptr;
-                    if (pKeyboard)
+
+                    if (pKeyboard && pMouse)
                     {
                         if (pGameCtx &&
-                            pKeyboard->WasPressed(SDLK_SPACE))
+                            pKeyboard->WasPressed(SDLK_SPACE) || pMouse->WasPressed(SDL_BUTTON_LMASK))
                         {                            
                             if (GameContext::IN_PLAY == pGameCtx->state)
                                 vel.y = IMPULSE_FORCE;
@@ -699,12 +703,13 @@ namespace FlappyClone
                     RHI::RHI const* pRHI = it.world().has<RHI::RHI>() ? it.world().get<RHI::RHI>() : nullptr;
                     RenderPassData* pRPD = it.world().has<RenderPassData>() ? it.world().get_mut<RenderPassData>() : nullptr;
 
-                    // Updated latest res so that it can be used if needed during next frame's update
-                    pRPD->resX = sdlWin.pSwapChain->ppRenderTargets[0]->mWidth;
-                    pRPD->resY = sdlWin.pSwapChain->ppRenderTargets[0]->mHeight;
 
                     if (pRHI && pRPD && sdlWin.pCurRT)
                     {
+                        // Updated latest res so that it can be used if needed during next frame's update
+                        pRPD->resX = sdlWin.pSwapChain->ppRenderTargets[0]->mWidth;
+                        pRPD->resY = sdlWin.pSwapChain->ppRenderTargets[0]->mHeight;
+
                         Cmd* pCmd = pRHI->curCmdRingElem.pCmds[0];
                         ASSERT(pCmd);
 
@@ -721,11 +726,6 @@ namespace FlappyClone
                         cmdBindRenderTargets(pCmd, &bindRenderTargets);
                         cmdSetViewport(pCmd, 0.0f, 0.0f, static_cast<float>(sdlWin.pCurRT->mWidth), static_cast<float>(sdlWin.pCurRT->mHeight), 0.0f, 1.0f);
                         cmdSetScissor(pCmd, 0, 0, sdlWin.pCurRT->mWidth, sdlWin.pCurRT->mHeight);
-
-                        cmdBindRenderTargets(pCmd, nullptr);
-
-                        barriers[0] = { sdlWin.pCurRT, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };
-                        cmdResourceBarrier(pCmd, 0, nullptr, 0, nullptr, 1, barriers);
 
                         cmdEndDebugMarker(pCmd);
 
