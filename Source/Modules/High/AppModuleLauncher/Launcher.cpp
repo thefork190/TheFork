@@ -161,6 +161,13 @@ namespace AppModuleLauncher
         {
             ASSERT(!pLaunchedAppModule);
             gAvailableAppModules[gAppIndexToLaunch].Start(ecs);
+
+            // Update the window title
+            Window::SDLWindow const* pWindow = nullptr;
+            Window::MainWindow(ecs, &pWindow);
+            ASSERT(pWindow);
+            SDL_SetWindowTitle(pWindow->pWindow, gAvailableAppModules[gAppIndexToLaunch].name.c_str());
+
             gAppIndexToLaunch = -1;
         }
     }
