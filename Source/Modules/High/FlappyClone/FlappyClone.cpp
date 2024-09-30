@@ -328,20 +328,18 @@ namespace FlappyClone
         ibDesc.ppBuffer = &renderPassData.pIndexBuffer;
         addResource(&ibDesc, nullptr);
 
-        flecs::query<Window::SDLWindow> windowQuery = ecs.query_builder<Window::SDLWindow>().build();
-        windowQuery.each([pRHI, &renderPassData](flecs::iter& it, size_t i, Window::SDLWindow& window)
-            {
-                ASSERTMSG(i == 0, "Drawing to more than one window not implemented.");
-                AddPipeline(pRHI, &window, renderPassData);
 
-                // While we're at it, cap the min window size
-                SDL_SetWindowMinimumSize(window.pWindow, 800, 600);
+        Window::SDLWindow const* pWindow = nullptr;
+        Window::MainWindow(ecs, &pWindow);
+        ASSERT(pWindow);
+        AddPipeline(pRHI, pWindow, renderPassData);
 
-                // Cache res
-                renderPassData.resX = window.pSwapChain->ppRenderTargets[0]->mWidth;
-                renderPassData.resY = window.pSwapChain->ppRenderTargets[0]->mHeight;
-            });
+        // While we're at it, cap the min window size
+        SDL_SetWindowMinimumSize(pWindow->pWindow, 800, 600);
 
+        // Cache res
+        renderPassData.resX = pWindow->pSwapChain->ppRenderTargets[0]->mWidth;
+        renderPassData.resY = pWindow->pSwapChain->ppRenderTargets[0]->mHeight;
 
         waitForAllResourceLoads();
 

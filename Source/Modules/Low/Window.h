@@ -30,5 +30,5 @@ namespace Window
 
 	// Gets the main window component
 	// Returns false if main window couldn't be found
-	bool MainWindow(flecs::world& ecs, SDLWindow& mainWindowOut);
+	bool MainWindow(flecs::world& ecs, SDLWindow const** pMainWindowOut);
 }

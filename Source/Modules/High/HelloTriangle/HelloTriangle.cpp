@@ -190,13 +190,10 @@ namespace HelloTriangle
         ibDesc.ppBuffer = &renderPassData.pIndexBuffer;
         addResource(&ibDesc, nullptr);
 
-        flecs::query<Window::SDLWindow> windowQuery = ecs.query_builder<Window::SDLWindow>().build();
-        windowQuery.each([pRHI, &renderPassData](flecs::iter& it, size_t i, Window::SDLWindow& window)
-            {
-                ASSERTMSG(i == 0, "Drawing to more than one window not implemented.");
-                AddPipeline(pRHI, &window, renderPassData);
-            });
-
+        Window::SDLWindow const* pWindow = nullptr;
+        Window::MainWindow(ecs, &pWindow);
+        ASSERT(pWindow);
+        AddPipeline(pRHI, pWindow, renderPassData);
 
         waitForAllResourceLoads();
 

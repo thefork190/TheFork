@@ -27,9 +27,7 @@
 namespace Window
 {
     struct MainWindowTag {}; // Tag to easily identify the main window entity
-
-    flecs::query<SDLWindow, MainWindowTag> gMainWindowQuery;
-
+   
     void CreateWindowSwapchain(RHI::RHI* pRHI, SDLWindow& sdlWin, int const w, int const h)
     {
         // TODO this is platform specific
@@ -143,8 +141,6 @@ namespace Window
                 }
             );
 
-        gMainWindowQuery = ecs.query_builder<SDLWindow, MainWindowTag>().cached().build();
-        
         auto createSDLWin = ecs.observer<Engine::Canvas>("SDL Window Creator")
             .event(flecs::OnSet)
             .each([](flecs::iter& it, size_t i, Engine::Canvas& canvas)
@@ -322,14 +318,19 @@ namespace Window
         }
     }
 
-    bool MainWindow(flecs::world& ecs, SDLWindow& mainWindowOut)
+    bool MainWindow(flecs::world& ecs, SDLWindow const** ppMainWindowOut)
     {
+        // Usually, the main window will be needed to initialize things (eg. rendering related).
+        // It might also be needed when resizing things, but it's queried outside of systems pretty sparringly.
+        // If this changes, then the query should be cached.
+        flecs::query<SDLWindow, MainWindowTag> mainWindowQuery = ecs.query_builder<SDLWindow, MainWindowTag>().build();
+
         uint32_t mainWindowsFound = 0;
-        gMainWindowQuery.each([&mainWindowOut, &mainWindowsFound](flecs::iter& it, size_t i, SDLWindow& window, MainWindowTag)
+        mainWindowQuery.each([&ppMainWindowOut, &mainWindowsFound](flecs::iter& it, size_t i, SDLWindow const& window, MainWindowTag)
             {
                 mainWindowsFound++;
-                if (mainWindowsFound == 1)
-                    mainWindowOut = window;
+                if (ppMainWindowOut && mainWindowsFound == 1)
+                    *ppMainWindowOut = &window;
             });
 
         ASSERT(mainWindowsFound == 1);
