@@ -105,8 +105,8 @@ set(SOURCES
     Source/Modules/Medium/Imgui/UI.h
     Source/Modules/Medium/Imgui/UI.cpp
     # High
-    Source/Modules/High/AppModuleLauncher/AppModuleLauncher.h
-    Source/Modules/High/AppModuleLauncher/AppModuleLauncher.cpp
+    Source/Modules/High/AppModuleLauncher/Launcher.h
+    Source/Modules/High/AppModuleLauncher/Launcher.cpp
     Source/Modules/High/FlappyClone/FlappyClone.h
     Source/Modules/High/FlappyClone/FlappyClone.cpp
     Source/Modules/High/HelloTriangle/HelloTriangle.h
