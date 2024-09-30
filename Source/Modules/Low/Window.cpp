@@ -26,6 +26,10 @@
 
 namespace Window
 {
+    struct MainWindowTag {}; // Tag to easily identify the main window entity
+
+    flecs::query<SDLWindow, MainWindowTag> gMainWindowQuery;
+
     void CreateWindowSwapchain(RHI::RHI* pRHI, SDLWindow& sdlWin, int const w, int const h)
     {
         // TODO this is platform specific
@@ -138,12 +142,20 @@ namespace Window
                     sdlWin.pWindow = nullptr;
                 }
             );
+
+        gMainWindowQuery = ecs.query_builder<SDLWindow, MainWindowTag>().cached().build();
         
         auto createSDLWin = ecs.observer<Engine::Canvas>("SDL Window Creator")
             .event(flecs::OnSet)
             .each([](flecs::iter& it, size_t i, Engine::Canvas& canvas)
                 {
                     it.entity(i).add<SDLWindow>();
+
+                    if (it.world().count<MainWindowTag>() == 0)
+                    {
+                        // This is the 1st window created, make it the main one
+                        it.entity(i).add<MainWindowTag>();
+                    }
                 }
             );
        
@@ -308,5 +320,20 @@ namespace Window
                 break;
             }
         }
+    }
+
+    bool MainWindow(flecs::world& ecs, SDLWindow& mainWindowOut)
+    {
+        uint32_t mainWindowsFound = 0;
+        gMainWindowQuery.each([&mainWindowOut, &mainWindowsFound](flecs::iter& it, size_t i, SDLWindow& window, MainWindowTag)
+            {
+                mainWindowsFound++;
+                if (mainWindowsFound == 1)
+                    mainWindowOut = window;
+            });
+
+        ASSERT(mainWindowsFound == 1);
+
+        return mainWindowsFound == 1;
     }
 }
