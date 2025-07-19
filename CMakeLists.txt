@@ -20,6 +20,17 @@ endif()
 # Set the name of the executable
 set(EXECUTABLE_NAME ${PROJECT_NAME})
 
+
+if(IOS)
+# ios.toolchain.cmake
+set(CMAKE_SYSTEM_NAME iOS)
+set(CMAKE_OSX_SYSROOT iphoneos)
+set(CMAKE_OSX_ARCHITECTURES arm64)
+set(CMAKE_XCODE_ATTRIBUTE_ONLY_ACTIVE_ARCH "NO")
+set(CMAKE_XCODE_ATTRIBUTE_ENABLE_BITCODE "NO")
+set(CMAKE_XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "1,2")
+endif()
+
 # Collect all shader files recursively from the FSL directory
 file(GLOB_RECURSE SHADER_FILES "${CMAKE_SOURCE_DIR}/Source/FSL/*")
 
@@ -138,7 +149,7 @@ target_sources(${EXECUTABLE_NAME}
 )
 
 # Add additional platform-specific settings
-if(APPLE)
+if(OSX)
     target_sources("${EXECUTABLE_NAME}" PRIVATE Source/logo.png)
     set(CMAKE_EXE_LINKER_FLAGS "-framework Cocoa -framework AppKit -framework CoreData -framework Foundation -framework Metal -framework MetalPerformanceShaders -framework CoreVideo -framework IOKit")
 endif()
@@ -162,9 +173,38 @@ target_include_directories(${EXECUTABLE_NAME}
     PRIVATE ThirdParty/The-Forge/ThirdParty     # Hack for TF
     PUBLIC ThirdParty/The-Forge/RHI/Public
     PRIVATE ThirdParty/CLI11/include/CLI                        # CLI11 header only 3rd party
+    PRIVATE ThirdParty/SDL/include
     PRIVATE ThirdParty/imgui                                    # Required to compile imgui
 )
-if(APPLE)
+
+#link specific ios frameworks and libs
+if(IOS)
+    target_link_libraries(${EXECUTABLE_NAME}
+        PRIVATE
+            RHI
+            flecs_static
+            glm::glm
+            "-framework UIKit"
+            "-framework Foundation"
+            "-framework Metal"
+            "-framework MetalKit"
+            "-framework CoreGraphics"
+            "-framework CoreVideo"
+			"-framework MetalPerformanceShaders"
+        PUBLIC 
+            SDL3::SDL3
+    )
+    #this needs to be more dynamic, at least for dev team
+    set_target_properties(${EXECUTABLE_NAME} PROPERTIES
+        MACOSX_BUNDLE YES
+        XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "Apple Development"
+        XCODE_ATTRIBUTE_PROVISIONING_PROFILE_SPECIFIER ""
+        XCODE_ATTRIBUTE_DEVELOPMENT_TEAM "ZCN3257HVH"        # <- Replace with your actual team ID
+        XCODE_ATTRIBUTE_CODE_SIGN_STYLE "Automatic"
+        XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "1,2"
+        XCODE_ATTRIBUTE_SUPPORTED_PLATFORMS "iphoneos"
+    )
+elseif(OSX)
 target_link_libraries(${EXECUTABLE_NAME} 
     PRIVATE
         RHI
@@ -175,6 +215,17 @@ target_link_libraries(${EXECUTABLE_NAME}
         $<$<CONFIG:RelWithDebInfo>:${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/efsw_artifacts/mac-lib/libefsw-static-reldbginfo.lib>
     PUBLIC 
         SDL3::SDL3
+)
+	target_link_libraries(${EXECUTABLE_NAME} PRIVATE
+			stdc++
+			objc
+			"-framework Foundation"
+			"-framework Cocoa"
+			"-framework IOKit"
+			"-framework Metal"
+			"-framework MetalKit"
+			"-framework MetalPerformanceShaders"
+			"-framework QuartzCore"
 )
 elseif (ANDROID)
 target_link_libraries(${EXECUTABLE_NAME} 
@@ -223,7 +274,7 @@ set_target_properties(${EXECUTABLE_NAME} PROPERTIES
 
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT "${EXECUTABLE_NAME}")
 
-if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
+if(OSX)
     INSTALL(CODE 
         "include(BundleUtilities)
         fixup_bundle(\"$<TARGET_BUNDLE_DIR:${EXECUTABLE_NAME}>\" \"\" \"\")
@@ -232,7 +283,9 @@ if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
     )
 endif()
 
+if(!IOS)
 install(TARGETS ${EXECUTABLE_NAME} BUNDLE DESTINATION ./install)
+endif()
 
 if (WIN32)
     add_custom_command(TARGET ${EXECUTABLE_NAME} POST_BUILD
@@ -248,8 +301,12 @@ endif (WIN32)
 set(ASSETS_DIR "${CMAKE_SOURCE_DIR}/Assets")
 file(GLOB_RECURSE ASSET_FILES "${ASSETS_DIR}/*")
 if(APPLE)
+if(IOS)
+    set(ASSETS_DESTINATION "$<TARGET_BUNDLE_DIR:${EXECUTABLE_NAME}>/Resources")
+else()
 # Define the path to the Resources folder inside the .app bundle
 set(ASSETS_DESTINATION "$<TARGET_BUNDLE_DIR:${EXECUTABLE_NAME}>/Contents/Resources/Assets")
+endif()
 
 # Define a post-build command to copy assets to the .app bundle
 add_custom_command(
