@@ -251,7 +251,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     return pApp->quitApp ? SDL_APP_SUCCESS : SDL_APP_CONTINUE;
 }
 
-void SDL_AppQuit(void* appstate) 
+void SDL_AppQuit(void* appstate,SDL_AppResult result) 
 {
     AppState* pApp = (AppState*)appstate;
 
