@@ -205,17 +205,17 @@ if(IOS)
         XCODE_ATTRIBUTE_SUPPORTED_PLATFORMS "iphoneos"
     )
 elseif(OSX)
-target_link_libraries(${EXECUTABLE_NAME} 
-    PRIVATE
-        RHI
-        flecs_static
-        glm::glm
-        $<$<CONFIG:Debug>:${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/efsw_artifacts/mac-lib/libefsw-static-debug.a>
-        $<$<CONFIG:Release>:${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/efsw_artifacts/mac-lib/libefsw-static-release.lib>
-        $<$<CONFIG:RelWithDebInfo>:${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/efsw_artifacts/mac-lib/libefsw-static-reldbginfo.lib>
-    PUBLIC 
-        SDL3::SDL3
-)
+    target_link_libraries(${EXECUTABLE_NAME} 
+        PRIVATE
+            RHI
+            flecs_static
+            glm::glm
+            $<$<CONFIG:Debug>:${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/efsw_artifacts/mac-lib/libefsw-static-debug.a>
+            $<$<CONFIG:Release>:${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/efsw_artifacts/mac-lib/libefsw-static-release.lib>
+            $<$<CONFIG:RelWithDebInfo>:${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/efsw_artifacts/mac-lib/libefsw-static-reldbginfo.lib>
+        PUBLIC 
+            SDL3::SDL3
+    )
 	target_link_libraries(${EXECUTABLE_NAME} PRIVATE
 			stdc++
 			objc
@@ -226,7 +226,7 @@ target_link_libraries(${EXECUTABLE_NAME}
 			"-framework MetalKit"
 			"-framework MetalPerformanceShaders"
 			"-framework QuartzCore"
-)
+    )
 elseif (ANDROID)
 target_link_libraries(${EXECUTABLE_NAME} 
     PRIVATE
@@ -262,6 +262,47 @@ target_compile_definitions(${EXECUTABLE_NAME}
     PUBLIC IMGUI_USER_CONFIG="Medium/Imgui/imconfig.h"
     )
 
+
+set(ASSETS_DIR "${CMAKE_SOURCE_DIR}/Assets")
+file(GLOB_RECURSE ASSET_FILES "${ASSETS_DIR}/*")
+
+#setup ios assets before the install step
+#seems to help with signing
+if(IOS)
+    # we only want to copy specific subfolders
+    set(ASSETS_SUBFOLDERS
+        Fonts
+        GPUCfg
+        FSL/binary/IOS
+    )
+    
+    # Copy every subfolder under assets
+    foreach(subdir IN LISTS ASSETS_SUBFOLDERS)
+        set(SRC "${ASSETS_DIR}/${subdir}")
+        set(DST "$<TARGET_BUNDLE_DIR:${EXECUTABLE_NAME}>/Assets/${subdir}")
+
+        add_custom_command(
+            TARGET ${EXECUTABLE_NAME}
+            POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E make_directory "${DST}"
+            COMMAND ${CMAKE_COMMAND} -E copy_directory "${SRC}" "${DST}"
+            COMMENT "Copying Assets subfolder: ${subdir}"
+        )
+    endforeach()
+
+    # Tell Xcode to embed and sign libSDL3.0.dylib
+    set_target_properties(${EXECUTABLE_NAME} PROPERTIES
+        XCODE_EMBEDDED_CONTENT_CONTAINS_SWIFT FALSE
+        #Fix hardcoded debug path
+        XCODE_EMBED_FRAMEWORKS "${CMAKE_BINARY_DIR}/Debug/libSDL3.0.dylib"
+        XCODE_EMBED_FRAMEWORKS_CODE_SIGN_ON_COPY TRUE)
+
+    set_target_properties(${EXECUTABLE_NAME} PROPERTIES
+        INSTALL_RPATH "@executable_path/Frameworks"
+        BUILD_RPATH "@executable_path/Frameworks"
+    )
+endif()
+
 set_target_properties(${EXECUTABLE_NAME} PROPERTIES 
     MACOSX_BUNDLE TRUE
     XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC YES  
@@ -283,9 +324,9 @@ if(OSX)
     )
 endif()
 
-if(!IOS)
+#if(!IOS)
 install(TARGETS ${EXECUTABLE_NAME} BUNDLE DESTINATION ./install)
-endif()
+#endif()
 
 if (WIN32)
     add_custom_command(TARGET ${EXECUTABLE_NAME} POST_BUILD
@@ -298,24 +339,16 @@ if (WIN32)
 endif (WIN32)
 
 # Assets
-set(ASSETS_DIR "${CMAKE_SOURCE_DIR}/Assets")
-file(GLOB_RECURSE ASSET_FILES "${ASSETS_DIR}/*")
-if(APPLE)
-if(IOS)
-    set(ASSETS_DESTINATION "$<TARGET_BUNDLE_DIR:${EXECUTABLE_NAME}>/Resources")
-else()
+if(OSX)
 # Define the path to the Resources folder inside the .app bundle
 set(ASSETS_DESTINATION "$<TARGET_BUNDLE_DIR:${EXECUTABLE_NAME}>/Contents/Resources/Assets")
-endif()
-
 # Define a post-build command to copy assets to the .app bundle
 add_custom_command(
     TARGET ${EXECUTABLE_NAME}
     POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory "${ASSETS_DESTINATION}"
     COMMAND ${CMAKE_COMMAND} -E copy_directory "${ASSETS_DIR}" "${ASSETS_DESTINATION}"
-    COMMENT "Copying assets to .app bundle..."
-)
+    COMMENT "Copying assets to .app bundle...")
 elseif(ANDROID)
     # For Android, assets should be placed in the 'assets' folder and are bundled in the APK
     message(STATUS "Android detected. Make sure assets are in the 'assets' directory in the Android project.")
