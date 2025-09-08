@@ -162,6 +162,11 @@ if(CMAKE_SYSTEM_NAME MATCHES Emscripten)
 endif()
 
 # 3rd Parties
+if(IOS)
+  set(SDL_FRAMEWORK ON CACHE BOOL "" FORCE)   # you want a dylib, not a framework
+  set(SDL_SHARED   ON  CACHE BOOL "" FORCE)
+  set(SDL_STATIC   OFF CACHE BOOL "" FORCE)
+endif()
 add_subdirectory(ThirdParty/SDL EXCLUDE_FROM_ALL)
 add_subdirectory(ThirdParty/The-Forge/RHI EXCLUDE_FROM_ALL)
 add_subdirectory(ThirdParty/flecs EXCLUDE_FROM_ALL)
@@ -290,16 +295,45 @@ if(IOS)
         )
     endforeach()
 
-    # Tell Xcode to embed and sign libSDL3.0.dylib
-    set_target_properties(${EXECUTABLE_NAME} PROPERTIES
-        XCODE_EMBEDDED_CONTENT_CONTAINS_SWIFT FALSE
-        #Fix hardcoded debug path
-        XCODE_EMBED_FRAMEWORKS "${CMAKE_BINARY_DIR}/Debug/libSDL3.0.dylib"
-        XCODE_EMBED_FRAMEWORKS_CODE_SIGN_ON_COPY TRUE)
+    if(TARGET SDL3::SDL3)
+    get_target_property(_SDL_ALIASED SDL3::SDL3 ALIASED_TARGET)
+    if(_SDL_ALIASED)
+        set(_SDL_TARGET "${_SDL_ALIASED}")
+    else()
+        set(_SDL_TARGET "SDL3::SDL3")
+    endif()
+    elseif(TARGET SDL3-shared)
+        set(_SDL_TARGET "SDL3-shared")
+    elseif(TARGET SDL3) # some trees expose 'SDL3' directly
+        set(_SDL_TARGET "SDL3")
+    else()
+        message(FATAL_ERROR "Could not find an SDL3 target to embed (SDL3::SDL3 / SDL3-shared / SDL3). Check SDL options before add_subdirectory().")
+    endif()
 
+    # Is it a framework?
+    get_target_property(_SDL_IS_FRAMEWORK "${_SDL_TARGET}" FRAMEWORK)
+
+    if(_SDL_IS_FRAMEWORK)
+        # Framework: use XCODE_EMBED_FRAMEWORKS with the TARGET NAME (no genex)
+        set_target_properties(${EXECUTABLE_NAME} PROPERTIES
+            XCODE_EMBED_FRAMEWORKS "${_SDL_TARGET}"
+            XCODE_EMBED_FRAMEWORKS_CODE_SIGN_ON_COPY TRUE
+            XCODE_EMBED_FRAMEWORKS_REMOVE_HEADERS_ON_COPY TRUE
+        ) 
+    else()
+        # Dylib: use XCODE_EMBED_LIBRARIES with the TARGET NAME (no genex)
+        set_target_properties(${EXECUTABLE_NAME} PROPERTIES
+            XCODE_EMBED_LIBRARIES "${_SDL_TARGET}"
+            XCODE_EMBED_LIBRARIES_CODE_SIGN_ON_COPY TRUE
+        )
+    endif()
+
+    # Common runpaths for iOS app bundle
     set_target_properties(${EXECUTABLE_NAME} PROPERTIES
-        INSTALL_RPATH "@executable_path/Frameworks"
-        BUILD_RPATH "@executable_path/Frameworks"
+    XCODE_EMBEDDED_CONTENT_CONTAINS_SWIFT FALSE
+    XCODE_ATTRIBUTE_LD_RUNPATH_SEARCH_PATHS "@executable_path/Frameworks @loader_path/Frameworks"
+    INSTALL_RPATH "@executable_path/Frameworks"
+    BUILD_RPATH   "@executable_path/Frameworks"
     )
 endif()
 
