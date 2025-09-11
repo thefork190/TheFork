@@ -13,6 +13,10 @@ project("TheFork"
     DESCRIPTION "An ECS engine."
 )
 
+if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    set(OSX true)
+endif()
+
 if(APPLE)
     enable_language(OBJC)
     enable_language(OBJCXX)
