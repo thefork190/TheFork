@@ -268,7 +268,7 @@ void ImGui_TheForge_NewFrame()
 static void cmdPrepareRenderingForUI(
     ImGui_ImplTheForge_Data* pBD,
     Cmd* pCmd, 
-    const float2& displayPos, const float2& displaySize, 
+    const float2& displayPos, const float2& displaySize, const float2& fbScale,
     Pipeline* pPipeline,
     const uint64_t vOffset, const uint64_t iOffset)
 {
@@ -290,8 +290,18 @@ static void cmdPrepareRenderingForUI(
 
     const uint32_t vertexStride = sizeof(ImDrawVert);
 
-    cmdSetViewport(pCmd, 0.0f, 0.0f, displaySize.x, displaySize.y, 0.0f, 1.0f);
-    cmdSetScissor(pCmd, (uint32_t)displayPos.x, (uint32_t)displayPos.y, (uint32_t)displaySize.x, (uint32_t)displaySize.y);
+    // convert viewport to PIXELS
+    cmdSetViewport(pCmd, 0.0f, 0.0f,
+                   displaySize.x * fbScale.x,
+                   displaySize.y * fbScale.y,
+                   0.0f, 1.0f);
+
+    // Full scissor in PIXELS (origin also scaled)
+    const uint32_t scX = (uint32_t)(displayPos.x * fbScale.x);
+    const uint32_t scY = (uint32_t)(displayPos.y * fbScale.y);
+    const uint32_t scW = (uint32_t)(displaySize.x * fbScale.x);
+    const uint32_t scH = (uint32_t)(displaySize.y * fbScale.y);
+    cmdSetScissor(pCmd, scX, scY, scW, scH);
 
     cmdBindPipeline(pCmd, pPipeline);
     cmdBindIndexBuffer(pCmd, pBD->pIndexBuffer, sizeof(ImDrawIdx) == sizeof(uint16_t) ? INDEX_TYPE_UINT16 : INDEX_TYPE_UINT32,
@@ -301,13 +311,14 @@ static void cmdPrepareRenderingForUI(
 }
 
 static void cmdDrawUICommand(ImGui_ImplTheForge_Data* pBD, Cmd* pCmd, const ImDrawCmd* pImDrawCmd, const float2& displayPos, const float2& displaySize,
-    Pipeline** ppPipelineInOut, Pipeline** ppPrevPipelineInOut, uint32_t& globalVtxOffsetInOut,
+    const float2& fbScale, Pipeline** ppPipelineInOut, Pipeline** ppPrevPipelineInOut, uint32_t& globalVtxOffsetInOut,
     uint32_t& globalIdxOffsetInOut, uint32_t& prevSetIndexInOut, const int32_t vertexCount, const int32_t indexCount)
 {
     float2 clipMin = { clamp(pImDrawCmd->ClipRect.x - displayPos.x, 0.0f, displaySize.x),
                        clamp(pImDrawCmd->ClipRect.y - displayPos.y, 0.0f, displaySize.y) };
     float2 clipMax = { clamp(pImDrawCmd->ClipRect.z - displayPos.x, 0.0f, displaySize.x),
                        clamp(pImDrawCmd->ClipRect.w - displayPos.y, 0.0f, displaySize.y) };
+
     if (clipMax.x <= clipMin.x || clipMax.y <= clipMin.y)
     {
         return;
@@ -317,11 +328,20 @@ static void cmdDrawUICommand(ImGui_ImplTheForge_Data* pBD, Cmd* pCmd, const ImDr
         return;
     }
 
-    uint2 offset = { (uint32_t)clipMin.x, (uint32_t)clipMin.y };
-    uint2 ext = { (uint32_t)(clipMax.x - clipMin.x), (uint32_t)(clipMax.y - clipMin.y) };
-    cmdSetScissor(pCmd, offset.x, offset.y, ext.x, ext.y);
+    // Convert scissor to PIXELS (floor min, ceil max to avoid 1px gaps)
+    const int scX = (int)floorf(clipMin.x * fbScale.x);
+    const int scY = (int)floorf(clipMin.y * fbScale.y);
+    const int scX2 = (int)ceilf(clipMax.x * fbScale.x);
+    const int scY2 = (int)ceilf(clipMax.y * fbScale.y);
 
-    ptrdiff_t id = (ptrdiff_t)pImDrawCmd->TextureId;
+    const uint32_t scW = (uint32_t)max(0, scX2 - scX);
+    const uint32_t scH = (uint32_t)max(0, scY2 - scY);
+    if (scW == 0 || scH == 0)
+        return;
+
+    cmdSetScissor(pCmd, (uint32_t)max(0, scX), (uint32_t)max(0, scY), scW, scH);
+
+    ptrdiff_t id = (ptrdiff_t)pImDrawCmd-> GetTexID();
     uint32_t  setIndex = (uint32_t)id;
     if (id != FONT_TEXTURE_INDEX) // it's not a font, it's an external texture
     {
@@ -332,9 +352,9 @@ static void cmdDrawUICommand(ImGui_ImplTheForge_Data* pBD, Cmd* pCmd, const ImDr
             return;
         }
 
-        Texture* tex = (Texture*)pImDrawCmd->TextureId;
-        setIndex = 1 + ((ptrdiff_t)pBD->mFrameIdx * pBD->mMaxDynamicUIUpdatesPerBatch +
-            pBD->mDynamicTexturesCount++);
+        Texture* tex = (Texture*)pImDrawCmd-> GetTexID();
+        setIndex = uint32_t(1 + ((ptrdiff_t)pBD->mFrameIdx * pBD->mMaxDynamicUIUpdatesPerBatch +
+            pBD->mDynamicTexturesCount++));
 
 
         DescriptorData params[1] = {};
@@ -375,6 +395,9 @@ void ImGui_TheForge_RenderDrawData(ImDrawData* pImDrawData, Cmd* pCmd)
 
     float2 displayPos(pImDrawData->DisplayPos.x, pImDrawData->DisplayPos.y);
     float2 displaySize(pImDrawData->DisplaySize.x, pImDrawData->DisplaySize.y);
+    float2 fbScale(pImDrawData->FramebufferScale.x, pImDrawData->FramebufferScale.y);
+    if (fbScale.x <= 0.0f) fbScale.x = 1.0f;
+    if (fbScale.y <= 0.0f) fbScale.y = 1.0f;
 
     uint64_t vSize = pImDrawData->TotalVtxCount * sizeof(ImDrawVert);
     uint64_t iSize = pImDrawData->TotalIdxCount * sizeof(ImDrawIdx);
@@ -424,7 +447,7 @@ void ImGui_TheForge_RenderDrawData(ImDrawData* pImDrawData, Cmd* pCmd)
     Pipeline* pPreviousPipeline = pPipeline;
     uint32_t  prevSetIndex = UINT32_MAX;
 
-    cmdPrepareRenderingForUI(pBD, pCmd, displayPos, displaySize, pPipeline, vOffset, iOffset);
+    cmdPrepareRenderingForUI(pBD, pCmd, displayPos, displaySize, fbScale, pPipeline, vOffset, iOffset);
 
     // Render command lists
     uint32_t globalVtxOffset = 0;
@@ -457,7 +480,7 @@ void ImGui_TheForge_RenderDrawData(ImDrawData* pImDrawData, Cmd* pCmd)
                     vertexCount = 0;
                     indexCount = 0;
                 }
-                cmdDrawUICommand(pBD, pCmd, pImDrawCmd, displayPos, displaySize, &pPipeline, &pPreviousPipeline, globalVtxOffset,
+                cmdDrawUICommand(pBD, pCmd, pImDrawCmd, displayPos, displaySize, fbScale, &pPipeline, &pPreviousPipeline, globalVtxOffset,
                                  globalIdxOffset, prevSetIndex, vertexCount, indexCount);
             }
         }

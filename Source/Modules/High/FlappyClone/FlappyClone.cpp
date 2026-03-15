@@ -559,8 +559,8 @@ namespace FlappyClone
                     if (pKeyboard && pMouse)
                     {
                         if (pGameCtx &&
-                            pKeyboard->WasPressed(SDLK_SPACE) || pMouse->WasPressed(SDL_BUTTON_LMASK))
-                        {                            
+                            (pKeyboard->WasPressed(SDLK_SPACE) || pMouse->WasPressed(SDL_BUTTON_LMASK)))
+                        {
                             if (GameContext::IN_PLAY == pGameCtx->state)
                                 vel.y = IMPULSE_FORCE;
                         }

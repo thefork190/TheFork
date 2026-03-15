@@ -61,7 +61,7 @@ namespace AppModuleLauncher
         {
             if (AppModuleToStart() == gAvailableAppModules[i].name)
             {
-                gAppIndexToLaunch = i;
+                gAppIndexToLaunch = (int)i;
                 break;
             }
         }

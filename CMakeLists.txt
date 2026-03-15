@@ -13,12 +13,60 @@ project("TheFork"
     DESCRIPTION "An ECS engine."
 )
 
+if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    set(OSX true)
+endif()
+if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+    set(IOS true)
+endif()
+
 if(APPLE)
     enable_language(OBJC)
     enable_language(OBJCXX)
 endif()
 # Set the name of the executable
 set(EXECUTABLE_NAME ${PROJECT_NAME})
+
+
+if(IOS)
+# ios.toolchain.cmake
+set(CMAKE_SYSTEM_NAME iOS)
+set(CMAKE_OSX_SYSROOT iphoneos)
+set(CMAKE_OSX_ARCHITECTURES arm64)
+set(CMAKE_XCODE_ATTRIBUTE_ONLY_ACTIVE_ARCH "NO")
+set(CMAKE_XCODE_ATTRIBUTE_ENABLE_BITCODE "NO")
+set(CMAKE_XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "1,2")
+endif()
+
+# automatic team detection to get local ID.
+# we can have a common ID later thats hardcoded
+if(APPLE)
+    # Extract Team ID (OU field) from the Apple Development certificate
+    execute_process(
+        COMMAND
+            sh -c "security find-certificate -p -c 'Apple Development' | openssl x509 -noout -subject -nameopt utf8 | sed -n 's/.*OU=\\([^,]*\\).*/\\1/p'"
+        OUTPUT_VARIABLE
+            TEAM_ID
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+
+    # Check if a Team ID was found.
+    if(TEAM_ID)
+        message(STATUS "Automatically detected Apple Team ID: ${TEAM_ID}")
+        set(XCODE_TEAM_ID ${TEAM_ID})
+    else()
+        message(WARNING "Could not automatically detect Apple Team ID. Please set it manually.")
+        set(XCODE_TEAM_ID "YourTeamID")
+    endif()
+
+    set(CMAKE_XCODE_ATTRIBUTE_CODE_SIGN_STYLE "Automatic")
+    set(CMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM "${XCODE_TEAM_ID}")
+    set(CMAKE_XCODE_ATTRIBUTE_PROVISIONING_PROFILE_SPECIFIER "")
+    if(IOS AND CMAKE_OSX_SYSROOT STREQUAL "iphonesimulator")
+        set(CMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED "NO")
+    endif()
+endif()
+
 
 # Collect all shader files recursively from the FSL directory
 file(GLOB_RECURSE SHADER_FILES "${CMAKE_SOURCE_DIR}/Source/FSL/*")
@@ -138,7 +186,7 @@ target_sources(${EXECUTABLE_NAME}
 )
 
 # Add additional platform-specific settings
-if(APPLE)
+if(OSX)
     target_sources("${EXECUTABLE_NAME}" PRIVATE Source/logo.png)
     set(CMAKE_EXE_LINKER_FLAGS "-framework Cocoa -framework AppKit -framework CoreData -framework Foundation -framework Metal -framework MetalPerformanceShaders -framework CoreVideo -framework IOKit")
 endif()
@@ -151,6 +199,11 @@ if(CMAKE_SYSTEM_NAME MATCHES Emscripten)
 endif()
 
 # 3rd Parties
+if(IOS)
+  set(SDL_FRAMEWORK ON CACHE BOOL "" FORCE)   # you want a dylib, not a framework
+  set(SDL_SHARED   ON  CACHE BOOL "" FORCE)
+  set(SDL_STATIC   OFF CACHE BOOL "" FORCE)
+endif()
 add_subdirectory(ThirdParty/SDL EXCLUDE_FROM_ALL)
 add_subdirectory(ThirdParty/The-Forge/RHI EXCLUDE_FROM_ALL)
 add_subdirectory(ThirdParty/flecs EXCLUDE_FROM_ALL)
@@ -162,20 +215,55 @@ target_include_directories(${EXECUTABLE_NAME}
     PRIVATE ThirdParty/The-Forge/ThirdParty     # Hack for TF
     PUBLIC ThirdParty/The-Forge/RHI/Public
     PRIVATE ThirdParty/CLI11/include/CLI                        # CLI11 header only 3rd party
+    PRIVATE ThirdParty/SDL/include
     PRIVATE ThirdParty/imgui                                    # Required to compile imgui
 )
-if(APPLE)
-target_link_libraries(${EXECUTABLE_NAME} 
-    PRIVATE
-        RHI
-        flecs_static
-        glm::glm
-        $<$<CONFIG:Debug>:${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/efsw_artifacts/mac-lib/libefsw-static-debug.a>
-        $<$<CONFIG:Release>:${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/efsw_artifacts/mac-lib/libefsw-static-release.lib>
-        $<$<CONFIG:RelWithDebInfo>:${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/efsw_artifacts/mac-lib/libefsw-static-reldbginfo.lib>
-    PUBLIC 
-        SDL3::SDL3
-)
+
+#link specific ios frameworks and libs
+if(IOS)
+    target_link_libraries(${EXECUTABLE_NAME}
+        PRIVATE
+            RHI
+            flecs_static
+            glm::glm
+            "-framework UIKit"
+            "-framework Foundation"
+            "-framework Metal"
+            "-framework MetalKit"
+            "-framework CoreGraphics"
+            "-framework CoreVideo"
+			"-framework MetalPerformanceShaders"
+        PUBLIC 
+            SDL3::SDL3
+    )
+
+      set_target_properties(${EXECUTABLE_NAME} PROPERTIES
+        XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "1,2"
+        XCODE_ATTRIBUTE_SUPPORTED_PLATFORMS "iphoneos"
+      )
+elseif(OSX)
+    target_link_libraries(${EXECUTABLE_NAME} 
+        PRIVATE
+            RHI
+            flecs_static
+            glm::glm
+            $<$<CONFIG:Debug>:${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/efsw_artifacts/mac-lib/libefsw-static-debug.a>
+            $<$<CONFIG:Release>:${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/efsw_artifacts/mac-lib/libefsw-static-release.lib>
+            $<$<CONFIG:RelWithDebInfo>:${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/efsw_artifacts/mac-lib/libefsw-static-reldbginfo.lib>
+        PUBLIC 
+            SDL3::SDL3
+    )
+	target_link_libraries(${EXECUTABLE_NAME} PRIVATE
+			stdc++
+			objc
+			"-framework Foundation"
+			"-framework Cocoa"
+			"-framework IOKit"
+			"-framework Metal"
+			"-framework MetalKit"
+			"-framework MetalPerformanceShaders"
+			"-framework QuartzCore"
+    )
 elseif (ANDROID)
 target_link_libraries(${EXECUTABLE_NAME} 
     PRIVATE
@@ -211,6 +299,76 @@ target_compile_definitions(${EXECUTABLE_NAME}
     PUBLIC IMGUI_USER_CONFIG="Medium/Imgui/imconfig.h"
     )
 
+
+set(ASSETS_DIR "${CMAKE_SOURCE_DIR}/Assets")
+file(GLOB_RECURSE ASSET_FILES "${ASSETS_DIR}/*")
+
+#setup ios assets before the install step
+#seems to help with signing
+if(IOS)
+    # we only want to copy specific subfolders
+    set(ASSETS_SUBFOLDERS
+        Fonts
+        GPUCfg
+        FSL/binary/IOS
+    )
+    
+    # Copy every subfolder under assets
+    foreach(subdir IN LISTS ASSETS_SUBFOLDERS)
+        set(SRC "${ASSETS_DIR}/${subdir}")
+        set(DST "$<TARGET_BUNDLE_DIR:${EXECUTABLE_NAME}>/Assets/${subdir}")
+
+        add_custom_command(
+            TARGET ${EXECUTABLE_NAME}
+            POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E make_directory "${DST}"
+            COMMAND ${CMAKE_COMMAND} -E copy_directory "${SRC}" "${DST}"
+            COMMENT "Copying Assets subfolder: ${subdir}"
+        )
+    endforeach()
+
+    if(TARGET SDL3::SDL3)
+    get_target_property(_SDL_ALIASED SDL3::SDL3 ALIASED_TARGET)
+    if(_SDL_ALIASED)
+        set(_SDL_TARGET "${_SDL_ALIASED}")
+    else()
+        set(_SDL_TARGET "SDL3::SDL3")
+    endif()
+    elseif(TARGET SDL3-shared)
+        set(_SDL_TARGET "SDL3-shared")
+    elseif(TARGET SDL3) # some trees expose 'SDL3' directly
+        set(_SDL_TARGET "SDL3")
+    else()
+        message(FATAL_ERROR "Could not find an SDL3 target to embed (SDL3::SDL3 / SDL3-shared / SDL3). Check SDL options before add_subdirectory().")
+    endif()
+
+    # Is it a framework?
+    get_target_property(_SDL_IS_FRAMEWORK "${_SDL_TARGET}" FRAMEWORK)
+
+    if(_SDL_IS_FRAMEWORK)
+        # Framework: use XCODE_EMBED_FRAMEWORKS with the TARGET NAME (no genex)
+        set_target_properties(${EXECUTABLE_NAME} PROPERTIES
+            XCODE_EMBED_FRAMEWORKS "${_SDL_TARGET}"
+            XCODE_EMBED_FRAMEWORKS_CODE_SIGN_ON_COPY TRUE
+            XCODE_EMBED_FRAMEWORKS_REMOVE_HEADERS_ON_COPY TRUE
+        ) 
+    else()
+        # Dylib: use XCODE_EMBED_LIBRARIES with the TARGET NAME (no genex)
+        set_target_properties(${EXECUTABLE_NAME} PROPERTIES
+            XCODE_EMBED_LIBRARIES "${_SDL_TARGET}"
+            XCODE_EMBED_LIBRARIES_CODE_SIGN_ON_COPY TRUE
+        )
+    endif()
+
+    # Common runpaths for iOS app bundle
+    set_target_properties(${EXECUTABLE_NAME} PROPERTIES
+    XCODE_EMBEDDED_CONTENT_CONTAINS_SWIFT FALSE
+    XCODE_ATTRIBUTE_LD_RUNPATH_SEARCH_PATHS "@executable_path/Frameworks @loader_path/Frameworks"
+    INSTALL_RPATH "@executable_path/Frameworks"
+    BUILD_RPATH   "@executable_path/Frameworks"
+    )
+endif()
+
 set_target_properties(${EXECUTABLE_NAME} PROPERTIES 
     MACOSX_BUNDLE TRUE
     XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC YES  
@@ -223,7 +381,7 @@ set_target_properties(${EXECUTABLE_NAME} PROPERTIES
 
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT "${EXECUTABLE_NAME}")
 
-if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
+if(OSX)
     INSTALL(CODE 
         "include(BundleUtilities)
         fixup_bundle(\"$<TARGET_BUNDLE_DIR:${EXECUTABLE_NAME}>\" \"\" \"\")
@@ -232,7 +390,9 @@ if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
     )
 endif()
 
-install(TARGETS ${EXECUTABLE_NAME} BUNDLE DESTINATION ./install)
+if(NOT IOS)
+    install(TARGETS ${EXECUTABLE_NAME} BUNDLE DESTINATION ./install)
+endif()
 
 if (WIN32)
     add_custom_command(TARGET ${EXECUTABLE_NAME} POST_BUILD
@@ -245,34 +405,31 @@ if (WIN32)
 endif (WIN32)
 
 # Assets
-set(ASSETS_DIR "${CMAKE_SOURCE_DIR}/Assets")
-file(GLOB_RECURSE ASSET_FILES "${ASSETS_DIR}/*")
-if(APPLE)
-# Define the path to the Resources folder inside the .app bundle
-set(ASSETS_DESTINATION "$<TARGET_BUNDLE_DIR:${EXECUTABLE_NAME}>/Contents/Resources/Assets")
-
-# Define a post-build command to copy assets to the .app bundle
-add_custom_command(
-    TARGET ${EXECUTABLE_NAME}
-    POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E make_directory "${ASSETS_DESTINATION}"
-    COMMAND ${CMAKE_COMMAND} -E copy_directory "${ASSETS_DIR}" "${ASSETS_DESTINATION}"
-    COMMENT "Copying assets to .app bundle..."
-)
+if(IOS)
+    # handled via POST_BUILD in the iOS section above
+elseif(OSX)
+    # Define the path to the Resources folder inside the .app bundle
+    set(ASSETS_DESTINATION "$<TARGET_BUNDLE_DIR:${EXECUTABLE_NAME}>/Contents/Resources/Assets")
+    # Define a post-build command to copy assets to the .app bundle
+    add_custom_command(
+        TARGET ${EXECUTABLE_NAME}
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${ASSETS_DESTINATION}"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${ASSETS_DIR}" "${ASSETS_DESTINATION}"
+        COMMENT "Copying assets to .app bundle...")
 elseif(ANDROID)
     # For Android, assets should be placed in the 'assets' folder and are bundled in the APK
     message(STATUS "Android detected. Make sure assets are in the 'assets' directory in the Android project.")
 else()
-# Define the path to the Resources folder inside the .app bundle
-set(ASSETS_DESTINATION "${CMAKE_BINARY_DIR}/$<CONFIG>/Assets")
+    set(ASSETS_DESTINATION "${CMAKE_BINARY_DIR}/$<CONFIG>/Assets")
 
-add_custom_command(
-    OUTPUT "${ASSETS_DESTINATION}"
-    COMMAND ${CMAKE_COMMAND} -E copy_directory "${ASSETS_DIR}" "${ASSETS_DESTINATION}"
-    DEPENDS ${ASSET_FILES}
-    COMMENT "Copying assets..."
-)
+    add_custom_command(
+        OUTPUT "${ASSETS_DESTINATION}"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${ASSETS_DIR}" "${ASSETS_DESTINATION}"
+        DEPENDS ${ASSET_FILES}
+        COMMENT "Copying assets..."
+    )
+
+    add_custom_target(copy_assets ALL DEPENDS "${ASSETS_DESTINATION}")
+    add_dependencies(${EXECUTABLE_NAME} copy_assets)
 endif()
-
-add_custom_target(copy_assets ALL DEPENDS "${ASSETS_DESTINATION}")
-add_dependencies(${EXECUTABLE_NAME} copy_assets)
